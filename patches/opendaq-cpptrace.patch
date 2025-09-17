@@ -1,0 +1,72 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0bfcc464..8c43de60 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,5 +1,15 @@
+ set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+ cmake_minimum_required(VERSION 3.24)
++
++# Add cpptrace for exception stack traces
++include(FetchContent)
++FetchContent_Declare(
++  cpptrace
++  GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
++  GIT_TAG        v1.0.4
++)
++FetchContent_MakeAvailable(cpptrace)
++
+ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+ set(CMAKE_FOLDER "${CMAKE_FOLDER}/openDAQ")
+ 
+diff --git a/core/coretypes/include/coretypes/exceptions.h b/core/coretypes/include/coretypes/exceptions.h
+index 4b72be7b..b4d6979a 100644
+--- a/core/coretypes/include/coretypes/exceptions.h
++++ b/core/coretypes/include/coretypes/exceptions.h
+@@ -23,6 +23,9 @@
+ #include <stdexcept>
+ #include <string>
+ 
++#include <cpptrace/cpptrace.hpp>
++#include <cpptrace/formatting.hpp>
++
+ BEGIN_NAMESPACE_OPENDAQ
+ 
+ #define DEFINE_EXCEPTION_BASE(excBase, excName, errCode, excMsg)                                 \
+@@ -149,6 +151,11 @@ extern void checkErrorInfo(ErrCode errCode);
+ [[noreturn]] inline void throwExceptionFromErrorCode(ErrCode errCode, const std::string& msg = "")
+ {
+     IExceptionFactory* fact = ErrorCodeToException::GetInstance()->getExceptionFactory(errCode);
++    auto formatter = cpptrace::formatter{}
++        .header("openDAQ exception thrown:")
++        .addresses(cpptrace::formatter::address_mode::object)
++        .snippets(true);
++    formatter.print(cpptrace::generate_trace());
+     fact->throwException(errCode, msg);
+ 
+     // Unreachable code but prevents GCC from emitting a warning that a [[noreturn]] function actually returns
+diff --git a/core/coretypes/src/CMakeLists.txt b/core/coretypes/src/CMakeLists.txt
+index abcee520..806060d5 100644
+--- a/core/coretypes/src/CMakeLists.txt
++++ b/core/coretypes/src/CMakeLists.txt
+@@ -279,6 +279,21 @@ add_library(${LIB_NAME} SHARED ${SRC_Cpp}
+ )
+ add_library(${SDK_TARGET_NAMESPACE}::${BASE_NAME} ALIAS ${LIB_NAME})
+ 
++# Link cpptrace if target exists
++if(TARGET cpptrace::cpptrace)
++    target_link_libraries(${LIB_NAME} PUBLIC cpptrace::cpptrace)
++    
++    # Needed for shared library builds on windows: copy cpptrace.dll to the same directory as the executable
++    if(WIN32)
++        add_custom_command(
++            TARGET ${LIB_NAME} POST_BUILD
++            COMMAND ${CMAKE_COMMAND} -E copy_if_different
++            $<TARGET_FILE:cpptrace::cpptrace>
++            $<TARGET_FILE_DIR:${LIB_NAME}>
++        )
++    endif()
++endif()
++
+ target_link_libraries(${LIB_NAME} PRIVATE daq::core_containers
+                                           rapidjson
+                                           tsl::ordered_map
