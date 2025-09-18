@@ -268,12 +268,9 @@ ImGuiNodesNode* ImGuiNodes::CreateNode(const std::string& name, ImColor color, I
 
     node->BuildNodeGeometry(inputs_size, outputs_size);
     node->TranslateNode(pos - node->area_node_.GetCenter());
-    node->state_ |= ImGuiNodesNodeStateFlag_Visible | ImGuiNodesNodeStateFlag_Hovered | ImGuiNodesNodeStateFlag_Processing;
+    node->state_ |= ImGuiNodesNodeStateFlag_Visible | ImGuiNodesNodeStateFlag_Hovered;
 
-    if (processing_node_)
-        processing_node_->state_ &= ~(ImGuiNodesNodeStateFlag_Processing);
-
-    return processing_node_ = node;
+    return node;
 }
 
 bool ImGuiNodes::SortSelectedNodesOrder()
@@ -407,12 +404,6 @@ void ImGuiNodes::Update()
 
                     state &= ~(ImGuiNodesNodeStateFlag_Selected | ImGuiNodesNodeStateFlag_Marked | ImGuiNodesNodeStateFlag_Hovered);
                 }
-
-                if (processing_node_ && !selected)
-                {
-                    processing_node_->state_ &= ~(ImGuiNodesNodeStateFlag_Processing);
-                    processing_node_ = NULL;
-                }				  
 
                 return;
             };
@@ -700,9 +691,6 @@ void ImGuiNodes::Update()
                     ImGuiNodesOutput& output = node->outputs_[output_idx];
                     IM_ASSERT(output.connections_ == 0);
                 }
-
-                if (node == processing_node_)
-                    processing_node_ = NULL;
     
                 delete node;
             }
@@ -1089,10 +1077,7 @@ void ImGuiNodesNode::DrawNode(ImDrawList* draw_list, ImVec2 offset, float scale,
             head_color.Value.w = 0.25f;
     }
 
-    if (state_ & ImGuiNodesNodeStateFlag_Processing)
-        draw_list->AddRectFilled(node_rect.Min - outline, node_rect.Max + outline, body_color, rounding, rounding_corners_flags);
-    else
-        draw_list->AddRectFilled(node_rect.Min, node_rect.Max, body_color, rounding, rounding_corners_flags);
+    draw_list->AddRectFilled(node_rect.Min, node_rect.Max, body_color, rounding, rounding_corners_flags);
 
     const ImVec2 head = node_rect.GetTR() + ImVec2(0.0f, title_height_ * scale);
 
@@ -1147,22 +1132,19 @@ void ImGuiNodesNode::DrawNode(ImDrawList* draw_list, ImVec2 offset, float scale,
     ImGui::Text("%s", name_.c_str());
 
     if (state_ & (ImGuiNodesNodeStateFlag_Marked | ImGuiNodesNodeStateFlag_Selected))
-        draw_list->AddRectFilled(node_rect.Min, node_rect.Max, ImColor(1.0f, 1.0f, 1.0f, 0.25f), rounding, rounding_corners_flags);
-
-    if (state_ & ImGuiNodesNodeStateFlag_Processing)
     {
-        ImColor processing_color = color_;
-        processing_color.Value.x *= 1.5;
-        processing_color.Value.y *= 1.5;
-        processing_color.Value.z *= 1.5;
-        processing_color.Value.w = 1.0f;
+        // Create a subtle highlighted border color based on the node's color
+        ImColor border_color = color_;
+        border_color.Value.x *= 1.3f;  // Slightly brighten
+        border_color.Value.y *= 1.3f;
+        border_color.Value.z *= 1.3f;
+        border_color.Value.w = 0.8f;   // Semi-transparent
+        
+        draw_list->AddRect(node_rect.Min - outline, node_rect.Max + outline, border_color, rounding, rounding_corners_flags, 2.0f * scale);
+    }
 
-        draw_list->AddRect(node_rect.Min - outline, node_rect.Max + outline, processing_color, rounding, rounding_corners_flags, 2.0f * scale);		
-    }
-    else
-    {
-        draw_list->AddRect(node_rect.Min - outline * 0.5f, node_rect.Max + outline * 0.5f, ImColor(0.0f, 0.0f, 0.0f, 0.5f), rounding, rounding_corners_flags, 3.0f * scale);		
-    }
+    // Default border for all nodes
+    draw_list->AddRect(node_rect.Min - outline * 0.5f, node_rect.Max + outline * 0.5f, ImColor(0.0f, 0.0f, 0.0f, 0.5f), rounding, rounding_corners_flags, 3.0f * scale);
 }
 
 void ImGuiNodes::DrawConnection(ImVec2 p1, ImVec2 p4, ImColor color)
@@ -1204,7 +1186,6 @@ ImGuiNodes::ImGuiNodes()
     element_node_ = NULL;
     element_input_ = NULL;
     element_output_ = NULL;
-    processing_node_ = NULL;
 }
 
 ImGuiNodes::~ImGuiNodes()

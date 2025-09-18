@@ -28,8 +28,7 @@ enum ImGuiNodesNodeStateFlag_
     ImGuiNodesNodeStateFlag_Marked			= 1 << 2,
     ImGuiNodesNodeStateFlag_Selected		= 1 << 3,
     ImGuiNodesNodeStateFlag_Collapsed		= 1 << 4,
-    ImGuiNodesNodeStateFlag_Disabled		= 1 << 5,
-    ImGuiNodesNodeStateFlag_Processing		= 1 << 6 
+    ImGuiNodesNodeStateFlag_Disabled		= 1 << 5
 };
 
 enum ImGuiNodesState_
@@ -135,7 +134,6 @@ private:
     ImGuiNodesNode* element_node_ = NULL;
     ImGuiNodesInput* element_input_ = NULL;
     ImGuiNodesOutput* element_output_ = NULL;
-    ImGuiNodesNode* processing_node_ = NULL;
 
     ImVector<ImGuiNodesNode*> nodes_;
 
