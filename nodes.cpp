@@ -161,9 +161,6 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
             if (state_ == ImGuiNodesState_Selecting)
                 continue;
 
-            if (state_ != ImGuiNodesState_DragingOutput && node->state_ & ImGuiNodesNodeStateFlag_Selected)
-                continue;
-
             ImRect input_rect = input.area_input_;
             input_rect.Min *= scale_;
             input_rect.Max *= scale_;
@@ -209,9 +206,6 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
                 continue;
         
             if (state_ == ImGuiNodesState_Selecting)
-                continue;
-
-            if (state_ != ImGuiNodesState_DragingInput && node->state_ & ImGuiNodesNodeStateFlag_Selected)
                 continue;
             
             ImRect output_rect = output.area_output_;
