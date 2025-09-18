@@ -59,49 +59,5 @@ target_link_libraries(imgui PUBLIC SDL2::SDL2 SDL2::SDL2main OpenGL::GL)
 
 
 add_executable(${PROJECT_NAME} main.cpp nodes.cpp opendaq_control.cpp)
-target_include_directories(${PROJECT_NAME}
-  PUBLIC
-  ${openDAQ_SOURCE_DIR}/../coretypes/include
-  ${openDAQ_BINARY_DIR}/../coretypes/include
-  ${openDAQ_SOURCE_DIR}/../coreobjects/include
-  ${openDAQ_BINARY_DIR}/../coreobjects/include
-  ${openDAQ_SOURCE_DIR}/../corecontainers/include
-  ${openDAQ_SOURCE_DIR}/opendaq/include
-  ${openDAQ_BINARY_DIR}/opendaq/include
-
-  ${openDAQ_BINARY_DIR}/context/include
-  ${openDAQ_BINARY_DIR}/functionblock/include
-  ${openDAQ_BINARY_DIR}/modulemanager/include
-  ${openDAQ_BINARY_DIR}/reader/include
-  ${openDAQ_BINARY_DIR}/server/include
-  ${openDAQ_BINARY_DIR}/streaming/include
-  ${openDAQ_BINARY_DIR}/utility/include
-  ${openDAQ_BINARY_DIR}/component/include
-  ${openDAQ_BINARY_DIR}/device/include
-  ${openDAQ_BINARY_DIR}/logger/include
-  ${openDAQ_BINARY_DIR}/opendaq/include
-  ${openDAQ_BINARY_DIR}/scheduler/include
-  ${openDAQ_BINARY_DIR}/signal/include
-  ${openDAQ_BINARY_DIR}/synchronization/include
-
-  ${openDAQ_SOURCE_DIR}/context/include
-  ${openDAQ_SOURCE_DIR}/functionblock/include
-  ${openDAQ_SOURCE_DIR}/modulemanager/include
-  ${openDAQ_SOURCE_DIR}/reader/include
-  ${openDAQ_SOURCE_DIR}/server/include
-  ${openDAQ_SOURCE_DIR}/streaming/include
-  ${openDAQ_SOURCE_DIR}/utility/include
-  ${openDAQ_SOURCE_DIR}/component/include
-  ${openDAQ_SOURCE_DIR}/device/include
-  ${openDAQ_SOURCE_DIR}/logger/include
-  ${openDAQ_SOURCE_DIR}/opendaq/include
-  ${openDAQ_SOURCE_DIR}/scheduler/include
-  ${openDAQ_SOURCE_DIR}/signal/include
-  ${openDAQ_SOURCE_DIR}/synchronization/include
-
-  build/__external/src/fmt/include
-  build/__external/src/xxHash
-  build/__external/src/tsl-ordered-map/include
-  build/__external/src/date/include
-)
+target_include_directories(${PROJECT_NAME} PUBLIC ${openDAQ_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PUBLIC daq::opendaq imgui implot)
