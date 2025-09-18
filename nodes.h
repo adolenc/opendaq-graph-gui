@@ -11,14 +11,6 @@
 namespace ImGui
 {
 
-enum ImGuiNodesNodeType_
-{
-    ImGuiNodesNodeType_None = 0,
-    ImGuiNodesNodeType_Generic,
-    ImGuiNodesNodeType_Generator,
-    ImGuiNodesNodeType_Test
-};
-
 enum ImGuiNodesConnectorStateFlag_
 {
     ImGuiNodesConnectorStateFlag_Default	= 0,
@@ -51,8 +43,6 @@ enum ImGuiNodesState_
     ImGuiNodesState_DragingOutput,
     ImGuiNodesState_Selecting
 };
-
-typedef unsigned int ImGuiNodesNodeType;
 
 typedef unsigned int ImGuiNodesConnectorState;
 typedef unsigned int ImGuiNodesNodeState;
@@ -113,7 +103,6 @@ struct ImGuiNodesNode
     float title_height_;
     float body_height_;
     ImGuiNodesNodeState state_;
-    ImGuiNodesNodeType type_;
     std::string name_;
     ImColor color_;
     std::vector<ImGuiNodesInput> inputs_;
@@ -125,7 +114,7 @@ struct ImGuiNodesNode
 
     void DrawNode(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
 
-    ImGuiNodesNode(const std::string& name, ImGuiNodesNodeType type, ImColor color);
+    ImGuiNodesNode(const std::string& name, ImColor color);
 };
 
 
@@ -153,7 +142,7 @@ private:
 private:
     void UpdateCanvasGeometry(ImDrawList* draw_list);
     ImGuiNodesNode* UpdateNodesFromCanvas();
-    ImGuiNodesNode* CreateNode(const std::string& name, ImGuiNodesNodeType type, ImColor color, ImVec2 pos, 
+    ImGuiNodesNode* CreateNode(const std::string& name, ImColor color, ImVec2 pos, 
                                const std::vector<std::string>& inputs, const std::vector<std::string>& outputs);
 
     void DrawConnection(ImVec2 p1, ImVec2 p4, ImColor color);

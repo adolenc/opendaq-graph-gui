@@ -239,10 +239,10 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
     return hovered_node;
 }
 
-ImGuiNodesNode* ImGuiNodes::CreateNode(const std::string& name, ImGuiNodesNodeType type, ImColor color, ImVec2 pos, 
+ImGuiNodesNode* ImGuiNodes::CreateNode(const std::string& name, ImColor color, ImVec2 pos, 
                                        const std::vector<std::string>& inputs, const std::vector<std::string>& outputs)
 {
-    ImGuiNodesNode* node = new ImGuiNodesNode(name, type, color);
+    ImGuiNodesNode* node = new ImGuiNodesNode(name, color);
 
     for (const auto& input_name : inputs)
         node->inputs_.push_back(ImGuiNodesInput(input_name));
@@ -850,7 +850,6 @@ void ImGuiNodes::ProcessContextMenu()
         {
             ImGuiNodesNode* node = CreateNode(
                 "Test", 
-                ImGuiNodesNodeType_Generic, 
                 ImColor(0.2f, 0.3f, 0.6f, 0.0f), 
                 position,
                 {"Float", "Int", "TextStream"},
@@ -862,7 +861,6 @@ void ImGuiNodes::ProcessContextMenu()
         {
             ImGuiNodesNode* node = CreateNode(
                 "InputBox", 
-                ImGuiNodesNodeType_Generic,
                 ImColor(0.3f, 0.5f, 0.5f, 0.0f), 
                 position,
                 {"Float1", "Float2", "Int1", "Int2", "GenericSink", "Vector", "Image", "Text"},
@@ -874,7 +872,6 @@ void ImGuiNodes::ProcessContextMenu()
         {
             ImGuiNodesNode* node = CreateNode(
                 "OutputBox", 
-                ImGuiNodesNodeType_Generic, 
                 ImColor(0.4f, 0.3f, 0.5f, 0.0f), 
                 position,
                 {"GenericSink1", "GenericSink2", "Float", "Int", "Text"},
@@ -1021,10 +1018,9 @@ void ImGuiNodesNode::TranslateNode(ImVec2 delta, bool selected_only)
         outputs_[output_idx].TranslateOutput(delta);
 }
 
-ImGuiNodesNode::ImGuiNodesNode(const std::string& name, ImGuiNodesNodeType type, ImColor color)
+ImGuiNodesNode::ImGuiNodesNode(const std::string& name, ImColor color)
 {
     name_ = name;
-    type_ = type;
     state_ = ImGuiNodesNodeStateFlag_Default;
     color_ = color;
 
