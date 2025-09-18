@@ -136,9 +136,6 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
         {
             ImGuiNodesInput& input = node->inputs_[input_idx];
 
-            if (input.type_ == ImGuiNodesConnectorType_None)
-                continue;
-
             input.state_ &= ~(ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_Consider | ImGuiNodesConnectorStateFlag_Draging);
 
             if (state_ == ImGuiNodesState_DragingInput)
@@ -188,9 +185,6 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
         for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
         {
             ImGuiNodesOutput& output = node->outputs_[output_idx];
-
-            if (output.type_ == ImGuiNodesConnectorType_None)
-                continue;
 
             output.state_ &= ~(ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_Consider | ImGuiNodesConnectorStateFlag_Draging);
 
@@ -255,7 +249,7 @@ ImGuiNodesNode* ImGuiNodes::CreateNodeFromDesc(ImGuiNodesNodeDesc* desc, ImVec2 
 
     for (int input_idx = 0; input_idx < desc->inputs_.size(); ++input_idx)
     {
-        ImGuiNodesInput input(desc->inputs_[input_idx].name_, desc->inputs_[input_idx].type_);
+        ImGuiNodesInput input(desc->inputs_[input_idx].name_);
 
         inputs.x = ImMax(inputs.x, input.area_input_.GetWidth());
         inputs.y += input.area_input_.GetHeight();
@@ -264,7 +258,7 @@ ImGuiNodesNode* ImGuiNodes::CreateNodeFromDesc(ImGuiNodesNodeDesc* desc, ImVec2 
 
     for (int output_idx = 0; output_idx < desc->outputs_.size(); ++output_idx)
     {
-        ImGuiNodesOutput output(desc->outputs_[output_idx].name_, desc->outputs_[output_idx].type_);
+        ImGuiNodesOutput output(desc->outputs_[output_idx].name_);
     
         outputs.x = ImMax(outputs.x, output.area_output_.GetWidth());
         outputs.y += output.area_output_.GetHeight();
@@ -697,7 +691,6 @@ void ImGuiNodes::Update()
                     if (input.output_)
                         input.output_->connections_--;
                     
-                    input.type_ = ImGuiNodesNodeType_None;
                     input.name_ = NULL;
                     input.target_ = NULL;
                     input.output_ = NULL;
@@ -872,9 +865,8 @@ void ImGuiNodesInput::TranslateInput(ImVec2 delta)
     area_name_.Translate(delta);
 }
 
-ImGuiNodesInput::ImGuiNodesInput(const char* name, ImGuiNodesConnectorType type)
+ImGuiNodesInput::ImGuiNodesInput(const char* name)
 {
-    type_ = type;
     state_ = ImGuiNodesConnectorStateFlag_Default;
     target_ = NULL;
     output_ = NULL;
@@ -901,9 +893,6 @@ ImGuiNodesInput::ImGuiNodesInput(const char* name, ImGuiNodesConnectorType type)
 
 void ImGuiNodesInput::DrawInput(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const
 {
-    if (type_ == ImGuiNodesConnectorType_None)
-        return;
-
     if (state != ImGuiNodesState_Draging && state_ & ImGuiNodesConnectorStateFlag_Hovered && !(state_ & ImGuiNodesConnectorStateFlag_Consider))
     {
         const ImColor color = target_ == NULL ? ImColor(0.0f, 0.0f, 1.0f, 0.5f) : ImColor(1.0f, 0.5f, 0.0f, 0.5f);
@@ -937,9 +926,8 @@ void ImGuiNodesOutput::TranslateOutput(ImVec2 delta)
     area_name_.Translate(delta);
 }
 
-ImGuiNodesOutput::ImGuiNodesOutput(const char* name, ImGuiNodesConnectorType type)
+ImGuiNodesOutput::ImGuiNodesOutput(const char* name)
 {
-    type_ = type;
     state_ = ImGuiNodesConnectorStateFlag_Default;
     connections_ = 0;
     name_ = name;
@@ -965,9 +953,6 @@ ImGuiNodesOutput::ImGuiNodesOutput(const char* name, ImGuiNodesConnectorType typ
 
 void ImGuiNodesOutput::DrawOutput(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const
 {
-    if (type_ == ImGuiNodesConnectorType_None)
-        return;
-
     if (state != ImGuiNodesState_Draging && state_ & ImGuiNodesConnectorStateFlag_Hovered && !(state_ & ImGuiNodesConnectorStateFlag_Consider))
         draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(0.0f, 0.0f, 1.0f, 0.5f));
 
@@ -1184,19 +1169,7 @@ void ImGuiNodes::DrawConnection(ImVec2 p1, ImVec2 p4, ImColor color)
 
 bool ImGuiNodes::ConnectionMatrix(ImGuiNodesNode* input_node, ImGuiNodesNode* output_node, ImGuiNodesInput* input, ImGuiNodesOutput* output)
 {
-    if (input->target_ && input->target_ == output_node)
-        return false;
-    
-    if (input->type_ == output->type_)
-        return true;
-
-    if (input->type_ == ImGuiNodesConnectorType_Generic)
-        return true;
-
-    if (output->type_ == ImGuiNodesConnectorType_Generic)
-        return true;
-
-    return false;
+    return !(input->target_ && input->target_ == output_node);
 }
 
 ImGuiNodes::ImGuiNodes()
@@ -1211,11 +1184,11 @@ ImGuiNodes::ImGuiNodes()
         ImGuiNodesNodeDesc desc{"Test", ImGuiNodesNodeType_Generic, ImColor(0.2, 0.3, 0.6, 0.0f)};
         nodes_desc_.push_back(desc);
     
-        desc.inputs_.push_back({ "Float", ImGuiNodesConnectorType_Float });
-        desc.inputs_.push_back({ "Int", ImGuiNodesConnectorType_Int });
-        desc.inputs_.push_back({ "TextStream", ImGuiNodesConnectorType_Text });
+        desc.inputs_.push_back({ "Float" });
+        desc.inputs_.push_back({ "Int" });
+        desc.inputs_.push_back({ "TextStream" });
         
-        desc.outputs_.push_back({ "Float", ImGuiNodesConnectorType_Float });
+        desc.outputs_.push_back({ "Float" });
         
         auto& back = nodes_desc_.back();
         back.inputs_ = desc.inputs_;
@@ -1226,22 +1199,18 @@ ImGuiNodes::ImGuiNodes()
         ImGuiNodesNodeDesc desc{"InputBox", ImGuiNodesNodeType_Generic, ImColor(0.3, 0.5, 0.5, 0.0f)};
         nodes_desc_.push_back(desc);
     
-        desc.inputs_.push_back({ "Float1", ImGuiNodesConnectorType_Float });
-        desc.inputs_.push_back({ "Float2", ImGuiNodesConnectorType_Float });
-        desc.inputs_.push_back({ "Int1", ImGuiNodesConnectorType_Int });
-        desc.inputs_.push_back({ "Int2", ImGuiNodesConnectorType_Int });
-        desc.inputs_.push_back({ "", ImGuiNodesConnectorType_None });
-        desc.inputs_.push_back({ "GenericSink", ImGuiNodesConnectorType_Generic });
-        desc.inputs_.push_back({ "", ImGuiNodesConnectorType_None });
-        desc.inputs_.push_back({ "Vector", ImGuiNodesConnectorType_Vector });
-        desc.inputs_.push_back({ "Image", ImGuiNodesConnectorType_Image });
-        desc.inputs_.push_back({ "Text", ImGuiNodesConnectorType_Text });
+        desc.inputs_.push_back({ "Float1" });
+        desc.inputs_.push_back({ "Float2" });
+        desc.inputs_.push_back({ "Int1" });
+        desc.inputs_.push_back({ "Int2" });
+        desc.inputs_.push_back({ "GenericSink" });
+        desc.inputs_.push_back({ "Vector" });
+        desc.inputs_.push_back({ "Image" });
+        desc.inputs_.push_back({ "Text" });
     
-        desc.outputs_.push_back({ "TextStream", ImGuiNodesConnectorType_Text });
-        desc.outputs_.push_back({ "", ImGuiNodesConnectorType_None });
-        desc.outputs_.push_back({ "Float", ImGuiNodesConnectorType_Float });
-        desc.outputs_.push_back({ "", ImGuiNodesConnectorType_None });
-        desc.outputs_.push_back({ "Int", ImGuiNodesConnectorType_Int });
+        desc.outputs_.push_back({ "TextStream" });
+        desc.outputs_.push_back({ "Float" });
+        desc.outputs_.push_back({ "Int" });
     
         auto& back = nodes_desc_.back();
         back.inputs_.swap(desc.inputs_);
@@ -1252,23 +1221,18 @@ ImGuiNodes::ImGuiNodes()
         ImGuiNodesNodeDesc desc{"OutputBox", ImGuiNodesNodeType_Generic, ImColor(0.4, 0.3, 0.5, 0.0f)};
         nodes_desc_.push_back(desc);
     
-        desc.inputs_.push_back({ "GenericSink1", ImGuiNodesConnectorType_Generic });
-        desc.inputs_.push_back({ "GenericSink2", ImGuiNodesConnectorType_Generic });
-        desc.inputs_.push_back({ "", ImGuiNodesConnectorType_None });
-        desc.inputs_.push_back({ "Float", ImGuiNodesConnectorType_Float });
-        desc.inputs_.push_back({ "Int", ImGuiNodesConnectorType_Int });
-        desc.inputs_.push_back({ "Text", ImGuiNodesConnectorType_Text });
+        desc.inputs_.push_back({ "GenericSink1" });
+        desc.inputs_.push_back({ "GenericSink2" });
+        desc.inputs_.push_back({ "Float" });
+        desc.inputs_.push_back({ "Int" });
+        desc.inputs_.push_back({ "Text" });
     
-        desc.outputs_.push_back({ "Vector", ImGuiNodesConnectorType_Vector });
-        desc.outputs_.push_back({ "Image", ImGuiNodesConnectorType_Image });
-        desc.outputs_.push_back({ "Text", ImGuiNodesConnectorType_Text });
-        desc.outputs_.push_back({ "", ImGuiNodesConnectorType_None });
-        desc.outputs_.push_back({ "Float", ImGuiNodesConnectorType_Float });
-        desc.outputs_.push_back({ "Int", ImGuiNodesConnectorType_Int });
-        desc.outputs_.push_back({ "", ImGuiNodesConnectorType_None });
-        desc.outputs_.push_back({ "", ImGuiNodesConnectorType_None });
-        desc.outputs_.push_back({ "", ImGuiNodesConnectorType_None });
-        desc.outputs_.push_back({ "Generic", ImGuiNodesConnectorType_Generic });
+        desc.outputs_.push_back({ "Vector" });
+        desc.outputs_.push_back({ "Image" });
+        desc.outputs_.push_back({ "Text" });
+        desc.outputs_.push_back({ "Float" });
+        desc.outputs_.push_back({ "Int" });
+        desc.outputs_.push_back({ "Generic" });
     
         auto& back = nodes_desc_.back();
         back.inputs_.swap(desc.inputs_);

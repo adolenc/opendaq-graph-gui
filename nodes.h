@@ -8,17 +8,6 @@
 namespace ImGui
 {
 
-enum ImGuiNodesConnectorType_
-{
-    ImGuiNodesConnectorType_None = 0,
-    ImGuiNodesConnectorType_Generic,
-    ImGuiNodesConnectorType_Int,
-    ImGuiNodesConnectorType_Float, 
-    ImGuiNodesConnectorType_Vector,
-    ImGuiNodesConnectorType_Image,
-    ImGuiNodesConnectorType_Text
-};
-
 enum ImGuiNodesNodeType_
 {
     ImGuiNodesNodeType_None = 0,
@@ -60,7 +49,6 @@ enum ImGuiNodesState_
     ImGuiNodesState_Selecting
 };
 
-typedef unsigned int ImGuiNodesConnectorType;
 typedef unsigned int ImGuiNodesNodeType;
 
 typedef unsigned int ImGuiNodesConnectorState;
@@ -87,7 +75,6 @@ struct ImGuiNodesInput
     ImVec2 pos_;
     ImRect area_input_;
     ImRect area_name_;
-    ImGuiNodesConnectorType type_;
     ImGuiNodesConnectorState state_;
     const char* name_;
     ImGuiNodesNode* target_;
@@ -97,7 +84,7 @@ struct ImGuiNodesInput
 
     void DrawInput(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
 
-    ImGuiNodesInput(const char* name, ImGuiNodesConnectorType type);
+    ImGuiNodesInput(const char* name);
 };
 
 struct ImGuiNodesOutput
@@ -105,7 +92,6 @@ struct ImGuiNodesOutput
     ImVec2 pos_;
     ImRect area_output_;
     ImRect area_name_;
-    ImGuiNodesConnectorType type_;
     ImGuiNodesConnectorState state_;
     const char* name_;
     unsigned int connections_;
@@ -114,7 +100,7 @@ struct ImGuiNodesOutput
 
     void DrawOutput(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
 
-    ImGuiNodesOutput(const char* name, ImGuiNodesConnectorType type);
+    ImGuiNodesOutput(const char* name);
 };
 
 struct ImGuiNodesNode
@@ -140,12 +126,11 @@ struct ImGuiNodesNode
 };
 
 //ImGuiNodesConnectionDesc size round up to 32 bytes to be cache boundaries friendly
-constexpr int ImGuiNodesNamesMaxLen = 32 - sizeof(ImGuiNodesConnectorType);
+constexpr int ImGuiNodesNamesMaxLen = 32;
 
 struct ImGuiNodesConnectionDesc
 {
     char name_[ImGuiNodesNamesMaxLen];
-    ImGuiNodesConnectorType type_;
 };
 
 //TODO: ImVector me
