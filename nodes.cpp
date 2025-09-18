@@ -108,7 +108,7 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
         }
         else
         {
-            node->state_ &= ~(ImGuiNodesNodeStateFlag_Visible | ImGuiNodesNodeStateFlag_Hovered | ImGuiNodesNodeStateFlag_Marked);
+            node->state_ &= ~(ImGuiNodesNodeStateFlag_Visible | ImGuiNodesNodeStateFlag_Hovered | ImGuiNodesNodeStateFlag_MarkedForSelection);
             continue;
         }
 
@@ -119,17 +119,17 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
         {
             if (io.KeyCtrl && area_.Overlaps(node_rect))
             {
-                node->state_ |= ImGuiNodesNodeStateFlag_Marked;
+                node->state_ |= ImGuiNodesNodeStateFlag_MarkedForSelection;
                 continue;
             }
 
             if (!io.KeyCtrl && area_.Overlaps(node_rect))
             {
-                node->state_ |= ImGuiNodesNodeStateFlag_Marked;
+                node->state_ |= ImGuiNodesNodeStateFlag_MarkedForSelection;
                 continue;
             }
 
-            node->state_ &= ~ImGuiNodesNodeStateFlag_Marked;
+            node->state_ &= ~ImGuiNodesNodeStateFlag_MarkedForSelection;
         }
 
         for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
@@ -287,10 +287,10 @@ bool ImGuiNodes::SortSelectedNodesOrder()
     {
         ImGuiNodesNode* node = ((ImGuiNodesNode*)*iterator);
 
-        if (node->state_ & ImGuiNodesNodeStateFlag_Marked || node->state_ & ImGuiNodesNodeStateFlag_Selected)
+        if (node->state_ & ImGuiNodesNodeStateFlag_MarkedForSelection || node->state_ & ImGuiNodesNodeStateFlag_Selected)
         {
             selected = true;
-            node->state_ &= ~ImGuiNodesNodeStateFlag_Marked;
+            node->state_ &= ~ImGuiNodesNodeStateFlag_MarkedForSelection;
             node->state_ |= ImGuiNodesNodeStateFlag_Selected;
             nodes_selected.push_back(node);
         }
@@ -402,7 +402,7 @@ void ImGuiNodes::Update()
                     if (state & ImGuiNodesNodeStateFlag_Selected)
                         selected = true;
 
-                    state &= ~(ImGuiNodesNodeStateFlag_Selected | ImGuiNodesNodeStateFlag_Marked | ImGuiNodesNodeStateFlag_Hovered);
+                    state &= ~(ImGuiNodesNodeStateFlag_Selected | ImGuiNodesNodeStateFlag_MarkedForSelection | ImGuiNodesNodeStateFlag_Hovered);
                 }
 
                 return;
@@ -534,7 +534,7 @@ void ImGuiNodes::Update()
 
                 if (!io.KeyShift)
                     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
-                        nodes_[node_idx]->state_ &= ~(ImGuiNodesNodeStateFlag_Selected | ImGuiNodesNodeStateFlag_Marked);
+                        nodes_[node_idx]->state_ &= ~(ImGuiNodesNodeStateFlag_Selected | ImGuiNodesNodeStateFlag_MarkedForSelection);
 
                 state_ = ImGuiNodesState_Selecting;
                 return;
@@ -1131,7 +1131,7 @@ void ImGuiNodesNode::DrawNode(ImDrawList* draw_list, ImVec2 offset, float scale,
     ImGui::SetCursorScreenPos((area_name_.Min * scale) + offset);
     ImGui::Text("%s", name_.c_str());
 
-    if (state_ & (ImGuiNodesNodeStateFlag_Marked | ImGuiNodesNodeStateFlag_Selected))
+    if (state_ & (ImGuiNodesNodeStateFlag_MarkedForSelection | ImGuiNodesNodeStateFlag_Selected))
     {
         // Create a subtle highlighted border color based on the node's color
         ImColor border_color = color_;
