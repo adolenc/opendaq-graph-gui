@@ -1195,7 +1195,8 @@ void ImGuiNodes::DrawConnection(ImVec2 p1, ImVec2 p4, ImColor color)
 
 bool ImGuiNodes::ConnectionMatrix(ImGuiNodesNode* input_node, ImGuiNodesNode* output_node, ImGuiNodesInput* input, ImGuiNodesOutput* output)
 {
-    return !(input->target_ && input->target_ == output_node);
+    // Prevent connections to inputs that already have a connection
+    return !(input->target_);
 }
 
 ImGuiNodes::ImGuiNodes()
