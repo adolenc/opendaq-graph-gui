@@ -491,23 +491,21 @@ void ImGuiNodes::Update()
                 bool selected = element_node_->state_ & ImGuiNodesNodeStateFlag_Selected;
                 if (!selected)
                 {
-                    if (processing_node_)
-                        processing_node_->state_ &= ~(ImGuiNodesNodeStateFlag_Processing);
-
-                    element_node_->state_ |= ImGuiNodesNodeStateFlag_Processing;
-                    processing_node_ = element_node_;
-
-                    IM_ASSERT(!nodes_.empty());
-
-                    if (nodes_.back() != element_node_)
+                    // Clear all other selections first (unless Ctrl is held)
+                    if (!io.KeyCtrl && !io.KeyShift)
                     {
-                        ImGuiNodesNode** iterator = nodes_.find(element_node_);
-                        nodes_.erase(iterator);
-                        nodes_.push_back(element_node_);
+                        for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+                            nodes_[node_idx]->state_ &= ~ImGuiNodesNodeStateFlag_Selected;
                     }
+                    
+                    // Select this node
+                    element_node_->state_ |= ImGuiNodesNodeStateFlag_Selected;
                 }
-                else
-                    SortSelectedNodesOrder();
+                // Note: We don't clear other selections when clicking on an already selected node
+                // This allows dragging multiple selected nodes. If the user wants to deselect others,
+                // they can use Ctrl+click or click in empty space first.
+
+                SortSelectedNodesOrder();
 
                 state_ = ImGuiNodesState_Draging;
                 return;
