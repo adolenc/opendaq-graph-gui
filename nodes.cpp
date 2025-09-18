@@ -20,12 +20,12 @@ namespace ImGui
 
 		////////////////////////////////////////////////////////////////////////////////
 
-		if (ImGui::IsKeyPressed(ImGuiKey_Home))
+		if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_0))
 		{
 			scroll_ = {};
 			scale_ = 1.0f;
 		}
-				
+			
 		////////////////////////////////////////////////////////////////////////////////
 
 		if (false == ImGui::IsMouseDown(0) && canvas.Contains(mouse_))
@@ -33,13 +33,7 @@ namespace ImGui
 			if (ImGui::IsMouseDragging(1))
 				scroll_ += io.MouseDelta;
 
-			if (io.KeyShift && !io.KeyCtrl)
-				scroll_.x += io.MouseWheel * 16.0f;
-
 			if (!io.KeyShift && !io.KeyCtrl)
-				scroll_.y += io.MouseWheel * 16.0f;
-
-			if (!io.KeyShift && io.KeyCtrl)
 			{
 				ImVec2 focus = (mouse_ - scroll_ - pos_) / scale_;
 
@@ -77,7 +71,6 @@ namespace ImGui
 		////////////////////////////////////////////////////////////////////////////////
 
 		const float grid = 64.0f * scale_;
-
 		int mark_x = (int)(scroll_.x / grid);
 		int mark_y = (int)(scroll_.y / grid);
 		for (float x = fmodf(scroll_.x, grid); x < size_.x; x += grid, --mark_x)

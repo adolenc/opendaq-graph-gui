@@ -307,11 +307,12 @@ namespace ImGui
 			node_rect.Translate(offset);
 
 			float rounding = title_height_ * scale * 0.3f;
+			rounding = 0;
 
 			ImColor head_color = color_, body_color = color_;
-			head_color.Value.x *= 0.5;
-			head_color.Value.y *= 0.5;
-			head_color.Value.z *= 0.5;
+			head_color.Value.x *= 0.6;
+			head_color.Value.y *= 0.6;
+			head_color.Value.z *= 0.6;
 
 			head_color.Value.w = 1.00f;
 			body_color.Value.w = 0.75f;		
@@ -508,8 +509,8 @@ namespace ImGui
 
 			// draw_list->AddLine(p1, p4, color, 1.5f * scale_);
 			draw_list->AddBezierCubic(p1, p2, p3, p4, color, 1.5f * scale_);
-            draw_list->AddCircle(p2, 3.0f * scale_, color);
-            draw_list->AddCircle(p3, 3.0f * scale_, color);
+            // draw_list->AddCircle(p2, 3.0f * scale_, color);
+            // draw_list->AddCircle(p3, 3.0f * scale_, color);
 		}
 
 		inline bool ConnectionMatrix(ImGuiNodesNode* input_node, ImGuiNodesNode* output_node, ImGuiNodesInput* input, ImGuiNodesOutput* output)
