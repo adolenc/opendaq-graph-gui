@@ -4,6 +4,9 @@
 
 #include "imgui.h"
 #include "imgui_internal.h"
+#include <vector>
+#include <string>
+#include <string>
 
 namespace ImGui
 {
@@ -76,7 +79,7 @@ struct ImGuiNodesInput
     ImRect area_input_;
     ImRect area_name_;
     ImGuiNodesConnectorState state_;
-    const char* name_;
+    std::string name_;
     ImGuiNodesNode* target_;
     ImGuiNodesOutput* output_;
 
@@ -84,7 +87,7 @@ struct ImGuiNodesInput
 
     void DrawInput(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
 
-    ImGuiNodesInput(const char* name);
+    ImGuiNodesInput(const std::string& name);
 };
 
 struct ImGuiNodesOutput
@@ -93,14 +96,14 @@ struct ImGuiNodesOutput
     ImRect area_output_;
     ImRect area_name_;
     ImGuiNodesConnectorState state_;
-    const char* name_;
+    std::string name_;
     unsigned int connections_;
 
     void TranslateOutput(ImVec2 delta);
 
     void DrawOutput(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
 
-    ImGuiNodesOutput(const char* name);
+    ImGuiNodesOutput(const std::string& name);
 };
 
 struct ImGuiNodesNode
@@ -111,10 +114,10 @@ struct ImGuiNodesNode
     float body_height_;
     ImGuiNodesNodeState state_;
     ImGuiNodesNodeType type_;
-    const char* name_;
+    std::string name_;
     ImColor color_;
-    ImVector<ImGuiNodesInput> inputs_;
-    ImVector<ImGuiNodesOutput> outputs_;
+    std::vector<ImGuiNodesInput> inputs_;
+    std::vector<ImGuiNodesOutput> outputs_;
 
     void TranslateNode(ImVec2 delta, bool selected_only = false);
 
@@ -122,26 +125,10 @@ struct ImGuiNodesNode
 
     void DrawNode(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
 
-    ImGuiNodesNode(const char* name, ImGuiNodesNodeType type, ImColor color);
+    ImGuiNodesNode(const std::string& name, ImGuiNodesNodeType type, ImColor color);
 };
 
-//ImGuiNodesConnectionDesc size round up to 32 bytes to be cache boundaries friendly
-constexpr int ImGuiNodesNamesMaxLen = 32;
 
-struct ImGuiNodesConnectionDesc
-{
-    char name_[ImGuiNodesNamesMaxLen];
-};
-
-//TODO: ImVector me
-struct ImGuiNodesNodeDesc
-{
-    char name_[ImGuiNodesNamesMaxLen];
-    ImGuiNodesNodeType type_;
-    ImColor color_;
-    ImVector<ImGuiNodesConnectionDesc> inputs_;
-    ImVector<ImGuiNodesConnectionDesc> outputs_;
-};
 
 struct ImGuiNodes
 {
@@ -162,12 +149,12 @@ private:
     ImGuiNodesNode* processing_node_ = NULL;
 
     ImVector<ImGuiNodesNode*> nodes_;
-    ImVector<ImGuiNodesNodeDesc> nodes_desc_;
 
 private:
     void UpdateCanvasGeometry(ImDrawList* draw_list);
     ImGuiNodesNode* UpdateNodesFromCanvas();
-    ImGuiNodesNode* CreateNodeFromDesc(ImGuiNodesNodeDesc* desc, ImVec2 pos);
+    ImGuiNodesNode* CreateNode(const std::string& name, ImGuiNodesNodeType type, ImColor color, ImVec2 pos, 
+                               const std::vector<std::string>& inputs, const std::vector<std::string>& outputs);
 
     void DrawConnection(ImVec2 p1, ImVec2 p4, ImColor color);
 

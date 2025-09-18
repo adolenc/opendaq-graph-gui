@@ -239,33 +239,34 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
     return hovered_node;
 }
 
-ImGuiNodesNode* ImGuiNodes::CreateNodeFromDesc(ImGuiNodesNodeDesc* desc, ImVec2 pos)
+ImGuiNodesNode* ImGuiNodes::CreateNode(const std::string& name, ImGuiNodesNodeType type, ImColor color, ImVec2 pos, 
+                                       const std::vector<std::string>& inputs, const std::vector<std::string>& outputs)
 {
-    IM_ASSERT(desc);
-    ImGuiNodesNode* node = new ImGuiNodesNode(desc->name_, desc->type_, desc->color_);
+    ImGuiNodesNode* node = new ImGuiNodesNode(name, type, color);
+
+    for (const auto& input_name : inputs)
+        node->inputs_.push_back(ImGuiNodesInput(input_name));
     
-    ImVec2 inputs;
-    ImVec2 outputs;
+    for (const auto& output_name : outputs)
+        node->outputs_.push_back(ImGuiNodesOutput(output_name));
 
-    for (int input_idx = 0; input_idx < desc->inputs_.size(); ++input_idx)
+    
+    ImVec2 inputs_size;
+    ImVec2 outputs_size;
+    for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
     {
-        ImGuiNodesInput input(desc->inputs_[input_idx].name_);
-
-        inputs.x = ImMax(inputs.x, input.area_input_.GetWidth());
-        inputs.y += input.area_input_.GetHeight();
-        node->inputs_.push_back(input);
+        const ImGuiNodesInput& input = node->inputs_[input_idx];
+        inputs_size.x = ImMax(inputs_size.x, input.area_input_.GetWidth());
+        inputs_size.y += input.area_input_.GetHeight();
+    }
+    for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+    {
+        const ImGuiNodesOutput& output = node->outputs_[output_idx];
+        outputs_size.x = ImMax(outputs_size.x, output.area_output_.GetWidth());
+        outputs_size.y += output.area_output_.GetHeight();
     }
 
-    for (int output_idx = 0; output_idx < desc->outputs_.size(); ++output_idx)
-    {
-        ImGuiNodesOutput output(desc->outputs_[output_idx].name_);
-    
-        outputs.x = ImMax(outputs.x, output.area_output_.GetWidth());
-        outputs.y += output.area_output_.GetHeight();
-        node->outputs_.push_back(output);
-    }
-
-    node->BuildNodeGeometry(inputs, outputs);
+    node->BuildNodeGeometry(inputs_size, outputs_size);
     node->TranslateNode(pos - node->area_node_.GetCenter());
     node->state_ |= ImGuiNodesNodeStateFlag_Visible | ImGuiNodesNodeStateFlag_Hovered | ImGuiNodesNodeStateFlag_Processing;
 
@@ -691,7 +692,7 @@ void ImGuiNodes::Update()
                     if (input.output_)
                         input.output_->connections_--;
                     
-                    input.name_ = NULL;
+                    input.name_.clear();
                     input.target_ = NULL;
                     input.output_ = NULL;
                 }
@@ -830,11 +831,11 @@ void ImGuiNodes::ProcessNodes()
     ImGui::NewLine();
     
     if (element_node_)
-        ImGui::Text("Element_node: %s", element_node_->name_);
+        ImGui::Text("Element_node: %s", element_node_->name_.c_str());
     if (element_input_)
-        ImGui::Text("Element_input: %s", element_input_->name_);
+        ImGui::Text("Element_input: %s", element_input_->name_.c_str());
     if (element_output_)
-        ImGui::Text("Element_output: %s", element_output_->name_);
+        ImGui::Text("Element_output: %s", element_output_->name_.c_str());
 }
 
 
@@ -844,13 +845,42 @@ void ImGuiNodes::ProcessContextMenu()
 
     if (ImGui::BeginPopup("NodesContextMenu"))
     {
-        for (int node_idx = 0; node_idx < nodes_desc_.size(); ++node_idx)
-            if (ImGui::MenuItem(nodes_desc_[node_idx].name_))
-            {
-                ImVec2 position = (mouse_ - scroll_ - pos_) / scale_;
-                ImGuiNodesNode* node = CreateNodeFromDesc(&nodes_desc_[node_idx], position);
-                nodes_.push_back(node);
-            }
+        ImVec2 position = (mouse_ - scroll_ - pos_) / scale_;
+        if (ImGui::MenuItem("Test"))
+        {
+            ImGuiNodesNode* node = CreateNode(
+                "Test", 
+                ImGuiNodesNodeType_Generic, 
+                ImColor(0.2f, 0.3f, 0.6f, 0.0f), 
+                position,
+                {"Float", "Int", "TextStream"},
+                {"Float"});
+            nodes_.push_back(node);
+        }
+        
+        if (ImGui::MenuItem("InputBox"))
+        {
+            ImGuiNodesNode* node = CreateNode(
+                "InputBox", 
+                ImGuiNodesNodeType_Generic,
+                ImColor(0.3f, 0.5f, 0.5f, 0.0f), 
+                position,
+                {"Float1", "Float2", "Int1", "Int2", "GenericSink", "Vector", "Image", "Text"},
+                {"TextStream", "Float", "Int"});
+            nodes_.push_back(node);
+        }
+        
+        if (ImGui::MenuItem("OutputBox"))
+        {
+            ImGuiNodesNode* node = CreateNode(
+                "OutputBox", 
+                ImGuiNodesNodeType_Generic, 
+                ImColor(0.4f, 0.3f, 0.5f, 0.0f), 
+                position,
+                {"GenericSink1", "GenericSink2", "Float", "Int", "Text"},
+                {"Vector", "Image", "Text", "Float", "Int", "Generic"});
+            nodes_.push_back(node);
+        }
 
         ImGui::EndPopup();
     }
@@ -865,7 +895,7 @@ void ImGuiNodesInput::TranslateInput(ImVec2 delta)
     area_name_.Translate(delta);
 }
 
-ImGuiNodesInput::ImGuiNodesInput(const char* name)
+ImGuiNodesInput::ImGuiNodesInput(const std::string& name)
 {
     state_ = ImGuiNodesConnectorStateFlag_Default;
     target_ = NULL;
@@ -873,7 +903,7 @@ ImGuiNodesInput::ImGuiNodesInput(const char* name)
     name_ = name;
 
     area_name_.Min = ImVec2(0.0f, 0.0f);
-    area_name_.Max = ImGui::CalcTextSize(name);
+    area_name_.Max = ImGui::CalcTextSize(name_.c_str());
 
     area_input_.Min = ImVec2(0.0f, 0.0f);
     area_input_.Max.x = ImGuiNodesConnectorDotPadding + ImGuiNodesConnectorDotDiameter + ImGuiNodesConnectorDotPadding;
@@ -916,7 +946,7 @@ void ImGuiNodesInput::DrawInput(ImDrawList* draw_list, ImVec2 offset, float scal
         draw_list->AddCircle((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, color);
 
     ImGui::SetCursorScreenPos((area_name_.Min * scale) + offset);
-    ImGui::Text("%s", name_);
+    ImGui::Text("%s", name_.c_str());
 }
 
 void ImGuiNodesOutput::TranslateOutput(ImVec2 delta)
@@ -926,13 +956,13 @@ void ImGuiNodesOutput::TranslateOutput(ImVec2 delta)
     area_name_.Translate(delta);
 }
 
-ImGuiNodesOutput::ImGuiNodesOutput(const char* name)
+ImGuiNodesOutput::ImGuiNodesOutput(const std::string& name)
 {
     state_ = ImGuiNodesConnectorStateFlag_Default;
     connections_ = 0;
     name_ = name;
 
-    area_name_.Min = ImVec2(0.0f, 0.0f) - ImGui::CalcTextSize(name);
+    area_name_.Min = ImVec2(0.0f, 0.0f) - ImGui::CalcTextSize(name_.c_str());
     area_name_.Max = ImVec2(0.0f, 0.0f);
 
     area_output_.Min.x = ImGuiNodesConnectorDotPadding + ImGuiNodesConnectorDotDiameter + ImGuiNodesConnectorDotPadding;
@@ -973,7 +1003,7 @@ void ImGuiNodesOutput::DrawOutput(ImDrawList* draw_list, ImVec2 offset, float sc
         draw_list->AddCircle((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, color);
 
     ImGui::SetCursorScreenPos((area_name_.Min * scale) + offset);
-    ImGui::Text("%s", name_);
+    ImGui::Text("%s", name_.c_str());
 }
 
 void ImGuiNodesNode::TranslateNode(ImVec2 delta, bool selected_only)
@@ -991,7 +1021,7 @@ void ImGuiNodesNode::TranslateNode(ImVec2 delta, bool selected_only)
         outputs_[output_idx].TranslateOutput(delta);
 }
 
-ImGuiNodesNode::ImGuiNodesNode(const char* name, ImGuiNodesNodeType type, ImColor color)
+ImGuiNodesNode::ImGuiNodesNode(const std::string& name, ImGuiNodesNodeType type, ImColor color)
 {
     name_ = name;
     type_ = type;
@@ -999,7 +1029,7 @@ ImGuiNodesNode::ImGuiNodesNode(const char* name, ImGuiNodesNodeType type, ImColo
     color_ = color;
 
     area_name_.Min = ImVec2(0.0f, 0.0f);
-    area_name_.Max = ImGui::CalcTextSize(name);
+    area_name_.Max = ImGui::CalcTextSize(name_.c_str());
     title_height_ = ImGuiNodesTitleHight * area_name_.GetHeight();
 }
 
@@ -1116,11 +1146,11 @@ void ImGuiNodesNode::DrawNode(ImDrawList* draw_list, ImVec2 offset, float scale,
 
     ImGui::SetCursorScreenPos(((area_name_.Min + ImVec2(2, 2)) * scale) + offset);
     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 0, 0, 255));
-    ImGui::Text("%s", name_);
+    ImGui::Text("%s", name_.c_str());
     ImGui::PopStyleColor();
 
     ImGui::SetCursorScreenPos((area_name_.Min * scale) + offset);
-    ImGui::Text("%s", name_);
+    ImGui::Text("%s", name_.c_str());
 
     if (state_ & (ImGuiNodesNodeStateFlag_Marked | ImGuiNodesNodeStateFlag_Selected))
         draw_list->AddRectFilled(node_rect.Min, node_rect.Max, ImColor(1.0f, 1.0f, 1.0f, 0.25f), rounding, rounding_corners_flags);
@@ -1179,79 +1209,11 @@ ImGuiNodes::ImGuiNodes()
     element_node_ = NULL;
     element_input_ = NULL;
     element_output_ = NULL;
-
-    {
-        ImGuiNodesNodeDesc desc{"Test", ImGuiNodesNodeType_Generic, ImColor(0.2, 0.3, 0.6, 0.0f)};
-        nodes_desc_.push_back(desc);
-    
-        desc.inputs_.push_back({ "Float" });
-        desc.inputs_.push_back({ "Int" });
-        desc.inputs_.push_back({ "TextStream" });
-        
-        desc.outputs_.push_back({ "Float" });
-        
-        auto& back = nodes_desc_.back();
-        back.inputs_ = desc.inputs_;
-        back.outputs_ = desc.outputs_;
-    }
-
-    {
-        ImGuiNodesNodeDesc desc{"InputBox", ImGuiNodesNodeType_Generic, ImColor(0.3, 0.5, 0.5, 0.0f)};
-        nodes_desc_.push_back(desc);
-    
-        desc.inputs_.push_back({ "Float1" });
-        desc.inputs_.push_back({ "Float2" });
-        desc.inputs_.push_back({ "Int1" });
-        desc.inputs_.push_back({ "Int2" });
-        desc.inputs_.push_back({ "GenericSink" });
-        desc.inputs_.push_back({ "Vector" });
-        desc.inputs_.push_back({ "Image" });
-        desc.inputs_.push_back({ "Text" });
-    
-        desc.outputs_.push_back({ "TextStream" });
-        desc.outputs_.push_back({ "Float" });
-        desc.outputs_.push_back({ "Int" });
-    
-        auto& back = nodes_desc_.back();
-        back.inputs_.swap(desc.inputs_);
-        back.outputs_.swap(desc.outputs_);
-    }
-    
-    {
-        ImGuiNodesNodeDesc desc{"OutputBox", ImGuiNodesNodeType_Generic, ImColor(0.4, 0.3, 0.5, 0.0f)};
-        nodes_desc_.push_back(desc);
-    
-        desc.inputs_.push_back({ "GenericSink1" });
-        desc.inputs_.push_back({ "GenericSink2" });
-        desc.inputs_.push_back({ "Float" });
-        desc.inputs_.push_back({ "Int" });
-        desc.inputs_.push_back({ "Text" });
-    
-        desc.outputs_.push_back({ "Vector" });
-        desc.outputs_.push_back({ "Image" });
-        desc.outputs_.push_back({ "Text" });
-        desc.outputs_.push_back({ "Float" });
-        desc.outputs_.push_back({ "Int" });
-        desc.outputs_.push_back({ "Generic" });
-    
-        auto& back = nodes_desc_.back();
-        back.inputs_.swap(desc.inputs_);
-        back.outputs_.swap(desc.outputs_);
-    }
-
-    return;
+    processing_node_ = NULL;
 }
 
 ImGuiNodes::~ImGuiNodes()
 {
-    for (int desc_idx = 0; desc_idx < nodes_desc_.size(); ++desc_idx)
-    {
-        ImGuiNodesNodeDesc& node = nodes_desc_[desc_idx];
-
-        node.inputs_.~ImVector();
-        node.outputs_.~ImVector();
-    }
-    
     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
         delete nodes_[node_idx];
 }
