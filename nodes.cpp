@@ -144,17 +144,17 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
         {
             ImGuiNodesInput& input = node->inputs_[input_idx];
 
-            CLEAR_FLAGS(input.state_, ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_Consider | ImGuiNodesConnectorStateFlag_Draging);
+            CLEAR_FLAGS(input.state_, ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_Consider | ImGuiNodesConnectorStateFlag_Dragging);
 
-            if (state_ == ImGuiNodesState_DragingInput)
+            if (state_ == ImGuiNodesState_DraggingInput)
             {
                 if (&input == element_input_)
-                    SET_FLAG(input.state_, ImGuiNodesConnectorStateFlag_Draging);
+                    SET_FLAG(input.state_, ImGuiNodesConnectorStateFlag_Dragging);
 
                 continue;
             }				
 
-            if (state_ == ImGuiNodesState_DragingOutput)
+            if (state_ == ImGuiNodesState_DraggingOutput)
             {
                 if (element_node_ == node)
                     continue;
@@ -176,7 +176,7 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
 
             if (input_rect.Contains(mouse_))
             {
-                if (state_ != ImGuiNodesState_DragingOutput)
+                if (state_ != ImGuiNodesState_DraggingOutput)
                 {
                     SET_FLAG(input.state_, ImGuiNodesConnectorStateFlag_Hovered);
                     continue;
@@ -191,17 +191,17 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
         {
             ImGuiNodesOutput& output = node->outputs_[output_idx];
 
-            CLEAR_FLAGS(output.state_, ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_Consider | ImGuiNodesConnectorStateFlag_Draging);
+            CLEAR_FLAGS(output.state_, ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_Consider | ImGuiNodesConnectorStateFlag_Dragging);
 
-            if (state_ == ImGuiNodesState_DragingOutput)
+            if (state_ == ImGuiNodesState_DraggingOutput)
             {
                 if (&output == element_output_)
-                    SET_FLAG(output.state_, ImGuiNodesConnectorStateFlag_Draging);
+                    SET_FLAG(output.state_, ImGuiNodesConnectorStateFlag_Dragging);
 
                 continue;
             }
 
-            if (state_ == ImGuiNodesState_DragingInput)
+            if (state_ == ImGuiNodesState_DraggingInput)
             {
                 if (element_node_ == node)
                     continue;
@@ -223,7 +223,7 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
 
             if (output_rect.Contains(mouse_))
             {
-                if (state_ != ImGuiNodesState_DragingInput)
+                if (state_ != ImGuiNodesState_DraggingInput)
                 {
                     SET_FLAG(output.state_, ImGuiNodesConnectorStateFlag_Hovered);
                     continue;
@@ -353,7 +353,7 @@ void ImGuiNodes::Update()
             state_ = ImGuiNodesState_HoveringNode;	
     }
 
-    if (state_ == ImGuiNodesState_DragingInput)
+    if (state_ == ImGuiNodesState_DraggingInput)
     {
         element_output_ = NULL;
     
@@ -367,7 +367,7 @@ void ImGuiNodes::Update()
             }
     }
     
-    if (state_ == ImGuiNodesState_DragingOutput)
+    if (state_ == ImGuiNodesState_DraggingOutput)
     {
         element_input_ = NULL;
     
@@ -418,7 +418,7 @@ void ImGuiNodes::Update()
                     element_input_->source_output_ = NULL;
                     element_input_->source_node_ = NULL;
 
-                    state_ = ImGuiNodesState_DragingInput;
+                    state_ = ImGuiNodesState_DraggingInput;
                 }
 
                 return;
@@ -443,7 +443,7 @@ void ImGuiNodes::Update()
                     element_node_->TranslateNode(ImVec2(0.0f, element_node_->body_height_ * 0.5f));
                 }
 
-                state_ = ImGuiNodesState_Draging;
+                state_ = ImGuiNodesState_Dragging;
                 return;
             }
         }
@@ -498,23 +498,23 @@ void ImGuiNodes::Update()
 
                 SortSelectedNodesOrder();
 
-                state_ = ImGuiNodesState_Draging;
+                state_ = ImGuiNodesState_Dragging;
                 return;
             }
 
             case ImGuiNodesState_HoveringInput:
             {
                 if (!element_input_->source_node_)
-                    state_ = ImGuiNodesState_DragingInput;
+                    state_ = ImGuiNodesState_DraggingInput;
                 else
-                    state_ = ImGuiNodesState_Draging;
+                    state_ = ImGuiNodesState_Dragging;
 
                 return;
             }
 
             case ImGuiNodesState_HoveringOutput:
             {
-                state_ = ImGuiNodesState_DragingOutput;
+                state_ = ImGuiNodesState_DraggingOutput;
                 return;
             }
         }
@@ -562,7 +562,7 @@ void ImGuiNodes::Update()
                 return;
             }
 
-            case ImGuiNodesState_Draging:
+            case ImGuiNodesState_Dragging:
             {
                 if (element_input_ && element_input_->source_output_ && element_input_->source_output_->connections_count_ > 0)
                 {
@@ -573,7 +573,7 @@ void ImGuiNodes::Update()
                     element_input_->source_output_ = NULL;
                     element_input_->source_node_ = NULL;
 
-                    state_ = ImGuiNodesState_DragingOutput;
+                    state_ = ImGuiNodesState_DraggingOutput;
                     return;
                 }
 
@@ -586,7 +586,7 @@ void ImGuiNodes::Update()
                 return;
             }
 
-            case ImGuiNodesState_DragingInput:
+            case ImGuiNodesState_DraggingInput:
             {
                 ImVec2 offset = pos_ + scroll_;
                 ImVec2 p1 = offset + (element_input_->pos_ * scale_);
@@ -596,7 +596,7 @@ void ImGuiNodes::Update()
                 return;
             }
 
-            case ImGuiNodesState_DragingOutput:
+            case ImGuiNodesState_DraggingOutput:
             {
                 ImVec2 offset = pos_ + scroll_;
                 ImVec2 p1 = offset + (element_output_->pos_ * scale_);
@@ -627,7 +627,7 @@ void ImGuiNodes::Update()
             return;
         }
 
-        case ImGuiNodesState_Draging:
+        case ImGuiNodesState_Dragging:
         {
             // Check if this was a click on an input/output without much dragging
             if (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold))
@@ -680,14 +680,14 @@ void ImGuiNodes::Update()
             return;
         }
 
-        case ImGuiNodesState_DragingInput:
-        case ImGuiNodesState_DragingOutput:
+        case ImGuiNodesState_DraggingInput:
+        case ImGuiNodesState_DraggingOutput:
         {
             if (element_input_ && element_output_)
             {
                 IM_ASSERT(hovered_node);
                 IM_ASSERT(element_node_);
-                element_input_->source_node_ = state_ == ImGuiNodesState_DragingInput ? hovered_node : element_node_;
+                element_input_->source_node_ = state_ == ImGuiNodesState_DraggingInput ? hovered_node : element_node_;
 
                 if (element_input_->source_output_)
                     element_input_->source_output_->connections_count_--;
@@ -699,7 +699,7 @@ void ImGuiNodes::Update()
             {
                 if (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold))
                 {
-                    if (state_ == ImGuiNodesState_DragingInput && element_input_)
+                    if (state_ == ImGuiNodesState_DraggingInput && element_input_)
                     {
                         if (io.KeyCtrl)
                             TOGGLE_FLAG(element_input_->state_, ImGuiNodesConnectorStateFlag_Selected);
@@ -711,7 +711,7 @@ void ImGuiNodes::Update()
                             SET_FLAG(element_input_->state_, ImGuiNodesConnectorStateFlag_Selected);
                         }
                     }
-                    else if (state_ == ImGuiNodesState_DragingOutput && element_output_)
+                    else if (state_ == ImGuiNodesState_DraggingOutput && element_output_)
                     {
                         if (io.KeyCtrl)
                             TOGGLE_FLAG(element_output_->state_, ImGuiNodesConnectorStateFlag_Selected);
@@ -920,9 +920,9 @@ void ImGuiNodes::ProcessNodes()
         case ImGuiNodesState_HoveringNode: ImGui::Text("ImGuiNodesState_HoveringNode"); break;
         case ImGuiNodesState_HoveringInput: ImGui::Text("ImGuiNodesState_HoveringInput"); break;
         case ImGuiNodesState_HoveringOutput: ImGui::Text("ImGuiNodesState_HoveringOutput"); break;
-        case ImGuiNodesState_Draging: ImGui::Text("ImGuiNodesState_Draging"); break;
-        case ImGuiNodesState_DragingInput: ImGui::Text("ImGuiNodesState_DragingInput"); break;
-        case ImGuiNodesState_DragingOutput: ImGui::Text("ImGuiNodesState_DragingOutput"); break;
+        case ImGuiNodesState_Dragging: ImGui::Text("ImGuiNodesState_Draging"); break;
+        case ImGuiNodesState_DraggingInput: ImGui::Text("ImGuiNodesState_DragingInput"); break;
+        case ImGuiNodesState_DraggingOutput: ImGui::Text("ImGuiNodesState_DragingOutput"); break;
         case ImGuiNodesState_Selecting: ImGui::Text("ImGuiNodesState_Selecting"); break;
         default: ImGui::Text("UNKNOWN"); break;
     }
@@ -1029,20 +1029,20 @@ ImGuiNodesInput::ImGuiNodesInput(const std::string& name)
 
 void ImGuiNodesInput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const
 {
-    if (state != ImGuiNodesState_Draging && IS_SET(state_, ImGuiNodesConnectorStateFlag_Hovered) && !IS_SET(state_, ImGuiNodesConnectorStateFlag_Consider))
+    if (state != ImGuiNodesState_Dragging && IS_SET(state_, ImGuiNodesConnectorStateFlag_Hovered) && !IS_SET(state_, ImGuiNodesConnectorStateFlag_Consider))
     {
         const ImColor color = source_node_ == NULL ? ImColor(0.0f, 0.0f, 1.0f, 0.5f) : ImColor(1.0f, 0.5f, 0.0f, 0.5f);
         draw_list->AddRectFilled((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, color);
     }
 
-    if (HAS_ANY_FLAG(state_, ImGuiNodesConnectorStateFlag_Consider | ImGuiNodesConnectorStateFlag_Draging))
+    if (HAS_ANY_FLAG(state_, ImGuiNodesConnectorStateFlag_Consider | ImGuiNodesConnectorStateFlag_Dragging))
         draw_list->AddRectFilled((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImColor(0.0f, 1.0f, 0.0f, 0.5f));
 
     if (IS_SET(state_, ImGuiNodesConnectorStateFlag_Selected))
         draw_list->AddRect((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 1.0f), 0.0f, 0, 2.0f * scale);
 
     bool consider_fill = false;
-    consider_fill |= IS_SET(state_, ImGuiNodesConnectorStateFlag_Draging);
+    consider_fill |= IS_SET(state_, ImGuiNodesConnectorStateFlag_Dragging);
     consider_fill |= HAS_ALL_FLAGS(state_, ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_Consider);
 
     ImColor color = consider_fill ? ImColor(0.0f, 1.0f, 0.0f, 1.0f) : ImColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -1092,17 +1092,17 @@ ImGuiNodesOutput::ImGuiNodesOutput(const std::string& name)
 
 void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const
 {
-    if (state != ImGuiNodesState_Draging && IS_SET(state_, ImGuiNodesConnectorStateFlag_Hovered) && !IS_SET(state_, ImGuiNodesConnectorStateFlag_Consider))
+    if (state != ImGuiNodesState_Dragging && IS_SET(state_, ImGuiNodesConnectorStateFlag_Hovered) && !IS_SET(state_, ImGuiNodesConnectorStateFlag_Consider))
         draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(0.0f, 0.0f, 1.0f, 0.5f));
 
-    if (HAS_ANY_FLAG(state_, ImGuiNodesConnectorStateFlag_Consider | ImGuiNodesConnectorStateFlag_Draging))
+    if (HAS_ANY_FLAG(state_, ImGuiNodesConnectorStateFlag_Consider | ImGuiNodesConnectorStateFlag_Dragging))
         draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(0.0f, 1.0f, 0.0f, 0.5f));
 
     if (IS_SET(state_, ImGuiNodesConnectorStateFlag_Selected))
         draw_list->AddRect((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 1.0f), 0.0f, 0, 2.0f * scale);
 
     bool consider_fill = false;
-    consider_fill |= IS_SET(state_, ImGuiNodesConnectorStateFlag_Draging);
+    consider_fill |= IS_SET(state_, ImGuiNodesConnectorStateFlag_Dragging);
     consider_fill |= HAS_ALL_FLAGS(state_, ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_Consider);
 
     ImColor color = consider_fill ? ImColor(0.0f, 1.0f, 0.0f, 1.0f) : ImColor(1.0f, 1.0f, 1.0f, 1.0f);

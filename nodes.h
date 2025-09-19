@@ -16,7 +16,7 @@ enum ImGuiNodesConnectorStateFlag_
     ImGuiNodesConnectorStateFlag_Visible	= 1 << 0,
     ImGuiNodesConnectorStateFlag_Hovered	= 1 << 1,
     ImGuiNodesConnectorStateFlag_Consider	= 1 << 2,
-    ImGuiNodesConnectorStateFlag_Draging	= 1 << 3,
+    ImGuiNodesConnectorStateFlag_Dragging	= 1 << 3,
     ImGuiNodesConnectorStateFlag_Selected	= 1 << 4
 };
 
@@ -37,9 +37,9 @@ enum ImGuiNodesState_
     ImGuiNodesState_HoveringNode,
     ImGuiNodesState_HoveringInput,
     ImGuiNodesState_HoveringOutput,
-    ImGuiNodesState_Draging,
-    ImGuiNodesState_DragingInput,
-    ImGuiNodesState_DragingOutput,
+    ImGuiNodesState_Dragging,
+    ImGuiNodesState_DraggingInput,
+    ImGuiNodesState_DraggingOutput,
     ImGuiNodesState_Selecting
 };
 
