@@ -57,19 +57,7 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
         if (ImGui::IsMouseReleased(1) && !element_node_)
         {
             if (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold))
-            {
-                bool selected = false;
-                for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
-                {
-                    if (IS_SET(nodes_[node_idx]->state_, ImGuiNodesNodeStateFlag_Selected))
-                    {					
-                        selected = true;
-                        break;
-                    }
-                }
-                if (!selected)
-                    ImGui::OpenPopup("NodesContextMenu");
-            }
+                ImGui::OpenPopup("NodesContextMenu");
         }
     }
 
