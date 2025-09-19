@@ -35,7 +35,12 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
         
     if (!ImGui::IsMouseDown(0) && canvas.Contains(mouse_))
     {
-        if (ImGui::IsMouseDragging(1))
+        static bool blocked_by_imgui_interaction = false;
+
+        if (ImGui::IsMouseClicked(1))
+            blocked_by_imgui_interaction = ImGui::IsAnyItemHovered();
+        
+        if (ImGui::IsMouseDragging(1) && !blocked_by_imgui_interaction)
             scroll_ += io.MouseDelta;
 
         ImVec2 focus = (mouse_ - scroll_ - pos_) / scale_;
@@ -53,7 +58,10 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
 
         if (ImGui::IsMouseReleased(1) && !active_node_)
         {
-            if (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold))
+            bool was_blocked = blocked_by_imgui_interaction;
+            blocked_by_imgui_interaction = false;
+
+            if (!was_blocked && io.MouseDragMaxDistanceSqr[1] < io.MouseDragThreshold * io.MouseDragThreshold)
                 ImGui::OpenPopup("NodesContextMenu");
         }
     }
@@ -297,6 +305,8 @@ bool ImGuiNodes::SortSelectedNodesOrder()
 
 void ImGuiNodes::Update()
 {
+    static bool blocked_by_imgui_interaction = false;
+
     const ImGuiIO& io = ImGui::GetIO();
     
     UpdateCanvasGeometry(ImGui::GetWindowDrawList());
@@ -378,6 +388,9 @@ void ImGuiNodes::Update()
 
     if (ImGui::IsMouseDoubleClicked(0))
     {
+        if (ImGui::IsAnyItemHovered())
+            return;
+
         switch (state_)
         {
             case ImGuiNodesState_Default:
@@ -430,6 +443,10 @@ void ImGuiNodes::Update()
 
     if (ImGui::IsMouseClicked(0))
     {
+        blocked_by_imgui_interaction = ImGui::IsAnyItemHovered();
+        if (blocked_by_imgui_interaction)
+            return;
+
         switch (state_)
         {				
             case ImGuiNodesState_HoveringNode:
@@ -490,6 +507,9 @@ void ImGuiNodes::Update()
             {
                 ImRect canvas(pos_, pos_ + size_);
                 if (!canvas.Contains(mouse_))
+                    return;
+
+                if (blocked_by_imgui_interaction)
                     return;
 
                 if (!io.KeyCtrl)
@@ -564,6 +584,8 @@ void ImGuiNodes::Update()
 
     if (ImGui::IsMouseReleased(0))
     {
+        blocked_by_imgui_interaction = false;
+
         switch (state_)
         {
         case ImGuiNodesState_Selecting:
@@ -897,6 +919,10 @@ void ImGuiNodes::ProcessNodes()
         ImGui::Text("Active_output: %s", active_output_->name_.c_str());
 
     ImGui::NewLine();
+
+    ImGui::Text("ImGui::IsAnyItemActive: %s", ImGui::IsAnyItemActive() ? "true" : "false");
+    ImGui::Text("ImGui::IsAnyItemFocused: %s", ImGui::IsAnyItemFocused() ? "true" : "false");
+    ImGui::Text("ImGui::IsAnyItemHovered: %s", ImGui::IsAnyItemHovered() ? "true" : "false");
 }
 
 
