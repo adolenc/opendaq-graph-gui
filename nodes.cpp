@@ -2,13 +2,13 @@
 
 using namespace ImGui;
 
-#define IS_SET(state, flag)     ((state) & (flag))
-#define SET_FLAG(state, flag)   ((state) |= (flag))
-#define CLEAR_FLAG(state, flag) ((state) &= ~(flag))
-#define TOGGLE_FLAG(state, flag) ((state) ^= (flag))
+#define IS_SET(state, flag)         ((state) & (flag))
+#define SET_FLAG(state, flag)       ((state) |= (flag))
+#define CLEAR_FLAG(state, flag)     ((state) &= ~(flag))
+#define TOGGLE_FLAG(state, flag)    ((state) ^= (flag))
 #define HAS_ALL_FLAGS(state, flags) (((state) & (flags)) == (flags))
-#define HAS_ANY_FLAG(state, flags) ((state) & (flags))
-#define CLEAR_FLAGS(state, flags) ((state) &= ~(flags))
+#define HAS_ANY_FLAG(state, flags)  ((state) & (flags))
+#define CLEAR_FLAGS(state, flags)   ((state) &= ~(flags))
 
 
 void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
@@ -426,7 +426,8 @@ void ImGuiNodes::Update()
 
             case ImGuiNodesState_HoveringNode:
             {
-                IM_ASSERT(element_node_);                if (IS_SET(element_node_->state_, ImGuiNodesNodeStateFlag_Collapsed))
+                IM_ASSERT(element_node_);
+                if (IS_SET(element_node_->state_, ImGuiNodesNodeStateFlag_Collapsed))
                 {
                     CLEAR_FLAG(element_node_->state_, ImGuiNodesNodeStateFlag_Collapsed);
                     element_node_->area_node_.Max.y += element_node_->body_height_;
