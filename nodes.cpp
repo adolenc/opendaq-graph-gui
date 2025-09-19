@@ -476,14 +476,14 @@ void ImGuiNodes::Update()
                 bool selected = element_node_->state_ & ImGuiNodesNodeStateFlag_Selected;
                 if (!selected)
                 {
-                    // Clear all other selections first (unless Ctrl is held)
                     if (!io.KeyCtrl && !io.KeyShift)
                     {
                         for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
                             nodes_[node_idx]->state_ &= ~ImGuiNodesNodeStateFlag_Selected;
+
+                        ClearAllConnectorSelections();
                     }
                     
-                    // Select this node
                     element_node_->state_ |= ImGuiNodesNodeStateFlag_Selected;
                 }
                 // Note: We don't clear other selections when clicking on an already selected node
@@ -513,6 +513,14 @@ void ImGuiNodes::Update()
             }
         }
 
+        if (!io.KeyCtrl)
+        {
+            for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+                nodes_[node_idx]->state_ &= ~ImGuiNodesNodeStateFlag_Selected;
+            
+            ClearAllConnectorSelections();
+        }
+
         return;
     }
 
@@ -527,8 +535,12 @@ void ImGuiNodes::Update()
                     return;
 
                 if (!io.KeyShift)
+                {
                     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
                         nodes_[node_idx]->state_ &= ~(ImGuiNodesNodeStateFlag_Selected | ImGuiNodesNodeStateFlag_MarkedForSelection);
+                    
+                    ClearAllConnectorSelections();
+                }
 
                 state_ = ImGuiNodesState_Selecting;
                 return;
@@ -611,7 +623,54 @@ void ImGuiNodes::Update()
 
         case ImGuiNodesState_Draging:
         {
-            state_ = ImGuiNodesState_HoveringNode;
+            // Check if this was a click on an input/output without much dragging
+            if (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold))
+            {
+                if (element_input_)
+                {
+                    if (io.KeyCtrl)
+                    {
+                        element_input_->state_ ^= ImGuiNodesConnectorStateFlag_Selected;
+                    }
+                    else
+                    {
+                        ClearAllConnectorSelections();
+                        for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+                            nodes_[node_idx]->state_ &= ~ImGuiNodesNodeStateFlag_Selected;
+                        element_input_->state_ |= ImGuiNodesConnectorStateFlag_Selected;
+                    }
+                    state_ = ImGuiNodesState_HoveringInput;
+                }
+                else if (element_output_)
+                {
+                    if (io.KeyCtrl)
+                    {
+                        element_output_->state_ ^= ImGuiNodesConnectorStateFlag_Selected;
+                    }
+                    else
+                    {
+                        ClearAllConnectorSelections();
+                        for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+                            nodes_[node_idx]->state_ &= ~ImGuiNodesNodeStateFlag_Selected;
+                        element_output_->state_ |= ImGuiNodesConnectorStateFlag_Selected;
+                    }
+                    state_ = ImGuiNodesState_HoveringOutput;
+                }
+                else
+                {
+                    state_ = ImGuiNodesState_HoveringNode;
+                }
+            }
+            else
+            {
+                // This was an actual drag, transition to appropriate hover state
+                if (element_input_)
+                    state_ = ImGuiNodesState_HoveringInput;
+                else if (element_output_)
+                    state_ = ImGuiNodesState_HoveringOutput;
+                else
+                    state_ = ImGuiNodesState_HoveringNode;
+            }
             return;
         }
 
@@ -630,6 +689,36 @@ void ImGuiNodes::Update()
                 element_input_->source_output_ = element_output_;
                 element_output_->connections_count_++;
             }
+            else
+            {
+                if (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold))
+                {
+                    if (state_ == ImGuiNodesState_DragingInput && element_input_)
+                    {
+                        if (io.KeyCtrl)
+                            element_input_->state_ ^= ImGuiNodesConnectorStateFlag_Selected;
+                        else
+                        {
+                            ClearAllConnectorSelections();
+                            for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+                                nodes_[node_idx]->state_ &= ~ImGuiNodesNodeStateFlag_Selected;
+                            element_input_->state_ |= ImGuiNodesConnectorStateFlag_Selected;
+                        }
+                    }
+                    else if (state_ == ImGuiNodesState_DragingOutput && element_output_)
+                    {
+                        if (io.KeyCtrl)
+                            element_output_->state_ ^= ImGuiNodesConnectorStateFlag_Selected;
+                        else
+                        {
+                            ClearAllConnectorSelections();
+                            for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+                                nodes_[node_idx]->state_ &= ~ImGuiNodesNodeStateFlag_Selected;
+                            element_output_->state_ |= ImGuiNodesConnectorStateFlag_Selected;
+                        }
+                    }
+                }
+            }
 
             connection_ = ImVec4();
             state_ = ImGuiNodesState_Default;
@@ -642,6 +731,28 @@ void ImGuiNodes::Update()
 
     if (ImGui::IsKeyPressed(ImGuiKey_Delete))
     {
+        for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+        {
+            ImGuiNodesNode* node = nodes_[node_idx];
+            
+            for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+            {
+                ImGuiNodesInput& input = node->inputs_[input_idx];
+                if (input.state_ & ImGuiNodesConnectorStateFlag_Selected)
+                {
+                    if (input.source_output_)
+                        input.source_output_->connections_count_--;
+                    
+                    input.source_node_ = NULL;
+                    input.source_output_ = NULL;
+                }
+                input.state_ &= ~ImGuiNodesConnectorStateFlag_Selected;
+            }
+            
+            for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+                node->outputs_[output_idx].state_ &= ~ImGuiNodesConnectorStateFlag_Selected;
+        }
+
         ImVector<ImGuiNodesNode*> nodes;
         nodes.reserve(nodes_.size());
 
@@ -826,6 +937,8 @@ void ImGuiNodes::ProcessNodes()
         ImGui::Text("Element_input: %s", element_input_->name_.c_str());
     if (element_output_)
         ImGui::Text("Element_output: %s", element_output_->name_.c_str());
+
+    ImGui::NewLine();
 }
 
 
@@ -919,6 +1032,9 @@ void ImGuiNodesInput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, 
     if (state_ & (ImGuiNodesConnectorStateFlag_Consider | ImGuiNodesConnectorStateFlag_Draging))
         draw_list->AddRectFilled((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImColor(0.0f, 1.0f, 0.0f, 0.5f));
 
+    if (state_ & ImGuiNodesConnectorStateFlag_Selected)
+        draw_list->AddRect((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 1.0f), 0.0f, 0, 2.0f * scale);
+
     bool consider_fill = false;
     consider_fill |= bool(state_ & ImGuiNodesConnectorStateFlag_Draging);
     consider_fill |= bool(state_ & ImGuiNodesConnectorStateFlag_Hovered && state_ & ImGuiNodesConnectorStateFlag_Consider);
@@ -975,6 +1091,9 @@ void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale,
 
     if (state_ & (ImGuiNodesConnectorStateFlag_Consider | ImGuiNodesConnectorStateFlag_Draging))
         draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(0.0f, 1.0f, 0.0f, 0.5f));
+
+    if (state_ & ImGuiNodesConnectorStateFlag_Selected)
+        draw_list->AddRect((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 1.0f), 0.0f, 0, 2.0f * scale);
 
     bool consider_fill = false;
     consider_fill |= bool(state_ & ImGuiNodesConnectorStateFlag_Draging);
@@ -1179,8 +1298,7 @@ void ImGuiNodes::RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color)
 
 bool ImGuiNodes::ConnectionMatrix(ImGuiNodesNode* input_node, ImGuiNodesNode* output_node, ImGuiNodesInput* input, ImGuiNodesOutput* output)
 {
-    // Prevent connections to inputs that already have a connection
-    return !(input->source_node_);
+    return !input->source_node_;
 }
 
 ImGuiNodes::ImGuiNodes()
@@ -1196,4 +1314,18 @@ ImGuiNodes::~ImGuiNodes()
 {
     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
         delete nodes_[node_idx];
+}
+
+void ImGuiNodes::ClearAllConnectorSelections()
+{
+    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+    {
+        ImGuiNodesNode* node = nodes_[node_idx];
+        
+        for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+            node->inputs_[input_idx].state_ &= ~ImGuiNodesConnectorStateFlag_Selected;
+            
+        for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+            node->outputs_[output_idx].state_ &= ~ImGuiNodesConnectorStateFlag_Selected;
+    }
 }

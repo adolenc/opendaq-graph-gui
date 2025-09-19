@@ -16,7 +16,8 @@ enum ImGuiNodesConnectorStateFlag_
     ImGuiNodesConnectorStateFlag_Visible	= 1 << 0,
     ImGuiNodesConnectorStateFlag_Hovered	= 1 << 1,
     ImGuiNodesConnectorStateFlag_Consider	= 1 << 2,
-    ImGuiNodesConnectorStateFlag_Draging	= 1 << 3
+    ImGuiNodesConnectorStateFlag_Draging	= 1 << 3,
+    ImGuiNodesConnectorStateFlag_Selected	= 1 << 4
 };
 
 enum ImGuiNodesNodeStateFlag_
@@ -142,6 +143,7 @@ private:
     void RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color);
     bool ConnectionMatrix(ImGuiNodesNode* input_node, ImGuiNodesNode* output_node, ImGuiNodesInput* input, ImGuiNodesOutput* output);
     inline bool SortSelectedNodesOrder();
+    void ClearAllConnectorSelections();
 };
 
 }
