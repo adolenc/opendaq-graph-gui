@@ -547,7 +547,17 @@ void ImGuiNodes::Update()
             case ImGuiNodesState_Draging:
             {
                 if (element_input_ && element_input_->source_output_ && element_input_->source_output_->connections_count_ > 0)
+                {
+                    element_node_ = element_input_->source_node_;
+                    element_output_ = element_input_->source_output_;
+
+                    element_input_->source_output_->connections_count_--;
+                    element_input_->source_output_ = NULL;
+                    element_input_->source_node_ = NULL;
+
+                    state_ = ImGuiNodesState_DragingOutput;
                     return;
+                }
 
                 if (!(element_node_->state_ & ImGuiNodesNodeStateFlag_Selected))
                     element_node_->TranslateNode(io.MouseDelta / scale_, false);
