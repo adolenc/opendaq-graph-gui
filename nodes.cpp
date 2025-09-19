@@ -147,7 +147,7 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
                 if (active_node_ == node)
                     continue;
 
-                if (ConnectionMatrix(node, active_node_, &input, active_output_))
+                if (!input.source_node_)
                     SET_FLAG(input.state_, ImGuiNodesConnectorStateFlag_Consider);
             }
 
@@ -194,7 +194,7 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
                 if (active_node_ == node)
                     continue;
 
-                if (ConnectionMatrix(active_node_, node, active_input_, &output))
+                if (!active_input_->source_node_)
                     SET_FLAG(output.state_, ImGuiNodesConnectorStateFlag_Consider);
             }
 
@@ -1289,11 +1289,6 @@ void ImGuiNodes::RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color)
     draw_list->AddBezierCubic(p1, p2, p3, p4, color, 1.5f * scale_);
     // draw_list->AddCircle(p2, 3.0f * scale_, color);
     // draw_list->AddCircle(p3, 3.0f * scale_, color);
-}
-
-bool ImGuiNodes::ConnectionMatrix(ImGuiNodesNode* input_node, ImGuiNodesNode* output_node, ImGuiNodesInput* input, ImGuiNodesOutput* output)
-{
-    return !input->source_node_;
 }
 
 ImGuiNodes::ImGuiNodes()

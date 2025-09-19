@@ -141,7 +141,6 @@ private:
     ImGuiNodesNode* CreateNode(const std::string& name, ImColor color, ImVec2 pos, 
                                const std::vector<std::string>& inputs, const std::vector<std::string>& outputs);
     void RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color);
-    bool ConnectionMatrix(ImGuiNodesNode* input_node, ImGuiNodesNode* output_node, ImGuiNodesInput* input, ImGuiNodesOutput* output);
     inline bool SortSelectedNodesOrder();
     void ClearAllConnectorSelections();
 };
