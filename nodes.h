@@ -121,18 +121,18 @@ public:
 
 private:
     ImVec2 mouse_;
+    ImRect area_;
     ImVec2 pos_;
     ImVec2 size_;
     ImVec2 scroll_;
-    ImVec4 connection_;
     float scale_;
 
     ImGuiNodesState state_;
 
-    ImRect area_;
-    ImGuiNodesNode* element_node_ = NULL;
-    ImGuiNodesInput* element_input_ = NULL;
-    ImGuiNodesOutput* element_output_ = NULL;
+    ImVec4 active_dragging_connection_;
+    ImGuiNodesNode* active_node_ = NULL;
+    ImGuiNodesInput* active_input_ = NULL;
+    ImGuiNodesOutput* active_output_ = NULL;
 
     ImVector<ImGuiNodesNode*> nodes_;
 
