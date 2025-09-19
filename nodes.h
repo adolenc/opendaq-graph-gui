@@ -6,7 +6,6 @@
 #include "imgui_internal.h"
 #include <vector>
 #include <string>
-#include <string>
 
 namespace ImGui
 {
@@ -69,14 +68,12 @@ struct ImGuiNodesInput
     ImRect area_name_;
     ImGuiNodesConnectorState state_;
     std::string name_;
-    ImGuiNodesNode* target_;
-    ImGuiNodesOutput* output_;
-
-    void TranslateInput(ImVec2 delta);
-
-    void DrawInput(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
+    ImGuiNodesNode* source_node_;
+    ImGuiNodesOutput* source_output_;
 
     ImGuiNodesInput(const std::string& name);
+    void TranslateInput(ImVec2 delta);
+    void Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
 };
 
 struct ImGuiNodesOutput
@@ -86,13 +83,11 @@ struct ImGuiNodesOutput
     ImRect area_name_;
     ImGuiNodesConnectorState state_;
     std::string name_;
-    unsigned int connections_;
-
-    void TranslateOutput(ImVec2 delta);
-
-    void DrawOutput(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
+    unsigned int connections_count_;
 
     ImGuiNodesOutput(const std::string& name);
+    void TranslateOutput(ImVec2 delta);
+    void Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
 };
 
 struct ImGuiNodesNode
@@ -107,19 +102,22 @@ struct ImGuiNodesNode
     std::vector<ImGuiNodesInput> inputs_;
     std::vector<ImGuiNodesOutput> outputs_;
 
-    void TranslateNode(ImVec2 delta, bool selected_only = false);
-
-    void BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size);
-
-    void DrawNode(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
-
     ImGuiNodesNode(const std::string& name, ImColor color);
+    void TranslateNode(ImVec2 delta, bool selected_only = false);
+    void BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size);
+    void Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
 };
-
-
 
 struct ImGuiNodes
 {
+public:
+    ImGuiNodes();
+    ~ImGuiNodes();
+
+    void Update();
+    void ProcessNodes();
+    void ProcessContextMenu();
+
 private:
     ImVec2 mouse_;
     ImVec2 pos_;
@@ -137,25 +135,13 @@ private:
 
     ImVector<ImGuiNodesNode*> nodes_;
 
-private:
     void UpdateCanvasGeometry(ImDrawList* draw_list);
     ImGuiNodesNode* UpdateNodesFromCanvas();
     ImGuiNodesNode* CreateNode(const std::string& name, ImColor color, ImVec2 pos, 
                                const std::vector<std::string>& inputs, const std::vector<std::string>& outputs);
-
-    void DrawConnection(ImVec2 p1, ImVec2 p4, ImColor color);
-
+    void RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color);
     bool ConnectionMatrix(ImGuiNodesNode* input_node, ImGuiNodesNode* output_node, ImGuiNodesInput* input, ImGuiNodesOutput* output);
-
     inline bool SortSelectedNodesOrder();
-public:
-    void Update();
-    void ProcessNodes();
-    void ProcessContextMenu();
-
-    ImGuiNodes();
-
-    ~ImGuiNodes();
 };
 
 }

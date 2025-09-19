@@ -404,11 +404,11 @@ void ImGuiNodes::Update()
 
             case ImGuiNodesState_HoveringInput:
             {
-                if (element_input_->target_)
+                if (element_input_->source_node_)
                 {
-                    element_input_->output_->connections_--;
-                    element_input_->output_ = NULL;
-                    element_input_->target_ = NULL;
+                    element_input_->source_output_->connections_count_--;
+                    element_input_->source_output_ = NULL;
+                    element_input_->source_node_ = NULL;
 
                     state_ = ImGuiNodesState_DragingInput;
                 }
@@ -498,7 +498,7 @@ void ImGuiNodes::Update()
 
             case ImGuiNodesState_HoveringInput:
             {
-                if (!element_input_->target_)
+                if (!element_input_->source_node_)
                     state_ = ImGuiNodesState_DragingInput;
                 else
                     state_ = ImGuiNodesState_Draging;
@@ -546,7 +546,7 @@ void ImGuiNodes::Update()
 
             case ImGuiNodesState_Draging:
             {
-                if (element_input_ && element_input_->output_ && element_input_->output_->connections_ > 0)
+                if (element_input_ && element_input_->source_output_ && element_input_->source_output_->connections_count_ > 0)
                     return;
 
                 if (!(element_node_->state_ & ImGuiNodesNodeStateFlag_Selected))
@@ -612,13 +612,13 @@ void ImGuiNodes::Update()
             {
                 IM_ASSERT(hovered_node);
                 IM_ASSERT(element_node_);
-                element_input_->target_ = state_ == ImGuiNodesState_DragingInput ? hovered_node : element_node_;
+                element_input_->source_node_ = state_ == ImGuiNodesState_DragingInput ? hovered_node : element_node_;
 
-                if (element_input_->output_)
-                    element_input_->output_->connections_--;
+                if (element_input_->source_output_)
+                    element_input_->source_output_->connections_count_--;
 
-                element_input_->output_ = element_output_;
-                element_output_->connections_++;
+                element_input_->source_output_ = element_output_;
+                element_output_->connections_count_++;
             }
 
             connection_ = ImVec4();
@@ -657,13 +657,13 @@ void ImGuiNodes::Update()
                     {
                         ImGuiNodesInput& input = sweep->inputs_[input_idx];
 
-                        if (node == input.target_)
+                        if (node == input.source_node_)
                         {
-                            if (input.output_)
-                                input.output_->connections_--;
+                            if (input.source_output_)
+                                input.source_output_->connections_count_--;
 
-                            input.target_ = NULL;
-                            input.output_ = NULL;
+                            input.source_node_ = NULL;
+                            input.source_output_ = NULL;
                         }
                     }
                 }
@@ -672,12 +672,12 @@ void ImGuiNodes::Update()
                 {
                     ImGuiNodesInput& input = node->inputs_[input_idx];
                     
-                    if (input.output_)
-                        input.output_->connections_--;
+                    if (input.source_output_)
+                        input.source_output_->connections_count_--;
                     
                     input.name_.clear();
-                    input.target_ = NULL;
-                    input.output_ = NULL;
+                    input.source_node_ = NULL;
+                    input.source_output_ = NULL;
                 }
 
                 for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
@@ -729,7 +729,7 @@ void ImGuiNodes::ProcessNodes()
         {		
             const ImGuiNodesInput& input = node->inputs_[input_idx];
             
-            if (const ImGuiNodesNode* target = input.target_)
+            if (const ImGuiNodesNode* target = input.source_node_)
             {
                 IM_ASSERT(target);
 
@@ -755,13 +755,13 @@ void ImGuiNodes::ProcessNodes()
                 }
                 else
                 {
-                    p4 += (input.output_->pos_ * scale_);		
+                    p4 += (input.source_output_->pos_ * scale_);		
                 }
 
                 ImColor color = !any_node_hovered_ || (node->state_ & ImGuiNodesNodeStateFlag_Selected) || (target->state_ & ImGuiNodesNodeStateFlag_Selected)
                     ? ImColor(1.0f, 1.0f, 1.0f, 1.0f)
                     : ImColor(0.4f, 0.4f, 0.4f, 0.4f);
-                DrawConnection(p1, p4, color);
+                RenderConnection(p1, p4, color);
             }
         }
     }
@@ -770,11 +770,11 @@ void ImGuiNodes::ProcessNodes()
     {
         const ImGuiNodesNode* node = nodes_[node_idx];
         IM_ASSERT(node);
-        node->DrawNode(draw_list, offset, scale_, state_);
+        node->Render(draw_list, offset, scale_, state_);
     }
 
     if (connection_.x != connection_.z && connection_.y != connection_.w)
-        DrawConnection(ImVec2(connection_.x, connection_.y), ImVec2(connection_.z, connection_.w), ImColor(0.0f, 1.0f, 0.0f, 1.0f));
+        RenderConnection(ImVec2(connection_.x, connection_.y), ImVec2(connection_.z, connection_.w), ImColor(0.0f, 1.0f, 0.0f, 1.0f));
 
     ImGui::SetWindowFontScale(1.0f);
 
@@ -875,8 +875,8 @@ void ImGuiNodesInput::TranslateInput(ImVec2 delta)
 ImGuiNodesInput::ImGuiNodesInput(const std::string& name)
 {
     state_ = ImGuiNodesConnectorStateFlag_Default;
-    target_ = NULL;
-    output_ = NULL;
+    source_node_ = NULL;
+    source_output_ = NULL;
     name_ = name;
 
     area_name_.Min = ImVec2(0.0f, 0.0f);
@@ -898,11 +898,11 @@ ImGuiNodesInput::ImGuiNodesInput(const std::string& name)
     area_name_.Translate(offset);
 }
 
-void ImGuiNodesInput::DrawInput(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const
+void ImGuiNodesInput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const
 {
     if (state != ImGuiNodesState_Draging && state_ & ImGuiNodesConnectorStateFlag_Hovered && !(state_ & ImGuiNodesConnectorStateFlag_Consider))
     {
-        const ImColor color = target_ == NULL ? ImColor(0.0f, 0.0f, 1.0f, 0.5f) : ImColor(1.0f, 0.5f, 0.0f, 0.5f);
+        const ImColor color = source_node_ == NULL ? ImColor(0.0f, 0.0f, 1.0f, 0.5f) : ImColor(1.0f, 0.5f, 0.0f, 0.5f);
         draw_list->AddRectFilled((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, color);
     }
 
@@ -915,7 +915,7 @@ void ImGuiNodesInput::DrawInput(ImDrawList* draw_list, ImVec2 offset, float scal
 
     ImColor color = consider_fill ? ImColor(0.0f, 1.0f, 0.0f, 1.0f) : ImColor(1.0f, 1.0f, 1.0f, 1.0f);
             
-    consider_fill |= bool(target_);
+    consider_fill |= bool(source_node_);
 
     if (consider_fill)
         draw_list->AddCircleFilled((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, color);
@@ -936,7 +936,7 @@ void ImGuiNodesOutput::TranslateOutput(ImVec2 delta)
 ImGuiNodesOutput::ImGuiNodesOutput(const std::string& name)
 {
     state_ = ImGuiNodesConnectorStateFlag_Default;
-    connections_ = 0;
+    connections_count_ = 0;
     name_ = name;
 
     area_name_.Min = ImVec2(0.0f, 0.0f) - ImGui::CalcTextSize(name_.c_str());
@@ -958,7 +958,7 @@ ImGuiNodesOutput::ImGuiNodesOutput(const std::string& name)
     area_name_.Translate(offset);
 }
 
-void ImGuiNodesOutput::DrawOutput(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const
+void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const
 {
     if (state != ImGuiNodesState_Draging && state_ & ImGuiNodesConnectorStateFlag_Hovered && !(state_ & ImGuiNodesConnectorStateFlag_Consider))
         draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(0.0f, 0.0f, 1.0f, 0.5f));
@@ -972,7 +972,7 @@ void ImGuiNodesOutput::DrawOutput(ImDrawList* draw_list, ImVec2 offset, float sc
 
     ImColor color = consider_fill ? ImColor(0.0f, 1.0f, 0.0f, 1.0f) : ImColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-    consider_fill |= bool(connections_ > 0);
+    consider_fill |= bool(connections_count_ > 0);
 
     if (consider_fill)
         draw_list->AddCircleFilled((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, color);
@@ -1038,7 +1038,7 @@ void ImGuiNodesNode::BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size)
     }
 }
 
-void ImGuiNodesNode::DrawNode(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const
+void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const
 {
     if (!(state_ & ImGuiNodesNodeStateFlag_Visible))
         return;
@@ -1111,10 +1111,10 @@ void ImGuiNodesNode::DrawNode(ImDrawList* draw_list, ImVec2 offset, float scale,
     if (!(state_ & ImGuiNodesNodeStateFlag_Collapsed))
     {
         for (int input_idx = 0; input_idx < inputs_.size(); ++input_idx)
-            inputs_[input_idx].DrawInput(draw_list, offset, scale, state);
+            inputs_[input_idx].Render(draw_list, offset, scale, state);
 
         for (int output_idx = 0; output_idx < outputs_.size(); ++output_idx)
-            outputs_[output_idx].DrawOutput(draw_list, offset, scale, state);
+            outputs_[output_idx].Render(draw_list, offset, scale, state);
     }
 
     ImGui::SetCursorScreenPos(((area_name_.Min + ImVec2(2, 2)) * scale) + offset);
@@ -1141,7 +1141,7 @@ void ImGuiNodesNode::DrawNode(ImDrawList* draw_list, ImVec2 offset, float scale,
     draw_list->AddRect(node_rect.Min - outline * 0.5f, node_rect.Max + outline * 0.5f, ImColor(0.0f, 0.0f, 0.0f, 0.5f), rounding, rounding_corners_flags, 3.0f * scale);
 }
 
-void ImGuiNodes::DrawConnection(ImVec2 p1, ImVec2 p4, ImColor color)
+void ImGuiNodes::RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color)
 {		
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
@@ -1170,7 +1170,7 @@ void ImGuiNodes::DrawConnection(ImVec2 p1, ImVec2 p4, ImColor color)
 bool ImGuiNodes::ConnectionMatrix(ImGuiNodesNode* input_node, ImGuiNodesNode* output_node, ImGuiNodesInput* input, ImGuiNodesOutput* output)
 {
     // Prevent connections to inputs that already have a connection
-    return !(input->target_);
+    return !(input->source_node_);
 }
 
 ImGuiNodes::ImGuiNodes()
