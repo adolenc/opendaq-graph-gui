@@ -38,21 +38,18 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
         if (ImGui::IsMouseDragging(1))
             scroll_ += io.MouseDelta;
 
-        if (!io.KeyShift && !io.KeyCtrl)
-        {
-            ImVec2 focus = (mouse_ - scroll_ - pos_) / scale_;
+        ImVec2 focus = (mouse_ - scroll_ - pos_) / scale_;
 
-            if (io.MouseWheel < 0.0f)
-                for (float zoom = io.MouseWheel; zoom < 0.0f; zoom += 1.0f)
-                    scale_ = ImMax(0.3f, scale_ / 1.05f);
+        if (io.MouseWheel < 0.0f)
+            for (float zoom = io.MouseWheel; zoom < 0.0f; zoom += 1.0f)
+                scale_ = ImMax(0.3f, scale_ / 1.05f);
 
-            if (io.MouseWheel > 0.0f)
-                for (float zoom = io.MouseWheel; zoom > 0.0f; zoom -= 1.0f)
-                    scale_ = ImMin(3.0f, scale_ * 1.05f);
+        if (io.MouseWheel > 0.0f)
+            for (float zoom = io.MouseWheel; zoom > 0.0f; zoom -= 1.0f)
+                scale_ = ImMin(3.0f, scale_ * 1.05f);
 
-            ImVec2 shift = scroll_ + (focus * scale_);
-            scroll_ += mouse_ - shift - pos_;
-        }
+        ImVec2 shift = scroll_ + (focus * scale_);
+        scroll_ += mouse_ - shift - pos_;
 
         if (ImGui::IsMouseReleased(1) && !active_node_)
         {
@@ -104,7 +101,7 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
         }
         else
         {
-            node->state_ &= ~(ImGuiNodesNodeStateFlag_Visible | ImGuiNodesNodeStateFlag_Hovered | ImGuiNodesNodeStateFlag_MarkedForSelection);
+            CLEAR_FLAGS(node->state_, ImGuiNodesNodeStateFlag_Visible | ImGuiNodesNodeStateFlag_Hovered | ImGuiNodesNodeStateFlag_MarkedForSelection);
             continue;
         }
 
@@ -265,7 +262,7 @@ ImGuiNodesNode* ImGuiNodes::CreateNode(const std::string& name, ImColor color, I
 
 bool ImGuiNodes::SortSelectedNodesOrder()
 {
-    bool selected = false;
+    bool any_node_selected = false;
 
     ImVector<ImGuiNodesNode*> nodes_unselected;
     nodes_unselected.reserve(nodes_.size());
@@ -276,10 +273,9 @@ bool ImGuiNodes::SortSelectedNodesOrder()
     for (ImGuiNodesNode** iterator = nodes_.begin(); iterator != nodes_.end(); ++iterator)
     {
         ImGuiNodesNode* node = ((ImGuiNodesNode*)*iterator);
-
-        if (IS_SET(node->state_, ImGuiNodesNodeStateFlag_MarkedForSelection) || IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected))
+        if (HAS_ANY_FLAG(node->state_, ImGuiNodesNodeStateFlag_MarkedForSelection | ImGuiNodesNodeStateFlag_Selected))
         {
-            selected = true;
+            any_node_selected = true;
             CLEAR_FLAG(node->state_, ImGuiNodesNodeStateFlag_MarkedForSelection);
             SET_FLAG(node->state_, ImGuiNodesNodeStateFlag_Selected);
             nodes_selected.push_back(node);
@@ -296,7 +292,7 @@ bool ImGuiNodes::SortSelectedNodesOrder()
     for (int selected_idx = 0; selected_idx < nodes_selected.size(); ++selected_idx)
         nodes_[node_idx++] = nodes_selected[selected_idx];
 
-    return selected;
+    return any_node_selected;
 }
 
 void ImGuiNodes::Update()
@@ -346,13 +342,14 @@ void ImGuiNodes::Update()
         active_output_ = NULL;
     
         if (hovered_node)
+        {
             for (int output_idx = 0; output_idx < hovered_node->outputs_.size(); ++output_idx)
             {
                 ImGuiNodesConnectorState state = hovered_node->outputs_[output_idx].state_;
-
                 if (HAS_ALL_FLAGS(state, ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_Consider))
                     active_output_ = &hovered_node->outputs_[output_idx];
             }
+        }
     }
     
     if (state_ == ImGuiNodesState_DraggingOutput)
@@ -360,6 +357,7 @@ void ImGuiNodes::Update()
         active_input_ = NULL;
     
         if (hovered_node)
+        {
             for (int input_idx = 0; input_idx < hovered_node->inputs_.size(); ++input_idx)
             {
                 ImGuiNodesConnectorState state = hovered_node->inputs_[input_idx].state_;
@@ -367,6 +365,7 @@ void ImGuiNodes::Update()
                 if (HAS_ALL_FLAGS(state, ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_Consider))
                     active_input_ = &hovered_node->inputs_[input_idx];
             }
+        }
     }
 
     if (consider_hover)
@@ -383,17 +382,8 @@ void ImGuiNodes::Update()
         {
             case ImGuiNodesState_Default:
             {
-                bool selected = false;
-
                 for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
-                {
-                    ImGuiNodesState& state = nodes_[node_idx]->state_;
-
-                    if (IS_SET(state, ImGuiNodesNodeStateFlag_Selected))
-                        selected = true;
-
-                    CLEAR_FLAGS(state, ImGuiNodesNodeStateFlag_Selected | ImGuiNodesNodeStateFlag_MarkedForSelection | ImGuiNodesNodeStateFlag_Hovered);
-                }
+                    CLEAR_FLAGS(nodes_[node_idx]->state_, ImGuiNodesNodeStateFlag_Selected | ImGuiNodesNodeStateFlag_MarkedForSelection | ImGuiNodesNodeStateFlag_Hovered);
 
                 return;
             };
@@ -414,7 +404,7 @@ void ImGuiNodes::Update()
 
             case ImGuiNodesState_HoveringNode:
             {
-                IM_ASSERT(element_node_);
+                IM_ASSERT(active_node_);
                 if (IS_SET(active_node_->state_, ImGuiNodesNodeStateFlag_Collapsed))
                 {
                     CLEAR_FLAG(active_node_->state_, ImGuiNodesNodeStateFlag_Collapsed);
@@ -427,30 +417,12 @@ void ImGuiNodes::Update()
                     active_node_->area_node_.Max.y -= active_node_->body_height_;
 
                     //const ImVec2 click = (mouse_ - scroll_ - pos_) / scale_;
-                    //const ImVec2 position = click - element_node_->area_node_.GetCenter();
+                    //const ImVec2 position = click - active_node_->area_node_.GetCenter();
 
                     active_node_->TranslateNode(ImVec2(0.0f, active_node_->body_height_ * 0.5f));
                 }
 
                 state_ = ImGuiNodesState_Dragging;
-                return;
-            }
-        }
-    }
-
-    if (ImGui::IsMouseDoubleClicked(1))
-    {
-        switch (state_)
-        {
-            case ImGuiNodesState_HoveringNode:
-            {
-                IM_ASSERT(hovered_node);
-
-                if (IS_SET(hovered_node->state_, ImGuiNodesNodeStateFlag_Disabled))
-                    hovered_node->state_ &= ~(ImGuiNodesNodeStateFlag_Disabled);
-                else
-                    hovered_node->state_ |= (ImGuiNodesNodeStateFlag_Disabled);
-
                 return;
             }
         }
@@ -464,26 +436,17 @@ void ImGuiNodes::Update()
             {
                 if (io.KeyCtrl)
                     TOGGLE_FLAG(active_node_->state_, ImGuiNodesNodeStateFlag_Selected);
-
-                if (io.KeyShift)
-                    SET_FLAG(active_node_->state_, ImGuiNodesNodeStateFlag_Selected);
-
-                bool selected = IS_SET(active_node_->state_, ImGuiNodesNodeStateFlag_Selected);
-                if (!selected)
+                else
                 {
-                    if (!io.KeyCtrl && !io.KeyShift)
+                    if (!IS_SET(active_node_->state_, ImGuiNodesNodeStateFlag_Selected))
                     {
                         for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
                             CLEAR_FLAG(nodes_[node_idx]->state_, ImGuiNodesNodeStateFlag_Selected);
-
                         ClearAllConnectorSelections();
                     }
-                    
+
                     SET_FLAG(active_node_->state_, ImGuiNodesNodeStateFlag_Selected);
                 }
-                // Note: We don't clear other selections when clicking on an already selected node
-                // This allows dragging multiple selected nodes. If the user wants to deselect others,
-                // they can use Ctrl+click or click in empty space first.
 
                 SortSelectedNodesOrder();
 
@@ -529,11 +492,11 @@ void ImGuiNodes::Update()
                 if (!canvas.Contains(mouse_))
                     return;
 
-                if (!io.KeyShift)
+                if (!io.KeyCtrl)
                 {
                     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
-                        nodes_[node_idx]->state_ &= ~(ImGuiNodesNodeStateFlag_Selected | ImGuiNodesNodeStateFlag_MarkedForSelection);
-                    
+                        CLEAR_FLAGS(nodes_[node_idx]->state_, ImGuiNodesNodeStateFlag_Selected | ImGuiNodesNodeStateFlag_MarkedForSelection);
+
                     ClearAllConnectorSelections();
                 }
 
@@ -675,7 +638,7 @@ void ImGuiNodes::Update()
             if (active_input_ && active_output_)
             {
                 IM_ASSERT(hovered_node);
-                IM_ASSERT(element_node_);
+                IM_ASSERT(active_node_);
                 active_input_->source_node_ = state_ == ImGuiNodesState_DraggingInput ? hovered_node : active_node_;
 
                 if (active_input_->source_output_)
