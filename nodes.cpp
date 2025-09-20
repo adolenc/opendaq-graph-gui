@@ -52,11 +52,11 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
 
         if (io.MouseWheel < 0.0f)
             for (float zoom = io.MouseWheel; zoom < 0.0f; zoom += 1.0f)
-                scale_ = ImMax(0.3f, scale_ / 1.05f);
+                scale_ = ImMax(0.3f, scale_ / 1.15f);
 
         if (io.MouseWheel > 0.0f)
             for (float zoom = io.MouseWheel; zoom > 0.0f; zoom -= 1.0f)
-                scale_ = ImMin(3.0f, scale_ * 1.05f);
+                scale_ = ImMin(3.0f, scale_ * 1.15f);
 
         ImVec2 shift = scroll_ + (focus * scale_);
         scroll_ += mouse_ - shift - nodes_imgui_window_pos_;
