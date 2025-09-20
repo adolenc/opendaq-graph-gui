@@ -129,6 +129,7 @@ int main(int, char**)
         ImGui::NewFrame();
 
         DrawPropertiesWindow({instance->folders_["RefDev0"].component, instance->folders_["RefCh0"].component});
+        ImGui::ShowDemoWindow();
 
 #ifdef IMGUI_HAS_VIEWPORT
         ImGuiViewport* viewport = ImGui::GetMainViewport();

@@ -5,7 +5,7 @@
 #include "imgui_stdlib.h"
 
 
-void RenderSelectedComponent(daq::ComponentPtr component, bool show_parents)
+void RenderSelectedComponent(daq::ComponentPtr component, bool show_parents, bool show_attributes)
 {
     if (!canCastTo<daq::IPropertyObject>(component))
         return;
@@ -13,14 +13,14 @@ void RenderSelectedComponent(daq::ComponentPtr component, bool show_parents)
     while (component.assigned())
     {
         ImGui::SeparatorText(component.getName().toStdString().c_str());
-        RenderComponentProperties(component);
+        RenderComponentPropertiesAndAttributes(component, show_attributes);
         if (!show_parents)
             break;
         component = component.getParent();
     }
 }
 
-void RenderComponentProperties(const daq::ComponentPtr& component)
+void RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component, bool show_attributes)
 {
     const daq::PropertyObjectPtr& property_holder = castTo<daq::IPropertyObject>(component);
     for (const auto& property : property_holder.getVisibleProperties())
@@ -92,6 +92,9 @@ void RenderComponentProperties(const daq::ComponentPtr& component)
             ImGui::EndDisabled();
     }
 
+    if (!show_attributes)
+        return;
+
     if (!ImGui::CollapsingHeader(("Attributes##" + component.getName().toStdString()).c_str()))
         return;
 
@@ -132,61 +135,61 @@ void RenderComponentProperties(const daq::ComponentPtr& component)
             ImGui::EndTooltip();
         }
     }
-
-        // self.attributes['Tags'] = { 'Value': node.tags.list, 'Locked': False, 'Attribute': 'tags'}
-        //
-        // if daq.ISignal.can_cast_from(node):
-        //     signal = daq.ISignal.cast_from(node)
-        //
-        //     self.attributes['Public'] = {'Value': bool(
-        //         signal.public), 'Locked': False, 'Attribute': 'public'}
-        //     self.attributes['Domain Signal ID'] = {
-        //         'Value': signal.domain_signal.global_id if signal.domain_signal else '', 'Locked': True,
-        //         'Attribute': '.domain_signal'}
-        //     self.attributes['Related Signals IDs'] = {'Value': os.linesep.join(
-        //         [s.global_id for s in signal.related_signals]), 'Locked': True, 'Attribute': 'related_signals'}
-        //     self.attributes['Streamed'] = {'Value': bool(
-        //         signal.streamed), 'Locked': True, 'Attribute': 'streamed'}
-        //     self.attributes['Last Value'] = {
-        //         'Value': get_last_value_for_signal(signal), 'Locked': True, 'Attribute': 'last_value'}
-        //
-        // if daq.IInputPort.can_cast_from(node):
-        //     input_port = daq.IInputPort.cast_from(node)
-        //
-        //     self.attributes['Signal ID'] = {
-        //         'Value': input_port.signal.global_id if input_port.signal else '', 'Locked': True,
-        //         'Attribute': 'signal'}
-        //     self.attributes['Requires Signal'] = {'Value': bool(
-        //         input_port.requires_signal), 'Locked': True, 'Attribute': 'requires_signal'}
-        //
-        // locked_attributes = node.locked_attributes
-        //
-        // self.attributes['Status'] = { 'Value': dict(node.status_container.statuses.items()) or None, 'Locked': True, 'Attribute': 'status'}
-        //
-        // for locked_attribute in locked_attributes:
-        //     if locked_attribute not in self.attributes:
-        //         continue
-        //     self.attributes[locked_attribute]['Locked'] = True
-
-    return;
 }
 
 void DrawPropertiesWindow(const std::vector<daq::ComponentPtr>& selected_components)
 {
-    ImGui::Begin("Property editor", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::Begin("Property editor", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
     {
         static bool show_parents = false;
-        ImGui::Checkbox("Show parents", &show_parents);
-
-        for (const auto& component : selected_components)
+        static bool tabbed_interface = false;
+        static bool show_attributes = false;
+        if (ImGui::BeginMenuBar())
         {
-            // ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(255, 0, 0, 30));
-            ImGui::BeginChild(component.getName().toStdString().c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
-            RenderSelectedComponent(component, show_parents);
-            ImGui::EndChild();
-            // ImGui::PopStyleColor();
+            if (ImGui::BeginMenu("Settings"))
+            {
+                ImGui::Checkbox("Show parents", &show_parents);
+                ImGui::Checkbox("Show attributes", &show_attributes);
+                ImGui::Checkbox("Use tabs for multiple selected components", &tabbed_interface);
 
-            ImGui::SameLine();
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenuBar();
+        }
+
+        if (selected_components.empty())
+        {
+            ImGui::Text("No component selected");
+        }
+        else if (selected_components.size() == 1)
+        {
+            RenderSelectedComponent(selected_components[0], show_parents, show_attributes);
+        }
+        else if (tabbed_interface)
+        {
+            if (ImGui::BeginTabBar("Selected components"))
+            {
+                for (const auto& component : selected_components)
+                {
+                    if (ImGui::BeginTabItem(component.getName().toStdString().c_str()))
+                    {
+                        RenderSelectedComponent(component, show_parents, show_attributes);
+                        ImGui::EndTabItem();
+                    }
+                }
+                ImGui::EndTabBar();
+            }
+        }
+        else
+        {
+            for (const auto& component : selected_components)
+            {
+                ImGui::BeginChild(component.getName().toStdString().c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
+                RenderSelectedComponent(component, show_parents, show_attributes);
+                ImGui::EndChild();
+
+                ImGui::SameLine();
+            }
         }
     }
     ImGui::End();
