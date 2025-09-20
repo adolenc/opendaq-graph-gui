@@ -1243,15 +1243,10 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
             outputs_[output_idx].Render(draw_list, offset, scale, state);
     }
 
-    ImGui::SetCursorScreenPos(((area_name_.Min + ImVec2(2, 2)) * scale) + offset);
-    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 0, 0, 255));
-    ImGui::Text("%s", name_.c_str());
-    ImGui::PopStyleColor();
-
     ImGui::SetCursorScreenPos((area_name_.Min * scale) + offset);
     ImGui::Text("%s", name_.c_str());
 
-    if (state_ & (ImGuiNodesNodeStateFlag_MarkedForSelection | ImGuiNodesNodeStateFlag_Selected))
+    if (HAS_ANY_FLAG(state_, ImGuiNodesNodeStateFlag_MarkedForSelection | ImGuiNodesNodeStateFlag_Selected))
     {
         // Create a subtle highlighted border color based on the node's color
         ImColor border_color = color_;
