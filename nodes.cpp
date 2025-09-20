@@ -123,13 +123,7 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
 
         if (state_ == ImGuiNodesState_Selecting)
         {
-            if (io.KeyCtrl && area_.Overlaps(node_rect))
-            {
-                SET_FLAG(node->state_, ImGuiNodesNodeStateFlag_MarkedForSelection);
-                continue;
-            }
-
-            if (!io.KeyCtrl && area_.Overlaps(node_rect))
+            if (active_dragging_selection_area_.Overlaps(node_rect))
             {
                 SET_FLAG(node->state_, ImGuiNodesNodeStateFlag_MarkedForSelection);
                 continue;
@@ -540,8 +534,8 @@ void ImGuiNodes::Update()
             {
                 const ImVec2 pos = mouse_ - ImGui::GetMouseDragDelta(0);
 
-                area_.Min = ImMin(pos, mouse_);
-                area_.Max = ImMax(pos, mouse_);
+                active_dragging_selection_area_.Min = ImMin(pos, mouse_);
+                active_dragging_selection_area_.Max = ImMax(pos, mouse_);
 
                 return;
             }
@@ -606,7 +600,7 @@ void ImGuiNodes::Update()
             active_input_ = NULL;
             active_output_ = NULL;
 
-            area_ = {};
+            active_dragging_selection_area_ = {};
 
             SortSelectedNodesOrder();
             state_ = ImGuiNodesState_Default;
@@ -893,8 +887,8 @@ void ImGuiNodes::ProcessNodes()
 
     if (state_ == ImGuiNodesState_Selecting)
     {
-        draw_list->AddRectFilled(area_.Min, area_.Max, ImColor(1.0f, 1.0f, 0.0f, 0.1f));
-        draw_list->AddRect(area_.Min, area_.Max, ImColor(1.0f, 1.0f, 0.0f, 0.5f));
+        draw_list->AddRectFilled(active_dragging_selection_area_.Min, active_dragging_selection_area_.Max, ImColor(1.0f, 1.0f, 0.0f, 0.1f));
+        draw_list->AddRect(active_dragging_selection_area_.Min, active_dragging_selection_area_.Max, ImColor(1.0f, 1.0f, 0.0f, 0.5f));
     }
 
     ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));

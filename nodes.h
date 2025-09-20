@@ -120,15 +120,15 @@ public:
     void ProcessContextMenu();
 
 private:
-    ImVec2 mouse_;
-    ImRect area_;
     ImVec2 nodes_imgui_window_pos_;
     ImVec2 nodes_imgui_window_size_;
+
+    ImVec2 mouse_;
+    ImGuiNodesState state_;
     ImVec2 scroll_;
     float scale_;
 
-    ImGuiNodesState state_;
-
+    ImRect active_dragging_selection_area_;
     ImVec4 active_dragging_connection_;
     ImGuiNodesNode* active_node_ = NULL;
     ImGuiNodesInput* active_input_ = NULL;
