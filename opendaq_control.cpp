@@ -39,19 +39,6 @@ void OpenDAQ::ConnectToDevice(const std::string& device_id)
     {
         std::cout << k << std::endl;
     }
-
-    for (const auto& [_, value] : folders_)
-    {
-        if (canCastTo<daq::IPropertyObject>(value.component))
-    {
-        daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(value.component);
-        for (const auto& prop : property_holder.getVisibleProperties())
-        {
-            Property property(property_holder, prop);
-            std::cout << '|' << property.name << " (" << property.value << ')' << std::endl;
-        }
-    }
-    }
 }
 
 OpenDAQ::Topology OpenDAQ::RetrieveTopology(daq::ComponentPtr component, int indent)
@@ -82,16 +69,6 @@ OpenDAQ::Topology OpenDAQ::RetrieveTopology(daq::ComponentPtr component, int ind
     std::cout << component.getGlobalId().toStdString();
     std::cout << std::endl;
 
-
-    if (canCastTo<daq::IPropertyObject>(component))
-    {
-        daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(component);
-        for (const auto& prop : property_holder.getVisibleProperties())
-        {
-            Property property(property_holder, prop);
-            std::cout << '|' << property.name << " (" << property.value << ')' << std::endl;
-        }
-    }
 
     if (canCastTo<daq::IFolder>(component))
     {

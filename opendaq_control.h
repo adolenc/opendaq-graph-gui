@@ -13,45 +13,6 @@ public:
     OpenDAQ();
     OpenDAQ(daq::InstancePtr instance);
     std::vector<std::string> GetAvailableDevices();
-    struct Property
-    {
-        std::string id;
-        std::string name;
-        std::optional<std::string> unit;
-        bool read_only;
-        bool visible;
-        daq::CoreType type;
-        daq::BaseObjectPtr value;
-        std::optional<std::string> suggested_values;
-        std::optional<daq::BaseObjectPtr> selection_values;
-        std::optional<double> min;
-        std::optional<double> max;
-
-        Property(daq::PropertyObjectPtr owner, daq::PropertyPtr prop)
-        {
-            id = prop.getSerializeId();
-            name = prop.getName().toStdString();
-            if (prop.getUnit() != nullptr && prop.getUnit().assigned())
-                unit = prop.getUnit().getSymbol().toStdString();
-            read_only = prop.getReadOnly();
-            visible = prop.getVisible();
-            type = prop.getValueType();
-            value = owner.getPropertyValue(name);
-            if (prop.getSelectionValues() != nullptr)
-                selection_values = prop.getSelectionValues();
-            // suggested_values = prop.getSuggestedValues();
-            if (prop.getMinValue() != nullptr) min = static_cast<double>(prop.getMinValue());
-            if (prop.getMaxValue() != nullptr) max = static_cast<double>(prop.getMaxValue());
-        }
-        bool IsCompatibleWith(const Property& other) const
-        {
-            if (name != other.name) return false;
-            if (type != other.type) return false;
-            if (selection_values && other.selection_values && selection_values != other.selection_values) return false;
-
-            return true;
-        }
-    };
     struct Topology
     {
         std::string name;
@@ -59,7 +20,6 @@ public:
         daq::ComponentPtr component;
         std::vector<std::string> inputs;
         std::vector<std::string> outputs;
-        std::vector<Property> properties;
         std::vector<Topology> children;
 
         void print() const
@@ -69,10 +29,6 @@ public:
                 std::cout << "  - " << input << " (Input)" << std::endl;
             for (const auto& output : outputs)
                 std::cout << "  - " << output << " (Output)" << std::endl;
-            // for (const auto& property : properties)
-            // {
-            //     std::cout << "  - " << property.name << " (" << property.value->toString().toStdString() << ')' << std::endl;
-            // }
             // for (const auto& child : children)
             //     child.print();
         }
