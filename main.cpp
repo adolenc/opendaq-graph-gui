@@ -128,7 +128,7 @@ int main(int, char**)
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        DrawPropertiesWindow({instance->folders_["RefDev0"].component, instance->folders_["RefCh0"].component});
+        DrawPropertiesWindow({instance->folders_["RefDev0"].component, instance->folders_["RefCh0"].component, instance->folders_["AI1"].component});
         ImGui::ShowDemoWindow();
 
 #ifdef IMGUI_HAS_VIEWPORT

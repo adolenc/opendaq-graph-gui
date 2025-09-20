@@ -163,7 +163,11 @@ void DrawPropertiesWindow(const std::vector<daq::ComponentPtr>& selected_compone
         }
         else if (selected_components.size() == 1)
         {
-            RenderSelectedComponent(selected_components[0], show_parents, show_attributes);
+            daq::ComponentPtr component = selected_components[0];
+            if (component == nullptr || !component.assigned())
+                return;
+
+            RenderSelectedComponent(component, show_parents, show_attributes);
         }
         else if (tabbed_interface)
         {
@@ -171,6 +175,9 @@ void DrawPropertiesWindow(const std::vector<daq::ComponentPtr>& selected_compone
             {
                 for (const auto& component : selected_components)
                 {
+                    if (component == nullptr || !component.assigned())
+                        continue;
+
                     if (ImGui::BeginTabItem(component.getName().toStdString().c_str()))
                     {
                         RenderSelectedComponent(component, show_parents, show_attributes);
@@ -184,6 +191,9 @@ void DrawPropertiesWindow(const std::vector<daq::ComponentPtr>& selected_compone
         {
             for (const auto& component : selected_components)
             {
+                if (component == nullptr || !component.assigned())
+                    continue;
+
                 ImGui::BeginChild(component.getName().toStdString().c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
                 RenderSelectedComponent(component, show_parents, show_attributes);
                 ImGui::EndChild();
