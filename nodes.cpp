@@ -2,6 +2,7 @@
 
 using namespace ImGui;
 
+
 #define IS_SET(state, flag)         ((state) & (flag))
 #define SET_FLAG(state, flag)       ((state) |= (flag))
 #define CLEAR_FLAG(state, flag)     ((state) &= ~(flag))
@@ -10,6 +11,10 @@ using namespace ImGui;
 #define HAS_ANY_FLAG(state, flags)  ((state) & (flags))
 #define CLEAR_FLAGS(state, flags)   ((state) &= ~(flags))
 
+static bool OtherImGuiWindowIsBlockingInteraction()
+{
+    return ImGui::GetIO().WantCaptureMouse && !ImGui::IsWindowHovered();
+}
 
 void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
 {
@@ -38,7 +43,7 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
         static bool blocked_by_imgui_interaction = false;
 
         if (ImGui::IsMouseClicked(1))
-            blocked_by_imgui_interaction = ImGui::IsAnyItemHovered();
+            blocked_by_imgui_interaction = OtherImGuiWindowIsBlockingInteraction();
         
         if (ImGui::IsMouseDragging(1) && !blocked_by_imgui_interaction)
             scroll_ += io.MouseDelta;
@@ -388,7 +393,7 @@ void ImGuiNodes::Update()
 
     if (ImGui::IsMouseDoubleClicked(0))
     {
-        if (ImGui::IsAnyItemHovered())
+        if (OtherImGuiWindowIsBlockingInteraction())
             return;
 
         switch (state_)
@@ -443,9 +448,13 @@ void ImGuiNodes::Update()
 
     if (ImGui::IsMouseClicked(0))
     {
-        blocked_by_imgui_interaction = ImGui::IsAnyItemHovered();
-        if (blocked_by_imgui_interaction)
+        if (OtherImGuiWindowIsBlockingInteraction())
+        {
+            blocked_by_imgui_interaction = true;
             return;
+        }
+        
+        blocked_by_imgui_interaction = false;
 
         switch (state_)
         {				
@@ -501,6 +510,9 @@ void ImGuiNodes::Update()
 
     if (ImGui::IsMouseDragging(0))
     {
+        if (blocked_by_imgui_interaction)
+            return;
+            
         switch (state_)
         {
             case ImGuiNodesState_Default:
@@ -923,6 +935,8 @@ void ImGuiNodes::ProcessNodes()
     ImGui::Text("ImGui::IsAnyItemActive: %s", ImGui::IsAnyItemActive() ? "true" : "false");
     ImGui::Text("ImGui::IsAnyItemFocused: %s", ImGui::IsAnyItemFocused() ? "true" : "false");
     ImGui::Text("ImGui::IsAnyItemHovered: %s", ImGui::IsAnyItemHovered() ? "true" : "false");
+    ImGui::Text("IsWindowHovered(AnyWindow): %s", ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) ? "true" : "false");
+    ImGui::Text("IsWindowHovered(): %s", ImGui::IsWindowHovered() ? "true" : "false");
 }
 
 
