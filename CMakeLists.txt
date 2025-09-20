@@ -58,6 +58,6 @@ find_package(OpenGL REQUIRED)
 target_link_libraries(imgui PUBLIC SDL2::SDL2 SDL2::SDL2main OpenGL::GL) 
 
 
-add_executable(${PROJECT_NAME} main.cpp nodes.cpp opendaq_control.cpp)
+add_executable(${PROJECT_NAME} main.cpp nodes.cpp opendaq_control.cpp properties_window.cpp)
 target_include_directories(${PROJECT_NAME} PUBLIC ${openDAQ_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PUBLIC daq::opendaq imgui implot)
