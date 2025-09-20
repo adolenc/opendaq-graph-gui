@@ -15,7 +15,7 @@ enum ImGuiNodesConnectorStateFlag_
     ImGuiNodesConnectorStateFlag_Default	= 0,
     ImGuiNodesConnectorStateFlag_Visible	= 1 << 0,
     ImGuiNodesConnectorStateFlag_Hovered	= 1 << 1,
-    ImGuiNodesConnectorStateFlag_Consider	= 1 << 2,
+    ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget	= 1 << 2,
     ImGuiNodesConnectorStateFlag_Dragging	= 1 << 3,
     ImGuiNodesConnectorStateFlag_Selected	= 1 << 4
 };
