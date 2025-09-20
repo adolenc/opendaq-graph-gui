@@ -26,11 +26,11 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
         ImVec2 min = ImGui::GetWindowContentRegionMin();
         ImVec2 max = ImGui::GetWindowContentRegionMax();
 
-        pos_ = ImGui::GetWindowPos() + min;
-        size_ = max - min;	
+        nodes_imgui_window_pos_ = ImGui::GetWindowPos() + min;
+        nodes_imgui_window_size_ = max - min;	
     }
 
-    ImRect canvas(pos_, pos_ + size_);
+    ImRect canvas(nodes_imgui_window_pos_, nodes_imgui_window_pos_ + nodes_imgui_window_size_);
 
     if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_0))
     {
@@ -48,7 +48,7 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
         if (ImGui::IsMouseDragging(1) && !blocked_by_imgui_interaction)
             scroll_ += io.MouseDelta;
 
-        ImVec2 focus = (mouse_ - scroll_ - pos_) / scale_;
+        ImVec2 focus = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
 
         if (io.MouseWheel < 0.0f)
             for (float zoom = io.MouseWheel; zoom < 0.0f; zoom += 1.0f)
@@ -59,7 +59,7 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
                 scale_ = ImMin(3.0f, scale_ * 1.05f);
 
         ImVec2 shift = scroll_ + (focus * scale_);
-        scroll_ += mouse_ - shift - pos_;
+        scroll_ += mouse_ - shift - nodes_imgui_window_pos_;
 
         if (ImGui::IsMouseReleased(1) && !active_node_)
         {
@@ -72,14 +72,14 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
     }
 
     const float grid = 64.0f * scale_;
-    for (float x = fmodf(scroll_.x, grid); x < size_.x; x += grid)
+    for (float x = fmodf(scroll_.x, grid); x < nodes_imgui_window_size_.x; x += grid)
     {		
-        for (float y = fmodf(scroll_.y, grid); y < size_.y; y += grid)
+        for (float y = fmodf(scroll_.y, grid); y < nodes_imgui_window_size_.y; y += grid)
         {
             int mark_x = (int)((x - scroll_.x) / grid);
             int mark_y = (int)((y - scroll_.y) / grid);
             ImColor color = (mark_y % 5) || (mark_x % 5) ? ImColor(0.3f, 0.3f, 0.3f, .3f) : ImColor(1.0f, 1.0f, 1.0f, .3f);
-            draw_list->AddCircleFilled(ImVec2(x, y) + pos_, 2.0f * scale_, color);
+            draw_list->AddCircleFilled(ImVec2(x, y) + nodes_imgui_window_pos_, 2.0f * scale_, color);
         }
     }
 }
@@ -91,8 +91,8 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
 
     const ImGuiIO& io = ImGui::GetIO();
 
-    ImVec2 offset = pos_ + scroll_;
-    ImRect canvas(pos_, pos_ + size_);
+    ImVec2 offset = nodes_imgui_window_pos_ + scroll_;
+    ImRect canvas(nodes_imgui_window_pos_, nodes_imgui_window_pos_ + nodes_imgui_window_size_);
     ImGuiNodesNode* hovered_node = NULL;
 
     for (int node_idx = nodes_.size() - 1; node_idx >= 0; --node_idx)
@@ -517,7 +517,7 @@ void ImGuiNodes::Update()
         {
             case ImGuiNodesState_Default:
             {
-                ImRect canvas(pos_, pos_ + size_);
+                ImRect canvas(nodes_imgui_window_pos_, nodes_imgui_window_pos_ + nodes_imgui_window_size_);
                 if (!canvas.Contains(mouse_))
                     return;
 
@@ -572,7 +572,7 @@ void ImGuiNodes::Update()
 
             case ImGuiNodesState_DraggingInput:
             {
-                ImVec2 offset = pos_ + scroll_;
+                ImVec2 offset = nodes_imgui_window_pos_ + scroll_;
                 ImVec2 p1 = offset + (active_input_->pos_ * scale_);
                 ImVec2 p4 = active_output_ ? (offset + (active_output_->pos_ * scale_)) : mouse_;
 
@@ -582,7 +582,7 @@ void ImGuiNodes::Update()
 
             case ImGuiNodesState_DraggingOutput:
             {
-                ImVec2 offset = pos_ + scroll_;
+                ImVec2 offset = nodes_imgui_window_pos_ + scroll_;
                 ImVec2 p1 = offset + (active_output_->pos_ * scale_);
                 ImVec2 p4 = active_input_ ? (offset + (active_input_->pos_ * scale_)) : mouse_;
 
@@ -817,7 +817,7 @@ void ImGuiNodes::ProcessNodes()
 {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-    const ImVec2 offset = pos_ + scroll_;
+    const ImVec2 offset = nodes_imgui_window_pos_ + scroll_;
 
     ImGui::SetWindowFontScale(scale_);
 
@@ -915,8 +915,8 @@ void ImGuiNodes::ProcessNodes()
 
     ImGui::NewLine();
 
-    ImGui::Text("Position: %.2f, %.2f", pos_.x, pos_.y);
-    ImGui::Text("Size: %.2f, %.2f", size_.x, size_.y);
+    ImGui::Text("Window position: %.2f, %.2f", nodes_imgui_window_pos_.x, nodes_imgui_window_pos_.y);
+    ImGui::Text("Window size: %.2f, %.2f", nodes_imgui_window_size_.x, nodes_imgui_window_size_.y);
     ImGui::Text("Mouse: %.2f, %.2f", mouse_.x, mouse_.y);
     ImGui::Text("Scroll: %.2f, %.2f", scroll_.x, scroll_.y);
     ImGui::Text("Scale: %.2f", scale_);
@@ -946,7 +946,7 @@ void ImGuiNodes::ProcessContextMenu()
 
     if (ImGui::BeginPopup("NodesContextMenu"))
     {
-        ImVec2 position = (mouse_ - scroll_ - pos_) / scale_;
+        ImVec2 position = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
         if (ImGui::MenuItem("Test"))
         {
             ImGuiNodesNode* node = CreateNode(

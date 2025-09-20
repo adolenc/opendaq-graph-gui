@@ -122,8 +122,8 @@ public:
 private:
     ImVec2 mouse_;
     ImRect area_;
-    ImVec2 pos_;
-    ImVec2 size_;
+    ImVec2 nodes_imgui_window_pos_;
+    ImVec2 nodes_imgui_window_size_;
     ImVec2 scroll_;
     float scale_;
 
