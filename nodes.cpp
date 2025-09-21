@@ -945,7 +945,7 @@ void ImGuiNodes::ProcessContextMenu()
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 
-    if (ImGui::BeginPopup("NodesContextMenu"))
+    if (ImGui::BeginPopup("NodesContextMenu", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
     {
         ImVec2 position = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
         if (ImGui::MenuItem("Test"))
