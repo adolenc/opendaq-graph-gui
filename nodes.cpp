@@ -235,8 +235,10 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
     return hovered_node;
 }
 
-ImGuiNodesNode* ImGuiNodes::CreateNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2 pos, 
-                                       const std::vector<ImGuiNodesIdentifier>& inputs, const std::vector<ImGuiNodesIdentifier>& outputs)
+void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2 pos, 
+                         const std::vector<ImGuiNodesIdentifier>& inputs,
+                         const std::vector<ImGuiNodesIdentifier>& outputs,
+                        ImGuiNodesUid parent_uid)
 {
     ImGuiNodesNode* node = new ImGuiNodesNode(name.name_, color);
 
@@ -266,7 +268,7 @@ ImGuiNodesNode* ImGuiNodes::CreateNode(const ImGuiNodesIdentifier& name, ImColor
     node->TranslateNode(pos - node->area_node_.GetCenter());
     SET_FLAG(node->state_, ImGuiNodesNodeStateFlag_Visible | ImGuiNodesNodeStateFlag_Hovered);
 
-    return node;
+    nodes_.push_back(node);
 }
 
 bool ImGuiNodes::SortSelectedNodesOrder()
@@ -950,35 +952,32 @@ void ImGuiNodes::ProcessContextMenu()
         ImVec2 position = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
         if (ImGui::MenuItem("Test"))
         {
-            ImGuiNodesNode* node = CreateNode(
+            AddNode(
                 "Test", 
                 ImColor(0.2f, 0.3f, 0.6f, 0.0f), 
                 position,
                 {"Float", "Int", "TextStream"},
                 {"Float"});
-            nodes_.push_back(node);
         }
         
         if (ImGui::MenuItem("InputBox"))
         {
-            ImGuiNodesNode* node = CreateNode(
+            AddNode(
                 "InputBox", 
                 ImColor(0.3f, 0.5f, 0.5f, 0.0f), 
                 position,
                 {"Float1", "Float2", "Int1", "Int2", "GenericSink", "Vector", "Image", "Text"},
                 {"TextStream", "Float", "Int"});
-            nodes_.push_back(node);
         }
         
         if (ImGui::MenuItem("OutputBox"))
         {
-            ImGuiNodesNode* node = CreateNode(
+            AddNode(
                 "OutputBox", 
                 ImColor(0.4f, 0.3f, 0.5f, 0.0f), 
                 position,
                 {"GenericSink1", "GenericSink2", "Float", "Int", "Text"},
                 {"Vector", "Image", "Text", "Float", "Int", "Generic"});
-            nodes_.push_back(node);
         }
 
         ImGui::EndPopup();

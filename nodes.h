@@ -136,6 +136,10 @@ public:
     void Update();
     void ProcessNodes();
     void ProcessContextMenu();
+    void AddNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2 pos, 
+                 const std::vector<ImGuiNodesIdentifier>& inputs, 
+                 const std::vector<ImGuiNodesIdentifier>& outputs,
+                ImGuiNodesUid parent_uid = "");
 
 private:
     ImVec2 nodes_imgui_window_pos_;
@@ -156,8 +160,6 @@ private:
 
     void UpdateCanvasGeometry(ImDrawList* draw_list);
     ImGuiNodesNode* UpdateNodesFromCanvas();
-    ImGuiNodesNode* CreateNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2 pos, 
-                               const std::vector<ImGuiNodesIdentifier>& inputs, const std::vector<ImGuiNodesIdentifier>& outputs);
     void RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color);
     inline bool SortSelectedNodesOrder();
     void ClearAllConnectorSelections();
