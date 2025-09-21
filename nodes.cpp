@@ -1169,6 +1169,7 @@ void ImGuiNodesNode::BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size)
     area_node_.Max = ImVec2(0.0f, 0.0f);
     area_node_.Max.x += inputs_size.x + outputs_size.x;
     area_node_.Max.x += ImGuiNodesHSeparation * area_name_.GetHeight();
+    area_node_.Max.x = ImMax(area_node_.Max.x, area_name_.GetWidth() + (ImGuiNodesHSeparation * area_name_.GetHeight()));
     area_node_.Max.y += title_height_ + body_height_;
 
     area_name_.Translate(ImVec2((area_node_.GetWidth() - area_name_.GetWidth()) * 0.5f, ((title_height_ - area_name_.GetHeight()) * 0.5f)));
