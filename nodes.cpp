@@ -317,6 +317,13 @@ bool ImGuiNodes::SortSelectedNodesOrder()
             nodes_unselected.push_back(node);
     }
 
+    std::vector<ImGuiNodesUid> selected_ids;
+    selected_ids.reserve(nodes_selected.size());
+    for (int selected_idx = 0; selected_idx < nodes_selected.size(); ++selected_idx)
+        selected_ids.push_back(nodes_selected[selected_idx]->uid_);
+    if (interaction_handler_)
+        interaction_handler_->OnSelectionChanged(selected_ids);
+
     int node_idx = 0;
 
     for (int unselected_idx = 0; unselected_idx < nodes_unselected.size(); ++unselected_idx)
@@ -1315,13 +1322,15 @@ void ImGuiNodes::RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color)
     // draw_list->AddCircle(p3, 3.0f * scale_, color);
 }
 
-ImGuiNodes::ImGuiNodes()
+ImGuiNodes::ImGuiNodes(ImGuiNodesInteractionHandler* interaction_handler)
 {
     scale_ = 1.0f;
     state_ = ImGuiNodesState_Default;
     active_node_ = NULL;
     active_input_ = NULL;
     active_output_ = NULL;
+
+    interaction_handler_ = interaction_handler;
 }
 
 ImGuiNodes::~ImGuiNodes()

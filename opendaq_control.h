@@ -12,8 +12,6 @@ struct OpenDAQComponent
     daq::ComponentPtr parent_;
     std::vector<ImGui::ImGuiNodesIdentifier> input_ports_;
     std::vector<ImGui::ImGuiNodesIdentifier> output_signals_;
-
-    OpenDAQComponent(daq::ComponentPtr component) {};
 };
 
 class OpenDAQHandler

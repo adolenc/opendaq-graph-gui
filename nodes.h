@@ -129,10 +129,16 @@ struct ImGuiNodesNode
     void Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
 };
 
+class ImGuiNodesInteractionHandler
+{
+public:
+    virtual void OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUid>& selected_ids) {}
+};
+
 struct ImGuiNodes
 {
 public:
-    ImGuiNodes();
+    ImGuiNodes(ImGuiNodesInteractionHandler* interaction_handler = nullptr);
     ~ImGuiNodes();
 
     void Update();
@@ -161,6 +167,8 @@ private:
     ImGuiNodesNode* active_node_ = NULL;
     ImGuiNodesInput* active_input_ = NULL;
     ImGuiNodesOutput* active_output_ = NULL;
+
+    ImGuiNodesInteractionHandler* interaction_handler_ = nullptr;
 
     ImVector<ImGuiNodesNode*> nodes_;
 

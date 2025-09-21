@@ -20,6 +20,29 @@
 #endif
 
 
+class NodeInteractionHandler : public ImGui::ImGuiNodesInteractionHandler
+{
+public:
+    NodeInteractionHandler(OpenDAQHandler* opendaq_handler)
+        : opendaq_handler_(opendaq_handler)
+    {
+    };
+
+    void OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUid>& selected_ids) override
+    {
+        selected_components_.clear();
+        for (ImGui::ImGuiNodesUid id : selected_ids)
+        {
+            auto it = opendaq_handler_->folders_.find(id);
+            if (it != opendaq_handler_->folders_.end())
+                selected_components_.push_back(it->second.component_);
+        }
+    }
+
+    std::vector<daq::ComponentPtr> selected_components_;
+    OpenDAQHandler* opendaq_handler_;
+};
+
 
 int main(int, char**)
 {
@@ -34,6 +57,9 @@ int main(int, char**)
     instance.instance_.addFunctionBlock("RefFBModuleStatistics");
     instance.instance_.addFunctionBlock("RefFBModulePower");
     dev.addFunctionBlock("RefFBModulePower");
+
+    NodeInteractionHandler node_interaction_handler(&instance);
+    ImGui::ImGuiNodes nodes_editor(&node_interaction_handler);
 
     // Decide GL+GLSL versions
 #if defined(IMGUI_IMPL_OPENGL_ES2)
@@ -92,8 +118,6 @@ int main(int, char**)
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    auto imguiNodes = ImGui::ImGuiNodes();
-
     bool done = false;
 #ifdef __EMSCRIPTEN__
     // For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.
@@ -128,14 +152,15 @@ int main(int, char**)
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        // DrawPropertiesWindow({instance->folders_["RefDev0"].component, instance->folders_["RefCh0"].component, instance->folders_["AI1"].component});
-        ImGui::ShowDemoWindow();
         static bool initialized = false;
         if (!initialized)
         {
-            instance.RetrieveTopology(instance.instance_, imguiNodes);
+            instance.RetrieveTopology(instance.instance_, nodes_editor);
             initialized = true;
         }
+
+        DrawPropertiesWindow(node_interaction_handler.selected_components_);
+        ImGui::ShowDemoWindow();
 
 #ifdef IMGUI_HAS_VIEWPORT
         ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -149,9 +174,9 @@ int main(int, char**)
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
         if (ImGui::Begin("Node Editor", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus))
         {
-            imguiNodes.Update();
-            imguiNodes.ProcessNodes();
-            imguiNodes.ProcessContextMenu();
+            nodes_editor.Update();
+            nodes_editor.ProcessNodes();
+            nodes_editor.ProcessContextMenu();
         }
         ImGui::End();
         ImGui::PopStyleVar(1);

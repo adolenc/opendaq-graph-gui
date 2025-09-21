@@ -43,11 +43,15 @@ void OpenDAQHandler::RetrieveTopology(daq::ComponentPtr component, ImGui::ImGuiN
     }
     else
     {
+        OpenDAQComponent c;
+        c.component_ = component;
+
         nodes.AddNode({component.getName().toStdString(), component.getGlobalId().toStdString()}, ImColor(0.4f, 0.6f, 0.3f, 1.0f),
                       input_ports,
                       output_signals,
                       parent_id);
         new_parent_id = component.getGlobalId().toStdString();
+        folders_[component.getGlobalId().toStdString()] = c;
     }
 
     if (canCastTo<daq::IFolder>(component))
