@@ -208,12 +208,13 @@ void DrawPropertiesWindow(const std::vector<daq::ComponentPtr>& selected_compone
         {
             if (ImGui::BeginTabBar("Selected components"))
             {
+                int uid = 0;
                 for (const auto& component : selected_components)
                 {
                     if (component == nullptr || !component.assigned())
                         continue;
 
-                    if (ImGui::BeginTabItem(component.getName().toStdString().c_str()))
+                    if (ImGui::BeginTabItem((component.getName().toStdString() + "##" + std::to_string(uid++)).c_str()))
                     {
                         RenderSelectedComponent(component, show_parents, show_attributes);
                         ImGui::EndTabItem();
@@ -222,14 +223,15 @@ void DrawPropertiesWindow(const std::vector<daq::ComponentPtr>& selected_compone
                 ImGui::EndTabBar();
             }
         }
-        else
+        else // render side by side
         {
+            int uid = 0;
             for (const auto& component : selected_components)
             {
                 if (component == nullptr || !component.assigned())
                     continue;
 
-                ImGui::BeginChild(component.getName().toStdString().c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
+                ImGui::BeginChild((component.getName().toStdString() + "##" + std::to_string(uid++)).c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
                 RenderSelectedComponent(component, show_parents, show_attributes);
                 ImGui::EndChild();
 
