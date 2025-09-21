@@ -16,6 +16,8 @@ static bool OtherImGuiWindowIsBlockingInteraction()
     return ImGui::GetIO().WantCaptureMouse && !ImGui::IsWindowHovered();
 }
 
+unsigned int ImGuiNodesIdentifier::id_counter_ = 0;
+
 void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
 {
     const ImGuiIO& io = ImGui::GetIO();
@@ -233,16 +235,16 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
     return hovered_node;
 }
 
-ImGuiNodesNode* ImGuiNodes::CreateNode(const std::string& name, ImColor color, ImVec2 pos, 
-                                       const std::vector<std::string>& inputs, const std::vector<std::string>& outputs)
+ImGuiNodesNode* ImGuiNodes::CreateNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2 pos, 
+                                       const std::vector<ImGuiNodesIdentifier>& inputs, const std::vector<ImGuiNodesIdentifier>& outputs)
 {
-    ImGuiNodesNode* node = new ImGuiNodesNode(name, color);
+    ImGuiNodesNode* node = new ImGuiNodesNode(name.name_, color);
 
-    for (const auto& input_name : inputs)
-        node->inputs_.push_back(ImGuiNodesInput(input_name));
+    for (const auto& input : inputs)
+        node->inputs_.push_back(ImGuiNodesInput(input));
     
-    for (const auto& output_name : outputs)
-        node->outputs_.push_back(ImGuiNodesOutput(output_name));
+    for (const auto& output : outputs)
+        node->outputs_.push_back(ImGuiNodesOutput(output));
 
     
     ImVec2 inputs_size;
@@ -992,12 +994,13 @@ void ImGuiNodesInput::TranslateInput(ImVec2 delta)
     area_name_.Translate(delta);
 }
 
-ImGuiNodesInput::ImGuiNodesInput(const std::string& name)
+ImGuiNodesInput::ImGuiNodesInput(const ImGuiNodesIdentifier& name)
 {
     state_ = ImGuiNodesConnectorStateFlag_Default;
     source_node_ = NULL;
     source_output_ = NULL;
-    name_ = name;
+    name_ = name.name_;
+    uid_ = name.id_;
 
     area_name_.Min = ImVec2(0.0f, 0.0f);
     area_name_.Max = ImGui::CalcTextSize(name_.c_str());
@@ -1056,11 +1059,12 @@ void ImGuiNodesOutput::TranslateOutput(ImVec2 delta)
     area_name_.Translate(delta);
 }
 
-ImGuiNodesOutput::ImGuiNodesOutput(const std::string& name)
+ImGuiNodesOutput::ImGuiNodesOutput(const ImGuiNodesIdentifier& name)
 {
     state_ = ImGuiNodesConnectorStateFlag_Default;
     connections_count_ = 0;
-    name_ = name;
+    name_ = name.name_;
+    uid_ = name.id_;
 
     area_name_.Min = ImVec2(0.0f, 0.0f) - ImGui::CalcTextSize(name_.c_str());
     area_name_.Max = ImVec2(0.0f, 0.0f);
@@ -1124,9 +1128,10 @@ void ImGuiNodesNode::TranslateNode(ImVec2 delta, bool selected_only)
         outputs_[output_idx].TranslateOutput(delta);
 }
 
-ImGuiNodesNode::ImGuiNodesNode(const std::string& name, ImColor color)
+ImGuiNodesNode::ImGuiNodesNode(const ImGuiNodesIdentifier& name, ImColor color)
 {
-    name_ = name;
+    name_ = name.name_;
+    uid_ = name.id_;
     state_ = ImGuiNodesNodeStateFlag_Default;
     color_ = color;
 

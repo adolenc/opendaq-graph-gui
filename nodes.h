@@ -43,6 +43,7 @@ enum ImGuiNodesState_
     ImGuiNodesState_Selecting
 };
 
+typedef std::string ImGuiNodesUid;
 typedef unsigned int ImGuiNodesConnectorState;
 typedef unsigned int ImGuiNodesNodeState;
 
@@ -62,8 +63,21 @@ struct ImGuiNodesNode;
 struct ImGuiNodesInput;
 struct ImGuiNodesOutput;
 
+struct ImGuiNodesIdentifier
+{
+    ImGuiNodesUid id_;
+    std::string name_;
+
+    ImGuiNodesIdentifier(const std::string& name) : name_(name) { id_ = std::to_string(id_counter_++); }
+    ImGuiNodesIdentifier(const char* name) : ImGuiNodesIdentifier(std::string(name)) { }
+private:
+    static unsigned int id_counter_;
+};
+
 struct ImGuiNodesInput
 {
+    ImGuiNodesUid uid_;
+
     ImVec2 pos_;
     ImRect area_input_;
     ImRect area_name_;
@@ -72,13 +86,15 @@ struct ImGuiNodesInput
     ImGuiNodesNode* source_node_;
     ImGuiNodesOutput* source_output_;
 
-    ImGuiNodesInput(const std::string& name);
+    ImGuiNodesInput(const ImGuiNodesIdentifier& name);
     void TranslateInput(ImVec2 delta);
     void Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
 };
 
 struct ImGuiNodesOutput
 {
+    ImGuiNodesUid uid_;
+
     ImVec2 pos_;
     ImRect area_output_;
     ImRect area_name_;
@@ -86,13 +102,15 @@ struct ImGuiNodesOutput
     std::string name_;
     unsigned int connections_count_;
 
-    ImGuiNodesOutput(const std::string& name);
+    ImGuiNodesOutput(const ImGuiNodesIdentifier& name);
     void TranslateOutput(ImVec2 delta);
     void Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
 };
 
 struct ImGuiNodesNode
 {
+    ImGuiNodesUid uid_;
+
     ImRect area_node_;
     ImRect area_name_;
     float title_height_;
@@ -103,7 +121,7 @@ struct ImGuiNodesNode
     std::vector<ImGuiNodesInput> inputs_;
     std::vector<ImGuiNodesOutput> outputs_;
 
-    ImGuiNodesNode(const std::string& name, ImColor color);
+    ImGuiNodesNode(const ImGuiNodesIdentifier& name, ImColor color);
     void TranslateNode(ImVec2 delta, bool selected_only = false);
     void BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size);
     void Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
@@ -138,8 +156,8 @@ private:
 
     void UpdateCanvasGeometry(ImDrawList* draw_list);
     ImGuiNodesNode* UpdateNodesFromCanvas();
-    ImGuiNodesNode* CreateNode(const std::string& name, ImColor color, ImVec2 pos, 
-                               const std::vector<std::string>& inputs, const std::vector<std::string>& outputs);
+    ImGuiNodesNode* CreateNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2 pos, 
+                               const std::vector<ImGuiNodesIdentifier>& inputs, const std::vector<ImGuiNodesIdentifier>& outputs);
     void RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color);
     inline bool SortSelectedNodesOrder();
     void ClearAllConnectorSelections();
