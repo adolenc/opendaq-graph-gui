@@ -29,9 +29,11 @@ int main(int, char**)
         return -1;
     }
 
-    auto* instance = GetTopologyInstance();
-    instance->ConnectToDevice(instance->GetAvailableDevices()[0]);
-    instance->RetrieveTopology(instance->instance_);
+    OpenDAQHandler instance;
+    daq::DevicePtr dev = instance.instance_.addDevice(instance.instance_.getAvailableDevices()[0].getConnectionString());
+    instance.instance_.addFunctionBlock("RefFBModuleStatistics");
+    instance.instance_.addFunctionBlock("RefFBModulePower");
+    dev.addFunctionBlock("RefFBModulePower");
 
     // Decide GL+GLSL versions
 #if defined(IMGUI_IMPL_OPENGL_ES2)
@@ -126,8 +128,14 @@ int main(int, char**)
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        DrawPropertiesWindow({instance->folders_["RefDev0"].component, instance->folders_["RefCh0"].component, instance->folders_["AI1"].component});
+        // DrawPropertiesWindow({instance->folders_["RefDev0"].component, instance->folders_["RefCh0"].component, instance->folders_["AI1"].component});
         ImGui::ShowDemoWindow();
+        static bool initialized = false;
+        if (!initialized)
+        {
+            instance.RetrieveTopology(instance.instance_, imguiNodes);
+            initialized = true;
+        }
 
 #ifdef IMGUI_HAS_VIEWPORT
         ImGuiViewport* viewport = ImGui::GetMainViewport();

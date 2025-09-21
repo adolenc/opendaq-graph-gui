@@ -238,7 +238,7 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
 void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color, 
                          const std::vector<ImGuiNodesIdentifier>& inputs,
                          const std::vector<ImGuiNodesIdentifier>& outputs,
-                        ImGuiNodesUid parent_uid)
+                         ImGuiNodesUid parent_uid)
 {
     ImVec2 pos(0.0f, 0.0f);
     if (!parent_uid.empty())
@@ -262,7 +262,7 @@ void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2
                          const std::vector<ImGuiNodesIdentifier>& outputs,
                         ImGuiNodesUid parent_uid)
 {
-    ImGuiNodesNode* node = new ImGuiNodesNode(name.name_, color);
+    ImGuiNodesNode* node = new ImGuiNodesNode(name, color);
     node->parent_uid_ = parent_uid;
 
     for (const auto& input : inputs)
