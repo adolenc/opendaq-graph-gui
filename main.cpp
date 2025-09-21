@@ -30,8 +30,6 @@ int main(int, char**)
     }
 
     auto* instance = GetTopologyInstance();
-    for (auto& d : instance->GetAvailableDevices())
-        std::cout << d << std::endl;
     instance->ConnectToDevice(instance->GetAvailableDevices()[0]);
     instance->RetrieveTopology(instance->instance_);
 
