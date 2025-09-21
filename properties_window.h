@@ -4,5 +4,6 @@
 
 
 void RenderSelectedComponent(daq::ComponentPtr component, bool show_parents, bool show_attributes);
+void RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_holder);
 void RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component, bool show_attributes);
 void DrawPropertiesWindow(const std::vector<daq::ComponentPtr>& selected_components);

@@ -25,76 +25,91 @@ void RenderSelectedComponent(daq::ComponentPtr component, bool show_parents, boo
     ImGui::PopStyleVar(2);
 }
 
+void RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_holder)
+{
+    std::string prop_name = property.getName().toStdString();
+    std::string prop_name_for_display = property.getName().toStdString();
+    if (property.getUnit().assigned() && property.getUnit().getSymbol().assigned())
+        prop_name_for_display += " [" + static_cast<std::string>(property.getUnit().getSymbol().toString()) + ']';
+
+    if (property.getReadOnly())
+        ImGui::BeginDisabled();
+
+    switch (property.getValueType())
+    {
+        case daq::ctBool:
+            {
+                bool value = property_holder.getPropertyValue(prop_name);
+                if (ImGui::Checkbox(prop_name_for_display.c_str(), &value))
+                    property_holder.setPropertyValue(prop_name, value);
+                break;
+            }
+        case daq::ctInt:
+            {
+                if (daq::ListPtr<daq::IString> selection_values = property.getSelectionValues(); selection_values.assigned())
+                {
+                    std::string values = "";
+                    for (int i = 0; i < selection_values.getCount(); i++)
+                        values += selection_values.getItemAt(i).toStdString() + '\0';
+                    int value = (int64_t)property_holder.getPropertyValue(prop_name);
+                    if (ImGui::Combo(prop_name_for_display.c_str(), &value, values.c_str(), selection_values.getCount()))
+                        property_holder.setPropertyValue(prop_name, value);
+                }
+                else
+                {
+                    int value = (int64_t)property_holder.getPropertyValue(prop_name);
+                    if (ImGui::InputInt(prop_name_for_display.c_str(), &value))
+                        property_holder.setPropertyValue(prop_name, value);
+                }
+                break;
+            }
+        case daq::ctFloat:
+            {
+                double value = property_holder.getPropertyValue(prop_name);
+                if (ImGui::InputDouble(prop_name_for_display.c_str(), &value))
+                    property_holder.setPropertyValue(prop_name, value);
+                break;
+            }
+        case daq::ctString:
+            {
+                std::string value = property_holder.getPropertyValue(prop_name);
+                ImGui::InputText(prop_name_for_display.c_str(), &value);
+                break;
+            }
+        case daq::ctProc:
+            {
+                if (ImGui::Button(prop_name_for_display.c_str()))
+                    property_holder.getPropertyValue(prop_name).asPtr<daq::IProcedure>().dispatch();
+                break;
+            }
+        case daq::ctObject:
+            {
+                ImGui::Text("> %s", prop_name_for_display.c_str());
+                ImGui::Indent();
+                daq::PropertyObjectPtr parent = property_holder.getPropertyValue(prop_name);
+                for (const auto& sub_property : parent.getVisibleProperties())
+                    RenderProperty(sub_property, parent);
+                ImGui::Unindent();
+                break;
+            }
+        default:
+            {
+                std::string n = "!Unsupported prop t" + std::to_string(property.getValueType()) + ": " + prop_name_for_display;
+                ImGui::Text("%s", n.c_str());
+                break;
+            }
+    }
+
+    if (property.getReadOnly())
+        ImGui::EndDisabled();
+}
+
 void RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component, bool show_attributes)
 {
-    const daq::PropertyObjectPtr& property_holder = castTo<daq::IPropertyObject>(component);
+    const daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(component);
     for (const auto& property : property_holder.getVisibleProperties())
     {
-        std::string prop_name = property.getName().toStdString();
-        std::string prop_name_for_display = property.getName().toStdString();
-        if (property.getUnit().assigned() && property.getUnit().getSymbol().assigned())
-            prop_name_for_display += " [" + static_cast<std::string>(property.getUnit().getSymbol().toString()) + ']';
-
-        if (property.getReadOnly())
-            ImGui::BeginDisabled();
-        // if (property.getMinValue() != nullptr) min = static_cast<double>(property.getMinValue());
-        // if (property.getMaxValue() != nullptr) max = static_cast<double>(property.getMaxValue());
-        // suggested_values = property.getSuggestedValues();
-        switch (property.getValueType())
-        {
-            case daq::ctBool:
-                {
-                    bool value = property_holder.getPropertyValue(prop_name);
-                    if (ImGui::Checkbox(prop_name_for_display.c_str(), &value))
-                        property_holder.setPropertyValue(prop_name, value);
-                    break;
-                }
-            case daq::ctInt:
-                {
-                    if (daq::ListPtr<daq::IString> selection_values = property.getSelectionValues(); selection_values.assigned())
-                    {
-                        std::string values = "";
-                        for (int i = 0; i < selection_values.getCount(); i++)
-                            values += selection_values.getItemAt(i).toStdString() + '\0';
-                        int value = (int64_t)property_holder.getPropertyValue(prop_name);
-                        if (ImGui::Combo(prop_name_for_display.c_str(), &value, values.c_str(), selection_values.getCount()))
-                            property_holder.setPropertyValue(prop_name, value);
-                    }
-                    else
-                    {
-                        int value = (int64_t)property_holder.getPropertyValue(prop_name);
-                        if (ImGui::InputInt(prop_name_for_display.c_str(), &value))
-                            property_holder.setPropertyValue(prop_name, value);
-                    }
-                    break;
-                }
-            case daq::ctFloat:
-                {
-                    double value = property_holder.getPropertyValue(prop_name);
-                    if (ImGui::InputDouble(prop_name_for_display.c_str(), &value))
-                        property_holder.setPropertyValue(prop_name, value);
-                    break;
-                }
-            case daq::ctString:
-                {
-                    std::string value = property_holder.getPropertyValue(prop_name);
-                    ImGui::InputText(prop_name_for_display.c_str(), &value);
-                    break;
-                }
-            case daq::ctProc:
-                {
-                    if (ImGui::Button(prop_name_for_display.c_str()))
-                        property_holder.getPropertyValue(prop_name).asPtr<daq::IProcedure>().dispatch();
-                    break;
-                }
-            default:
-                {
-                    std::string n = prop_name_for_display + " " + std::to_string(property.getValueType());
-                    ImGui::Text("%s", n.c_str());
-                }
-        }
-        if (property.getReadOnly())
-            ImGui::EndDisabled();
+        RenderProperty(property, property_holder);
     }
 
     if (!show_attributes)
