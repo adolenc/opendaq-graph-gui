@@ -235,19 +235,41 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
     return hovered_node;
 }
 
+void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color, 
+                         const std::vector<ImGuiNodesIdentifier>& inputs,
+                         const std::vector<ImGuiNodesIdentifier>& outputs,
+                        ImGuiNodesUid parent_uid)
+{
+    ImVec2 pos(0.0f, 0.0f);
+    if (!parent_uid.empty())
+    {
+        for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+        {
+            ImGuiNodesNode* node = nodes_[node_idx];
+            if (node->uid_ == parent_uid)
+            {
+                pos = node->area_node_.GetCenter() + ImVec2(200.0f, 0.0f);
+                break;
+            }
+        }
+    }
+    pos += ImVec2(0.0f, (float)(nodes_.size() * 20));
+    AddNode(name, color, pos, inputs, outputs, parent_uid);
+}
+
 void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2 pos, 
                          const std::vector<ImGuiNodesIdentifier>& inputs,
                          const std::vector<ImGuiNodesIdentifier>& outputs,
                         ImGuiNodesUid parent_uid)
 {
     ImGuiNodesNode* node = new ImGuiNodesNode(name.name_, color);
+    node->parent_uid_ = parent_uid;
 
     for (const auto& input : inputs)
         node->inputs_.push_back(ImGuiNodesInput(input));
     
     for (const auto& output : outputs)
         node->outputs_.push_back(ImGuiNodesOutput(output));
-
     
     ImVec2 inputs_size;
     ImVec2 outputs_size;

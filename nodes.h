@@ -110,6 +110,7 @@ struct ImGuiNodesOutput
 struct ImGuiNodesNode
 {
     ImGuiNodesUid uid_;
+    ImGuiNodesUid parent_uid_; // TODO: should probably be a pointer to the parent node instead
 
     ImRect area_node_;
     ImRect area_name_;
@@ -136,10 +137,14 @@ public:
     void Update();
     void ProcessNodes();
     void ProcessContextMenu();
-    void AddNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2 pos, 
-                 const std::vector<ImGuiNodesIdentifier>& inputs, 
+    void AddNode(const ImGuiNodesIdentifier& name, ImColor color,
+                 const std::vector<ImGuiNodesIdentifier>& inputs,
                  const std::vector<ImGuiNodesIdentifier>& outputs,
-                ImGuiNodesUid parent_uid = "");
+                 ImGuiNodesUid parent_uid = "");
+    void AddNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2 pos, 
+                 const std::vector<ImGuiNodesIdentifier>& inputs,
+                 const std::vector<ImGuiNodesIdentifier>& outputs,
+                 ImGuiNodesUid parent_uid = "");
 
 private:
     ImVec2 nodes_imgui_window_pos_;
