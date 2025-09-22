@@ -23,22 +23,34 @@ void OpenDAQHandler::RetrieveTopology(daq::ComponentPtr component, ImGui::ImGuiN
     {
         daq::FunctionBlockPtr function_block = castTo<daq::IFunctionBlock>(component);
         for (const daq::InputPortPtr& input_port : function_block.getInputPorts())
+        {
             input_ports.push_back({input_port.getName().toStdString(), input_port.getGlobalId().toStdString()});
+            input_ports_[input_port.getGlobalId().toStdString()] = {input_port, component};
+        }
 
         for (const daq::SignalPtr& signal : function_block.getSignals())
+        {
+            signals_[signal.getGlobalId().toStdString()] = {signal, component};
             output_signals.push_back({signal.getName().toStdString(), signal.getGlobalId().toStdString()});
+        }
     }
     if (canCastTo<daq::IDevice>(component))
     {
         daq::DevicePtr device = castTo<daq::IDevice>(component);
         for (const daq::SignalPtr& signal : device.getSignals())
+        {
+            signals_[signal.getGlobalId().toStdString()] = {signal, component};
             output_signals.push_back({signal.getName().toStdString(), signal.getGlobalId().toStdString()});
+        }
     }
 
 
     std::string new_parent_id = "";
     if (component == instance_ || component.getName() == "IO" || component.getName() == "AI" || component.getName() == "AO" || component.getName() == "Dev" || component.getName() == "FB")
     {
+        // just a dummy folder we should skip
+        assert(input_ports.empty());
+        assert(output_signals.empty());
         new_parent_id = parent_id;
     }
     else

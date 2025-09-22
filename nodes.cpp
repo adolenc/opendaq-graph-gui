@@ -303,6 +303,7 @@ bool ImGuiNodes::SortSelectedNodesOrder()
     ImVector<ImGuiNodesNode*> nodes_selected;
     nodes_selected.reserve(nodes_.size());
 
+    std::vector<ImGuiNodesUid> selected_ids;
     for (ImGuiNodesNode** iterator = nodes_.begin(); iterator != nodes_.end(); ++iterator)
     {
         ImGuiNodesNode* node = ((ImGuiNodesNode*)*iterator);
@@ -312,15 +313,18 @@ bool ImGuiNodes::SortSelectedNodesOrder()
             CLEAR_FLAG(node->state_, ImGuiNodesNodeStateFlag_MarkedForSelection);
             SET_FLAG(node->state_, ImGuiNodesNodeStateFlag_Selected);
             nodes_selected.push_back(node);
+            selected_ids.push_back(node->uid_);
+            for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+                if (IS_SET(node->inputs_[input_idx].state_, ImGuiNodesConnectorStateFlag_Selected))
+                    selected_ids.push_back(node->inputs_[input_idx].uid_);
+            for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+                if (IS_SET(node->outputs_[output_idx].state_, ImGuiNodesConnectorStateFlag_Selected))
+                    selected_ids.push_back(node->outputs_[output_idx].uid_);
         }
         else
             nodes_unselected.push_back(node);
     }
 
-    std::vector<ImGuiNodesUid> selected_ids;
-    selected_ids.reserve(nodes_selected.size());
-    for (int selected_idx = 0; selected_idx < nodes_selected.size(); ++selected_idx)
-        selected_ids.push_back(nodes_selected[selected_idx]->uid_);
     if (interaction_handler_)
         interaction_handler_->OnSelectionChanged(selected_ids);
 

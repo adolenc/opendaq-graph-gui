@@ -33,8 +33,11 @@ public:
         selected_components_.clear();
         for (ImGui::ImGuiNodesUid id : selected_ids)
         {
-            auto it = opendaq_handler_->folders_.find(id);
-            if (it != opendaq_handler_->folders_.end())
+            if (auto it = opendaq_handler_->folders_.find(id); it != opendaq_handler_->folders_.end())
+                selected_components_.push_back(it->second.component_);
+            if (auto it = opendaq_handler_->input_ports_.find(id); it != opendaq_handler_->input_ports_.end())
+                selected_components_.push_back(it->second.component_);
+            if (auto it = opendaq_handler_->signals_.find(id); it != opendaq_handler_->signals_.end())
                 selected_components_.push_back(it->second.component_);
         }
     }
