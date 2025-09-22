@@ -1,5 +1,6 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
+#include "imgui_stdlib.h"
 #include "implot.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
@@ -44,6 +45,7 @@ public:
     
     void RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 position) override
     {
+        ImGui::SeparatorText("Add a function block");
         for (const auto fb_id : opendaq_handler_->instance_.getAvailableFunctionBlockTypes().getKeys())
         {
             if (ImGui::MenuItem(fb_id.toStdString().c_str()))
@@ -54,6 +56,30 @@ public:
                                "");
                 opendaq_handler_->folders_[fb.getGlobalId().toStdString()] = {fb, {}};
             }
+        }
+
+        ImGui::SeparatorText("Connect to device");
+        // TODO: need to cache these and refresh on demand
+        // for (const auto device_info : opendaq_handler_->instance_.getAvailableDevices())
+        // {
+        //     auto device_connection_string = device_info.getConnectionString();
+        //     if (ImGui::MenuItem(device_connection_string.toStdString().c_str()))
+        //     {
+        //         opendaq_handler_->instance_.addDevice(device_connection_string);
+        //         nodes->AddNode(device_connection_string.toStdString().c_str(), ImColor(0, 100, 200), position,
+        //                        {}, {},
+        //                        "");
+        //     }
+        // }
+        std::string device_connection_string = "daq.nd://";
+        ImGui::InputText("##w", &device_connection_string);
+        ImGui::SameLine();
+        if (ImGui::Button("Connect"))
+        {
+            opendaq_handler_->instance_.addDevice(device_connection_string);
+            nodes->AddNode(device_connection_string.c_str(), ImColor(0, 100, 200), position,
+                           {}, {},
+                           "");
         }
     }
 
