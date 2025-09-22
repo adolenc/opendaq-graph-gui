@@ -852,14 +852,14 @@ void ImGuiNodes::ProcessNodes()
 
     ImGui::SetWindowFontScale(scale_);
 
-    bool any_node_hovered_ = false;
+    bool any_node_selected = false;
     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
     {
         const ImGuiNodesNode* node = nodes_[node_idx];
         IM_ASSERT(node);
         if (IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected))
         {
-            any_node_hovered_ = true;
+            any_node_selected = true;
             break;
         }
     }
@@ -873,9 +873,9 @@ void ImGuiNodes::ProcessNodes()
         {		
             const ImGuiNodesInput& input = node->inputs_[input_idx];
             
-            if (const ImGuiNodesNode* target = input.source_node_)
+            if (const ImGuiNodesNode* source_node = input.source_node_)
             {
-                IM_ASSERT(target);
+                IM_ASSERT(source_node);
 
                 ImVec2 p1 = offset;
                 ImVec2 p4 = offset;
@@ -891,20 +891,22 @@ void ImGuiNodes::ProcessNodes()
                     p1 += (input.pos_ * scale_);
                 }
 
-                if (IS_SET(target->state_, ImGuiNodesNodeStateFlag_Collapsed))
+                if (IS_SET(source_node->state_, ImGuiNodesNodeStateFlag_Collapsed))
                 {
-                    ImVec2 collapsed_output = { 0, (target->area_node_.Max.y - target->area_node_.Min.y) * 0.5f };					
+                    ImVec2 collapsed_output = { 0, (source_node->area_node_.Max.y - source_node->area_node_.Min.y) * 0.5f };					
                     
-                    p4 += ((target->area_node_.Max - collapsed_output) * scale_);
+                    p4 += ((source_node->area_node_.Max - collapsed_output) * scale_);
                 }
                 else
                 {
                     p4 += (input.source_output_->pos_ * scale_);		
                 }
 
-                ImColor color = !any_node_hovered_ || IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected) || IS_SET(target->state_, ImGuiNodesNodeStateFlag_Selected)
+                ImColor color = IS_SET(node->state_, ImGuiNodesNodeStateFlag_Collapsed)
+                    ? ImColor(0.4f, 0.4f, 0.4f, 0.1f)
+                    : (!any_node_selected || IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected) || IS_SET(source_node->state_, ImGuiNodesNodeStateFlag_Selected))
                     ? ImColor(1.0f, 1.0f, 1.0f, 1.0f)
-                    : ImColor(0.4f, 0.4f, 0.4f, 0.4f);
+                    : ImColor(0.4f, 0.4f, 0.4f, 0.5f);
                 RenderConnection(p1, p4, color);
             }
         }
