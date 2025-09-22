@@ -80,6 +80,14 @@ public:
         // }
         std::string device_connection_string = "daq.nd://";
         ImGui::InputText("##w", &device_connection_string);
+        if (ImGui::IsItemDeactivatedAfterEdit())
+        {
+            opendaq_handler_->instance_.addDevice(device_connection_string);
+            nodes->AddNode(device_connection_string.c_str(), ImColor(0, 100, 200), position,
+                           {}, {},
+                           "");
+            ImGui::CloseCurrentPopup();
+        }
         ImGui::SameLine();
         if (ImGui::Button("Connect"))
         {
@@ -87,6 +95,7 @@ public:
             nodes->AddNode(device_connection_string.c_str(), ImColor(0, 100, 200), position,
                            {}, {},
                            "");
+            ImGui::CloseCurrentPopup();
         }
     }
 
