@@ -54,9 +54,11 @@ int main(int, char**)
 
     OpenDAQHandler instance;
     daq::DevicePtr dev = instance.instance_.addDevice(instance.instance_.getAvailableDevices()[0].getConnectionString());
-    instance.instance_.addFunctionBlock("RefFBModuleStatistics");
-    instance.instance_.addFunctionBlock("RefFBModulePower");
-    dev.addFunctionBlock("RefFBModulePower");
+    auto stat = instance.instance_.addFunctionBlock("RefFBModuleStatistics");
+    auto power = instance.instance_.addFunctionBlock("RefFBModulePower");
+    stat.getInputPorts()[0].connect(power.getSignals()[0]);
+    auto power2 = dev.addFunctionBlock("RefFBModulePower");
+    power2.getInputPorts()[0].connect(stat.getSignals()[0]);
 
     NodeInteractionHandler node_interaction_handler(&instance);
     ImGui::ImGuiNodes nodes_editor(&node_interaction_handler);
