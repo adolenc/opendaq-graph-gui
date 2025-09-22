@@ -46,7 +46,7 @@ public:
     void RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 position) override
     {
         ImGui::SeparatorText("Add a function block");
-        for (const auto fb_id : opendaq_handler_->instance_.getAvailableFunctionBlockTypes().getKeys())
+        for (const auto [fb_id, desc]: opendaq_handler_->instance_.getAvailableFunctionBlockTypes())
         {
             if (ImGui::MenuItem(fb_id.toStdString().c_str()))
             {
@@ -55,6 +55,13 @@ public:
                                {}, {},
                                "");
                 opendaq_handler_->folders_[fb.getGlobalId().toStdString()] = {fb, {}};
+            }
+            if (ImGui::BeginItemTooltip())
+            {
+                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+                ImGui::TextUnformatted(desc.getDescription().toStdString().c_str());
+                ImGui::PopTextWrapPos();
+                ImGui::EndTooltip();
             }
         }
 
