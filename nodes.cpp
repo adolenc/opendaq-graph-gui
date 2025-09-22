@@ -983,36 +983,8 @@ void ImGuiNodes::ProcessContextMenu()
     if (ImGui::BeginPopup("NodesContextMenu", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
     {
         ImVec2 position = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
-        if (ImGui::MenuItem("Test"))
-        {
-            AddNode(
-                "Test", 
-                ImColor(0.2f, 0.3f, 0.6f, 0.0f), 
-                position,
-                {"Float", "Int", "TextStream"},
-                {"Float"});
-        }
-        
-        if (ImGui::MenuItem("InputBox"))
-        {
-            AddNode(
-                "InputBox", 
-                ImColor(0.3f, 0.5f, 0.5f, 0.0f), 
-                position,
-                {"Float1", "Float2", "Int1", "Int2", "GenericSink", "Vector", "Image", "Text"},
-                {"TextStream", "Float", "Int"});
-        }
-        
-        if (ImGui::MenuItem("OutputBox"))
-        {
-            AddNode(
-                "OutputBox", 
-                ImColor(0.4f, 0.3f, 0.5f, 0.0f), 
-                position,
-                {"GenericSink1", "GenericSink2", "Float", "Int", "Text"},
-                {"Vector", "Image", "Text", "Float", "Int", "Generic"});
-        }
-
+        if (interaction_handler_)
+            interaction_handler_->RenderPopupMenu(this, position);
         ImGui::EndPopup();
     }
 

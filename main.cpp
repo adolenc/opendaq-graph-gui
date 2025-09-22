@@ -41,6 +41,21 @@ public:
                 selected_components_.push_back(it->second.component_);
         }
     }
+    
+    void RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 position) override
+    {
+        for (const auto fb_id : opendaq_handler_->instance_.getAvailableFunctionBlockTypes().getKeys())
+        {
+            if (ImGui::MenuItem(fb_id.toStdString().c_str()))
+            {
+                daq::FunctionBlockPtr fb = opendaq_handler_->instance_.addFunctionBlock(fb_id);
+                nodes->AddNode({fb.getName().toStdString(), fb.getGlobalId().toStdString()}, ImColor(100, 100, 200), position,
+                               {}, {},
+                               "");
+                opendaq_handler_->folders_[fb.getGlobalId().toStdString()] = {fb, {}};
+            }
+        }
+    }
 
     std::vector<daq::ComponentPtr> selected_components_;
     OpenDAQHandler* opendaq_handler_;

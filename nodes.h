@@ -129,10 +129,13 @@ struct ImGuiNodesNode
     void Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
 };
 
+struct ImGuiNodes;
+
 class ImGuiNodesInteractionHandler
 {
 public:
     virtual void OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUid>& selected_ids) {}
+    virtual void RenderPopupMenu(ImGuiNodes* nodes, ImVec2 position) {}
 };
 
 struct ImGuiNodes
