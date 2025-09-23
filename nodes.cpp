@@ -943,7 +943,7 @@ void ImGuiNodes::ProcessNodes()
     }
 
     if (active_dragging_connection_.x != active_dragging_connection_.z && active_dragging_connection_.y != active_dragging_connection_.w)
-        RenderConnection(ImVec2(active_dragging_connection_.x, active_dragging_connection_.y), ImVec2(active_dragging_connection_.z, active_dragging_connection_.w), ImColor(0.0f, 1.0f, 0.0f, 1.0f));
+        RenderConnection(ImVec2(active_dragging_connection_.x, active_dragging_connection_.y), ImVec2(active_dragging_connection_.z, active_dragging_connection_.w), ImColor(1.0f, 1.0f, 1.0f, 1.0f));
 
     ImGui::SetWindowFontScale(1.0f);
 
@@ -1067,15 +1067,11 @@ void ImGuiNodesInput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, 
     bool consider_fill = false;
     consider_fill |= IS_SET(state_, ImGuiNodesConnectorStateFlag_Dragging);
     consider_fill |= HAS_ALL_FLAGS(state_, ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget);
-
-    ImColor color = consider_fill ? ImColor(0.0f, 1.0f, 0.0f, 1.0f) : ImColor(1.0f, 1.0f, 1.0f, 1.0f);
-            
     consider_fill |= bool(source_node_);
-
     if (consider_fill)
-        draw_list->AddCircleFilled((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, color);
+        draw_list->AddCircleFilled((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImColor(1.0f, 1.0f, 1.0f, 1.0f));
     else
-        draw_list->AddCircle((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, color);
+        draw_list->AddCircle((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImColor(1.0f, 1.0f, 1.0f, 1.0f));
 
     ImGui::SetCursorScreenPos((area_name_.Min * scale) + offset);
     ImGui::Text("%s", name_.c_str());
@@ -1128,15 +1124,11 @@ void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale,
     bool consider_fill = false;
     consider_fill |= IS_SET(state_, ImGuiNodesConnectorStateFlag_Dragging);
     consider_fill |= HAS_ALL_FLAGS(state_, ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget);
-
-    ImColor color = consider_fill ? ImColor(0.0f, 1.0f, 0.0f, 1.0f) : ImColor(1.0f, 1.0f, 1.0f, 1.0f);
-
     consider_fill |= bool(connections_count_ > 0);
-
     if (consider_fill)
-        draw_list->AddCircleFilled((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, color);
+        draw_list->AddCircleFilled((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImColor(1.0f, 1.0f, 1.0f, 1.0f));
     else
-        draw_list->AddCircle((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, color);
+        draw_list->AddCircle((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImColor(1.0f, 1.0f, 1.0f, 1.0f));
 
     ImGui::SetCursorScreenPos((area_name_.Min * scale) + offset);
     ImGui::Text("%s", name_.c_str());
