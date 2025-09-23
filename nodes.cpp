@@ -354,13 +354,18 @@ bool ImGuiNodes::SortSelectedNodesOrder()
 void ImGuiNodes::Update()
 {
     bool was_hovering_output = (state_ == ImGuiNodesState_HoveringOutput);
+    ImGuiNodesUid previous_active_output_uid = active_output_ ? active_output_->uid_ : "";
 
     ProcessInteractions();
 
     if (state_ == ImGuiNodesState_HoveringOutput)
     {
         if (interaction_handler_ && active_output_)
+        {
+            if (previous_active_output_uid != active_output_->uid_)
+                interaction_handler_->OnOutputHover("");
             interaction_handler_->OnOutputHover(active_output_->uid_);
+        }
     }
     else if (was_hovering_output && interaction_handler_)
         interaction_handler_->OnOutputHover("");
