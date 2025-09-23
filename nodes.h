@@ -147,8 +147,6 @@ public:
     ~ImGuiNodes();
 
     void Update();
-    void ProcessNodes();
-    void ProcessContextMenu();
     void AddNode(const ImGuiNodesIdentifier& name, ImColor color,
                  const std::vector<ImGuiNodesIdentifier>& inputs,
                  const std::vector<ImGuiNodesIdentifier>& outputs,
@@ -177,6 +175,9 @@ private:
 
     ImVector<ImGuiNodesNode*> nodes_;
 
+    void ProcessInteractions();
+    void ProcessNodes();
+    void ProcessContextMenu();
     void UpdateCanvasGeometry(ImDrawList* draw_list);
     ImGuiNodesNode* UpdateNodesFromCanvas();
     void RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color, float thickness = 1.5f);

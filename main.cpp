@@ -54,7 +54,6 @@ public:
 
         if (id == "")
         {
-            // std::cout << "Clearing reader" << std::endl;
             reader = nullptr;
             start_time = -1;
             return;
@@ -64,7 +63,6 @@ public:
         {
             if (reader == nullptr || !reader.assigned())
             {
-                // std::cout << "Making new reader" << std::endl;
                 daq::SignalPtr signal = opendaq_handler_->signals_[id].component_.as<daq::ISignal>();
                 reader = daq::TailReaderBuilder()
                     .setSignal(signal)
@@ -324,8 +322,6 @@ int main(int, char**)
         if (ImGui::Begin("Node Editor", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus))
         {
             nodes_editor.Update();
-            nodes_editor.ProcessNodes();
-            nodes_editor.ProcessContextMenu();
         }
         ImGui::End();
         ImGui::PopStyleVar(1);
