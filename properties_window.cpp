@@ -88,9 +88,11 @@ void RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_h
             {
                 ImGui::Text("> %s", prop_name_for_display.c_str());
                 ImGui::Indent();
+                ImGui::PushID(prop_name.c_str());
                 daq::PropertyObjectPtr parent = property_holder.getPropertyValue(prop_name);
                 for (const auto& sub_property : parent.getVisibleProperties())
                     RenderProperty(sub_property, parent);
+                ImGui::PopID();
                 ImGui::Unindent();
                 break;
             }
