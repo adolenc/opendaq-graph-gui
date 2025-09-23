@@ -46,8 +46,10 @@ void RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_h
             }
         case daq::ctInt:
             {
-                if (daq::ListPtr<daq::IString> selection_values = property.getSelectionValues(); selection_values.assigned())
+                auto sv = property.getSelectionValues();
+                if (sv.assigned() && sv.supportsInterface<daq::IList>())
                 {
+                    daq::ListPtr<daq::IString> selection_values = sv;
                     std::string values = "";
                     for (int i = 0; i < selection_values.getCount(); i++)
                         values += selection_values.getItemAt(i).toStdString() + '\0';
