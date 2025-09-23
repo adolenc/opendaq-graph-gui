@@ -1,6 +1,7 @@
 #include "properties_window.h"
 #include "opendaq_control.h"
 #include <string>
+#include <sstream>
 #include "imgui.h"
 #include "imgui_stdlib.h"
 
@@ -47,14 +48,23 @@ void RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_h
         case daq::ctInt:
             {
                 auto sv = property.getSelectionValues();
-                if (sv.assigned() && sv.supportsInterface<daq::IList>())
+                if (sv.assigned()) // TODO: check if is a dict instead
                 {
-                    daq::ListPtr<daq::IString> selection_values = sv;
-                    std::string values = "";
+                    std::stringstream values;
+                    daq::ListPtr<daq::IString> selection_values;
+                    if (sv.supportsInterface<daq::IList>())
+                        selection_values = sv;
+                    else if (sv.supportsInterface<daq::IDict>())
+                        selection_values = daq::DictPtr<daq::IInteger, daq::IString>(sv).getValueList();
+                    else
+                    {
+                        ImGui::Text("!Unsupported selection values type for property: %s", prop_name_for_display.c_str());
+                        break;
+                    }
                     for (int i = 0; i < selection_values.getCount(); i++)
-                        values += selection_values.getItemAt(i).toStdString() + '\0';
+                        values << selection_values.getItemAt(i).toStdString() << '\0';
                     int value = (int64_t)property_holder.getPropertyValue(prop_name);
-                    if (ImGui::Combo(prop_name_for_display.c_str(), &value, values.c_str(), selection_values.getCount()))
+                    if (ImGui::Combo(prop_name_for_display.c_str(), &value, values.str().c_str(), selection_values.getCount()))
                         property_holder.setPropertyValue(prop_name, value);
                 }
                 else
