@@ -733,6 +733,8 @@ void ImGuiNodes::Update()
 
                 active_input_->source_output_ = active_output_;
                 active_output_->connections_count_++;
+                if (interaction_handler_)
+                    interaction_handler_->OnConnectionCreated(active_output_->uid_, active_input_->uid_);
             }
             else
             {

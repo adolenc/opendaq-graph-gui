@@ -29,6 +29,19 @@ public:
     {
     };
 
+    void OnConnectionCreated(const ImGui::ImGuiNodesUid& output_id, const ImGui::ImGuiNodesUid& input_id) override
+    {
+        daq::SignalPtr signal;
+        daq::InputPortPtr input_port;
+        if (auto it = opendaq_handler_->signals_.find(output_id); it != opendaq_handler_->signals_.end())
+            signal = it->second.component_.as<daq::ISignal>();
+        if (auto it = opendaq_handler_->input_ports_.find(input_id); it != opendaq_handler_->input_ports_.end())
+            input_port = it->second.component_.as<daq::IInputPort>();
+
+        if (signal.assigned() && input_port.assigned())
+            input_port.connect(signal);
+    }
+
     void OnOutputHover(const ImGui::ImGuiNodesUid& id) override
     {
         static int64_t start_time{-1};
