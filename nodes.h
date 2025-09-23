@@ -111,7 +111,7 @@ struct ImGuiNodesOutput
 struct ImGuiNodesNode
 {
     ImGuiNodesUid uid_;
-    ImGuiNodesUid parent_uid_; // TODO: should probably be a pointer to the parent node instead
+    ImGuiNodesNode* parent_node_;
 
     ImRect area_node_;
     ImRect area_name_;
@@ -177,7 +177,7 @@ private:
 
     void UpdateCanvasGeometry(ImDrawList* draw_list);
     ImGuiNodesNode* UpdateNodesFromCanvas();
-    void RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color);
+    void RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color, float thickness = 1.5f);
     inline bool SortSelectedNodesOrder();
     void ClearAllConnectorSelections();
 };

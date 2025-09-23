@@ -263,7 +263,19 @@ void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2
                         ImGuiNodesUid parent_uid)
 {
     ImGuiNodesNode* node = new ImGuiNodesNode(name, color);
-    node->parent_uid_ = parent_uid;
+    node->parent_node_ = NULL;
+    if (!parent_uid.empty())
+    {
+        for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+        {
+            ImGuiNodesNode* parent_node = nodes_[node_idx];
+            if (parent_node->uid_ == parent_uid)
+            {
+                node->parent_node_ = parent_node;
+                break;
+            }
+        }
+    }
 
     for (const auto& input : inputs)
         node->inputs_.push_back(ImGuiNodesInput(input));
@@ -852,6 +864,17 @@ void ImGuiNodes::ProcessNodes()
 
     ImGui::SetWindowFontScale(scale_);
 
+    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+    {
+        const ImGuiNodesNode* node = nodes_[node_idx];
+        IM_ASSERT(node);
+        if (node->parent_node_)
+        {
+            ImVec2 head_offset(0.0f, node->area_name_.GetHeight() * 0.8f);
+            RenderConnection(offset + (node->area_node_.GetTL() + head_offset) * scale_, offset + (node->parent_node_->area_node_.GetTR() + head_offset) * scale_, ImColor(0.0f, 1.0f, 0.0f, 0.05f), 10.0f);
+        }
+    }
+
     bool any_node_selected = false;
     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
     {
@@ -1274,7 +1297,7 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
     draw_list->AddRect(node_rect.Min - outline * 0.5f, node_rect.Max + outline * 0.5f, ImColor(0.0f, 0.0f, 0.0f, 0.5f), rounding, rounding_corners_flags, 3.0f * scale);
 }
 
-void ImGuiNodes::RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color)
+void ImGuiNodes::RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color, float thickness)
 {		
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
@@ -1295,7 +1318,7 @@ void ImGuiNodes::RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color)
     }
 
     // draw_list->AddLine(p1, p4, color, 1.5f * scale_);
-    draw_list->AddBezierCubic(p1, p2, p3, p4, color, 1.5f * scale_);
+    draw_list->AddBezierCubic(p1, p2, p3, p4, color, thickness * scale_);
     // draw_list->AddCircle(p2, 3.0f * scale_, color);
     // draw_list->AddCircle(p3, 3.0f * scale_, color);
 }
