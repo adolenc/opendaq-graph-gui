@@ -361,6 +361,8 @@ void ImGuiNodes::Update()
 
     ImGuiNodesNode* hovered_node = UpdateNodesFromCanvas();
 
+    bool was_hovering_output = (state_ == ImGuiNodesState_HoveringOutput);
+
     bool consider_hover = state_ == ImGuiNodesState_Default;
     consider_hover |= state_ == ImGuiNodesState_HoveringNode;
     consider_hover |= state_ == ImGuiNodesState_HoveringInput;
@@ -432,7 +434,15 @@ void ImGuiNodes::Update()
 
         if (!hovered_node)
             state_ = ImGuiNodesState_Default;
-    }					
+    }
+
+    if (state_ == ImGuiNodesState_HoveringOutput)
+    {
+        if (interaction_handler_ && active_output_)
+            interaction_handler_->OnOutputHover(active_output_->uid_);
+    }
+    else if (was_hovering_output && interaction_handler_)
+        interaction_handler_->OnOutputHover("");
 
     if (ImGui::IsMouseDoubleClicked(0))
     {

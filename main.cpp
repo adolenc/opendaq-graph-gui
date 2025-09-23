@@ -29,6 +29,80 @@ public:
     {
     };
 
+    void OnOutputHover(const ImGui::ImGuiNodesUid& id) override
+    {
+        static int64_t start_time{-1};
+        static daq::TailReaderPtr reader;
+        static float values[5000]{};
+        static int64_t times_int[5000]{};
+        static float times[5000]{};
+        static std::string signal_name{""};
+        static std::string signal_unit{""};
+
+        if (id == "")
+        {
+            // std::cout << "Clearing reader" << std::endl;
+            reader = nullptr;
+            start_time = -1;
+            return;
+        }
+
+        if (ImGui::BeginTooltip())
+        {
+            if (reader == nullptr || !reader.assigned())
+            {
+                // std::cout << "Making new reader" << std::endl;
+                daq::SignalPtr signal = opendaq_handler_->signals_[id].component_.as<daq::ISignal>();
+                reader = daq::TailReaderBuilder()
+                    .setSignal(signal)
+                    .setHistorySize(5000)
+                    .setValueReadType(daq::SampleType::Float32)
+                    .setDomainReadType(daq::SampleType::Int64)
+                    .setSkipEvents(true)
+                    .build();
+
+                signal_name = signal.getName().toStdString();
+                if (signal.getDescriptor().assigned() && signal.getDescriptor().getUnit().assigned() && signal.getDescriptor().getUnit().getSymbol().assigned())
+                    signal_unit = signal.getDescriptor().getUnit().getSymbol().toStdString();
+                else
+                    signal_unit = "";
+
+                start_time = -1;
+            }
+
+            daq::SizeT count{5000};
+            if (reader != nullptr && reader.assigned())
+                reader.readWithDomain(values, times_int, &count);
+            else
+                count = 0;
+
+            ImGui::Text("%s [%s]", signal_name.c_str(), signal_unit.c_str());
+            if (count)
+            {
+                if (start_time == -1)
+                    start_time = times_int[0];
+                for (int i = 0; i < count; i++)
+                    times[i] = static_cast<float>(times_int[i] - start_time);
+
+                static ImPlotAxisFlags flags = /*ImPlotAxisFlags_NoTickLabels | */ImPlotAxisFlags_AutoFit;
+                if (ImPlot::BeginPlot("##Scrolling", ImVec2(800,300), ImPlotFlags_NoLegend))
+                {
+                    ImPlot::SetupAxes(nullptr, nullptr, flags | ImPlotAxisFlags_NoTickLabels, flags);
+                    ImPlot::SetupAxisLimits(ImAxis_X1,times[0], times[count-1], ImGuiCond_Always);
+                    ImPlot::SetupAxisLimits(ImAxis_Y1,-5,5);
+                    ImPlot::PlotLine("", times, values, (int)count);
+                    ImPlot::EndPlot();
+                }
+            }
+            else
+            {
+                if (ImPlot::BeginPlot("##Scrolling", ImVec2(800,300), ImPlotFlags_NoLegend))
+                    ImPlot::EndPlot();
+            }
+            ImGui::EndTooltip();
+        }
+    }
+
     void OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUid>& selected_ids) override
     {
         selected_components_.clear();

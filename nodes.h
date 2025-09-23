@@ -134,7 +134,8 @@ struct ImGuiNodes;
 class ImGuiNodesInteractionHandler
 {
 public:
-    virtual void OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUid>& selected_ids) {}
+    virtual void OnOutputHover(const ImGuiNodesUid& id) {};
+    virtual void OnSelectionChanged(const std::vector<ImGuiNodesUid>& selected_ids) {}
     virtual void RenderPopupMenu(ImGuiNodes* nodes, ImVec2 position) {}
 };
 
