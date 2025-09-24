@@ -8,7 +8,7 @@ FetchContent_Declare(
   openDAQ
   GIT_REPOSITORY https://github.com/openDAQ/openDAQ.git
   GIT_TAG v3.20.4
-  PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/opendaq-cpptrace.patch || true
+  PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/opendaq-cpptrace.patch || echo "opendaq-cpptrace patch failed to apply"
 )
 set(OPENDAQ_ENABLE_TESTS OFF CACHE BOOL "")
 set(OPENDAQ_ENABLE_TEST_UTILS OFF CACHE BOOL "")
