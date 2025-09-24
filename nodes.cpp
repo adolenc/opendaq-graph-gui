@@ -62,15 +62,6 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
 
         ImVec2 shift = scroll_ + (focus * scale_);
         scroll_ += mouse_ - shift - nodes_imgui_window_pos_;
-
-        if (ImGui::IsMouseReleased(1) && !active_node_)
-        {
-            bool was_blocked = blocked_by_imgui_interaction;
-            blocked_by_imgui_interaction = false;
-
-            if (!was_blocked && io.MouseDragMaxDistanceSqr[1] < io.MouseDragThreshold * io.MouseDragThreshold)
-                ImGui::OpenPopup("NodesContextMenu");
-        }
     }
 
     const float grid = 64.0f * scale_;
@@ -457,9 +448,10 @@ void ImGuiNodes::ProcessInteractions()
             state_ = ImGuiNodesState_Default;
     }
 
+
     if (ImGui::IsMouseDoubleClicked(0))
     {
-        if (OtherImGuiWindowIsBlockingInteraction())
+        if (OtherImGuiWindowIsBlockingInteraction() && !ImGui::IsPopupOpen("NodesContextMenu"))
             return;
 
         switch (state_)
@@ -514,7 +506,7 @@ void ImGuiNodes::ProcessInteractions()
 
     if (ImGui::IsMouseClicked(0))
     {
-        if (OtherImGuiWindowIsBlockingInteraction())
+        if (OtherImGuiWindowIsBlockingInteraction() && !ImGui::IsPopupOpen("NodesContextMenu"))
         {
             blocked_by_imgui_interaction = true;
             return;
@@ -576,7 +568,7 @@ void ImGuiNodes::ProcessInteractions()
 
     if (ImGui::IsMouseDragging(0))
     {
-        if (blocked_by_imgui_interaction)
+        if (blocked_by_imgui_interaction && !ImGui::IsPopupOpen("NodesContextMenu"))
             return;
             
         switch (state_)
@@ -585,9 +577,6 @@ void ImGuiNodes::ProcessInteractions()
             {
                 ImRect canvas(nodes_imgui_window_pos_, nodes_imgui_window_pos_ + nodes_imgui_window_size_);
                 if (!canvas.Contains(mouse_))
-                    return;
-
-                if (blocked_by_imgui_interaction)
                     return;
 
                 if (!io.KeyCtrl)
@@ -666,6 +655,17 @@ void ImGuiNodes::ProcessInteractions()
 
         switch (state_)
         {
+        case ImGuiNodesState_Default:
+        {
+            if (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold) &&
+                !OtherImGuiWindowIsBlockingInteraction() &&
+                !ImGui::IsPopupOpen("NodesContextMenu"))
+            {
+                ImGui::OpenPopup("NodesContextMenu");
+            }
+            return;
+        }
+
         case ImGuiNodesState_Selecting:
         {
             active_node_ = NULL;
