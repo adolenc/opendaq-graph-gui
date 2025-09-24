@@ -155,16 +155,18 @@ void RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component, 
     {
         // tags
         daq::ListPtr<daq::IString> tags = component.getTags().getList();
-        std::string tags_value = "[";
+        std::stringstream tags_value;
+        tags_value << "[";
         for (int i = 0; i < tags.getCount(); i++)
         {
             if (i != 0)
-                tags_value += ", ";
-            tags_value += tags.getItemAt(i).toStdString();
+                tags_value << ", ";
+            tags_value << tags.getItemAt(i).toStdString();
         }
-        tags_value += "]";
+        tags_value << "]";
         ImGui::BeginDisabled();
-        ImGui::InputText("Tags", &tags_value);
+        std::string tags_str = tags_value.str();
+        ImGui::InputText("Tags", &tags_str);
         ImGui::EndDisabled();
     }
     {
