@@ -864,7 +864,7 @@ void ImGuiNodes::ProcessInteractions()
                 for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
                 {
                     ImGuiNodesOutput& output = node->outputs_[output_idx];
-                    IM_ASSERT(output.connections_ == 0);
+                    IM_ASSERT(output.connections_count_ == 0);
                 }
     
                 delete node;

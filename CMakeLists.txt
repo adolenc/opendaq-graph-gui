@@ -52,9 +52,16 @@ add_library(implot STATIC
 )
 target_include_directories(implot PUBLIC ${implot_SOURCE_DIR} ${imgui_SOURCE_DIR})
 
-# sdl2 and opengl
-find_package(SDL2 REQUIRED)
+# sdl2
+FetchContent_Declare(
+    SDL2
+    GIT_REPOSITORY  https://github.com/libsdl-org/SDL
+    GIT_TAG         release-2.32.10
+)
+FetchContent_MakeAvailable(SDL2)
+
 find_package(OpenGL REQUIRED)
+target_include_directories(imgui PUBLIC ${SDL2_INCLUDE_DIRS})
 target_link_libraries(imgui PUBLIC SDL2::SDL2 SDL2::SDL2main OpenGL::GL) 
 
 

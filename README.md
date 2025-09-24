@@ -1,7 +1,7 @@
 ## Building from source
 
-SDL2 and OpenGL development libraries are required to build this project.
-Once installed, you can build the project using CMake:
+Installed OpenGL dev library is required to build this project.
+Other dependencies (SDL2, imgui, implot, openDAQ) are fetched and built automatically using CMake:
 
 ```sh
 mkdir build
