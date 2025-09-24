@@ -29,7 +29,8 @@ enum ImGuiNodesNodeStateFlag_
     ImGuiNodesNodeStateFlag_Selected             = 1 << 3,
     ImGuiNodesNodeStateFlag_Collapsed            = 1 << 4,
     ImGuiNodesNodeStateFlag_Disabled             = 1 << 5,
-    ImGuiNodesNodeStateFlag_Warning              = 1 << 6
+    ImGuiNodesNodeStateFlag_Warning              = 1 << 6,
+    ImGuiNodesNodeStateFlag_Error                = 1 << 7
 };
 
 enum ImGuiNodesState_
@@ -122,6 +123,7 @@ struct ImGuiNodesNode
     std::string name_;
     ImColor color_;
     std::string warning_message_;
+    std::string error_message_;
     std::vector<ImGuiNodesInput> inputs_;
     std::vector<ImGuiNodesOutput> outputs_;
 
@@ -158,6 +160,7 @@ public:
                  const std::vector<ImGuiNodesIdentifier>& outputs,
                  ImGuiNodesUid parent_uid = "");
     void SetWarning(const ImGuiNodesUid& uid, const std::string& message);
+    void SetError(const ImGuiNodesUid& uid, const std::string& message);
     void SetOk(const ImGuiNodesUid& uid);
 
 private:

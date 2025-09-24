@@ -967,19 +967,35 @@ void ImGuiNodes::ProcessNodes()
         node->Render(draw_list, offset, scale_, state_);
     }
 
-    if (state_ == ImGuiNodesState_HoveringNode && 
-        active_node_ && 
-        IS_SET(active_node_->state_, ImGuiNodesNodeStateFlag_Warning) && 
-        !active_node_->warning_message_.empty())
+    // Display tooltip for warning/error nodes when hovering over header area
+    if (state_ == ImGuiNodesState_HoveringNode && active_node_)
     {
-        ImRect node_rect = active_node_->area_node_;
-        node_rect.Min *= scale_;
-        node_rect.Max *= scale_;
-        node_rect.Translate(offset);
-        ImRect header_area = ImRect(node_rect.GetTL(), node_rect.GetTR() + ImVec2(0.0f, active_node_->title_height_ * scale_));
+        bool show_tooltip = false;
+        std::string tooltip_message;
+        
+        // Error takes precedence over warning
+        if (IS_SET(active_node_->state_, ImGuiNodesNodeStateFlag_Error) && !active_node_->error_message_.empty())
+        {
+            show_tooltip = true;
+            tooltip_message = active_node_->error_message_;
+        }
+        else if (IS_SET(active_node_->state_, ImGuiNodesNodeStateFlag_Warning) && !active_node_->warning_message_.empty())
+        {
+            show_tooltip = true;
+            tooltip_message = active_node_->warning_message_;
+        }
+        
+        if (show_tooltip)
+        {
+            ImRect node_rect = active_node_->area_node_;
+            node_rect.Min *= scale_;
+            node_rect.Max *= scale_;
+            node_rect.Translate(offset);
+            ImRect header_area = ImRect(node_rect.GetTL(), node_rect.GetTR() + ImVec2(0.0f, active_node_->title_height_ * scale_));
 
-        if (header_area.Contains(mouse_))
-            ImGui::SetTooltip("%s", active_node_->warning_message_.c_str());
+            if (header_area.Contains(mouse_))
+                ImGui::SetTooltip("%s", tooltip_message.c_str());
+        }
     }
 
     if (active_dragging_connection_.x != active_dragging_connection_.z && active_dragging_connection_.y != active_dragging_connection_.w)
@@ -1251,7 +1267,10 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
     head_color.Value.w = 1.00f;
 
     if (IS_SET(state_, ImGuiNodesNodeStateFlag_Warning))
-        head_color = ImColor(0.8f, 0.4f, 0.1f, 1.0f);
+        head_color = ImColor(0.8f, 0.4f, 0.1f, 1.0f);  // Darker orange warning color
+    
+    if (IS_SET(state_, ImGuiNodesNodeStateFlag_Error))
+        head_color = ImColor(0.8f, 0.1f, 0.1f, 1.0f);  // Red error color
 
     body_color.Value.w = 0.75f;		
 
@@ -1389,6 +1408,20 @@ void ImGuiNodes::SetWarning(const ImGuiNodesUid& uid, const std::string& message
     }
 }
 
+void ImGuiNodes::SetError(const ImGuiNodesUid& uid, const std::string& message)
+{
+    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+    {
+        ImGuiNodesNode* node = nodes_[node_idx];
+        if (node->uid_ == uid)
+        {
+            SET_FLAG(node->state_, ImGuiNodesNodeStateFlag_Error);
+            node->error_message_ = message;
+            break;
+        }
+    }
+}
+
 void ImGuiNodes::SetOk(const ImGuiNodesUid& uid)
 {
     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
@@ -1397,7 +1430,9 @@ void ImGuiNodes::SetOk(const ImGuiNodesUid& uid)
         if (node->uid_ == uid)
         {
             CLEAR_FLAG(node->state_, ImGuiNodesNodeStateFlag_Warning);
+            CLEAR_FLAG(node->state_, ImGuiNodesNodeStateFlag_Error);
             node->warning_message_.clear();
+            node->error_message_.clear();
             break;
         }
     }
