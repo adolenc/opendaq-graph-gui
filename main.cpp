@@ -303,6 +303,7 @@ int main(int, char**)
         if (!initialized)
         {
             instance.RetrieveTopology(instance.instance_, nodes_editor);
+            nodes_editor.SetWarning(power.getGlobalId().toStdString(), "This is a warning message");
             initialized = true;
         }
 

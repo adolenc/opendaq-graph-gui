@@ -22,13 +22,14 @@ enum ImGuiNodesConnectorStateFlag_
 
 enum ImGuiNodesNodeStateFlag_
 {
-    ImGuiNodesNodeStateFlag_Default			= 0,
-    ImGuiNodesNodeStateFlag_Visible			= 1 << 0,
-    ImGuiNodesNodeStateFlag_Hovered			= 1 << 1,
-    ImGuiNodesNodeStateFlag_MarkedForSelection	= 1 << 2,  // Temporary state during box selection
-    ImGuiNodesNodeStateFlag_Selected		= 1 << 3,
-    ImGuiNodesNodeStateFlag_Collapsed		= 1 << 4,
-    ImGuiNodesNodeStateFlag_Disabled		= 1 << 5
+    ImGuiNodesNodeStateFlag_Default              = 0,
+    ImGuiNodesNodeStateFlag_Visible              = 1 << 0,
+    ImGuiNodesNodeStateFlag_Hovered              = 1 << 1,
+    ImGuiNodesNodeStateFlag_MarkedForSelection   = 1 << 2,  // Temporary state during box selection
+    ImGuiNodesNodeStateFlag_Selected             = 1 << 3,
+    ImGuiNodesNodeStateFlag_Collapsed            = 1 << 4,
+    ImGuiNodesNodeStateFlag_Disabled             = 1 << 5,
+    ImGuiNodesNodeStateFlag_Warning              = 1 << 6
 };
 
 enum ImGuiNodesState_
@@ -120,6 +121,7 @@ struct ImGuiNodesNode
     ImGuiNodesNodeState state_;
     std::string name_;
     ImColor color_;
+    std::string warning_message_;
     std::vector<ImGuiNodesInput> inputs_;
     std::vector<ImGuiNodesOutput> outputs_;
 
@@ -155,6 +157,8 @@ public:
                  const std::vector<ImGuiNodesIdentifier>& inputs,
                  const std::vector<ImGuiNodesIdentifier>& outputs,
                  ImGuiNodesUid parent_uid = "");
+    void SetWarning(const ImGuiNodesUid& uid, const std::string& message);
+    void SetOk(const ImGuiNodesUid& uid);
 
 private:
     ImVec2 nodes_imgui_window_pos_;

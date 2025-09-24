@@ -967,6 +967,21 @@ void ImGuiNodes::ProcessNodes()
         node->Render(draw_list, offset, scale_, state_);
     }
 
+    if (state_ == ImGuiNodesState_HoveringNode && 
+        active_node_ && 
+        IS_SET(active_node_->state_, ImGuiNodesNodeStateFlag_Warning) && 
+        !active_node_->warning_message_.empty())
+    {
+        ImRect node_rect = active_node_->area_node_;
+        node_rect.Min *= scale_;
+        node_rect.Max *= scale_;
+        node_rect.Translate(offset);
+        ImRect header_area = ImRect(node_rect.GetTL(), node_rect.GetTR() + ImVec2(0.0f, active_node_->title_height_ * scale_));
+
+        if (header_area.Contains(mouse_))
+            ImGui::SetTooltip("%s", active_node_->warning_message_.c_str());
+    }
+
     if (active_dragging_connection_.x != active_dragging_connection_.z && active_dragging_connection_.y != active_dragging_connection_.w)
         RenderConnection(ImVec2(active_dragging_connection_.x, active_dragging_connection_.y), ImVec2(active_dragging_connection_.z, active_dragging_connection_.w), ImColor(1.0f, 1.0f, 1.0f, 1.0f));
 
@@ -1233,8 +1248,11 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
     head_color.Value.x *= 0.6;
     head_color.Value.y *= 0.6;
     head_color.Value.z *= 0.6;
-
     head_color.Value.w = 1.00f;
+
+    if (IS_SET(state_, ImGuiNodesNodeStateFlag_Warning))
+        head_color = ImColor(0.8f, 0.4f, 0.1f, 1.0f);
+
     body_color.Value.w = 0.75f;		
 
     const ImVec2 outline(4.0f * scale, 4.0f * scale);
@@ -1355,6 +1373,34 @@ ImGuiNodes::~ImGuiNodes()
 {
     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
         delete nodes_[node_idx];
+}
+
+void ImGuiNodes::SetWarning(const ImGuiNodesUid& uid, const std::string& message)
+{
+    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+    {
+        ImGuiNodesNode* node = nodes_[node_idx];
+        if (node->uid_ == uid)
+        {
+            SET_FLAG(node->state_, ImGuiNodesNodeStateFlag_Warning);
+            node->warning_message_ = message;
+            break;
+        }
+    }
+}
+
+void ImGuiNodes::SetOk(const ImGuiNodesUid& uid)
+{
+    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+    {
+        ImGuiNodesNode* node = nodes_[node_idx];
+        if (node->uid_ == uid)
+        {
+            CLEAR_FLAG(node->state_, ImGuiNodesNodeStateFlag_Warning);
+            node->warning_message_.clear();
+            break;
+        }
+    }
 }
 
 void ImGuiNodes::ClearAllConnectorSelections()
