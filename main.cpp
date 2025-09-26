@@ -46,44 +46,74 @@ public:
     {
         static int64_t start_time{-1};
         static daq::TailReaderPtr reader;
-        static float values[5000]{};
-        static int64_t times_int[5000]{};
-        static float times[5000]{};
-        static std::string signal_name{""};
-        static std::string signal_unit{""};
+        static daq::RatioPtr tick_resolution;
+        static std::string last_id{""};
 
         if (id == "")
         {
             reader = nullptr;
             start_time = -1;
+            last_id = "";
             return;
+        }
+
+        static int samples_in_2_seconds{0};
+        static std::vector<float> values;
+        static std::vector<float> times;
+        static std::vector<ImS64> values_int;
+        static std::vector<ImS64> times_int;
+        static std::string signal_name{""};
+        static std::string signal_unit{""};
+        static bool has_domain_signal;
+        if (last_id != id)
+        {
+            last_id = id;
+            daq::SignalPtr signal = opendaq_handler_->signals_[id].component_.as<daq::ISignal>();
+
+            signal_name = signal.getName().toStdString();
+            if (signal.getDescriptor().assigned() && signal.getDescriptor().getUnit().assigned() && signal.getDescriptor().getUnit().getSymbol().assigned())
+                signal_unit = signal.getDescriptor().getUnit().getSymbol().toStdString();
+            else
+                signal_unit = "";
+
+            if (!signal.getDescriptor().assigned())
+            {
+                reader = nullptr;
+                start_time = -1;
+                return;
+            }
+            has_domain_signal = signal.getDomainSignal().assigned();
+            tick_resolution = has_domain_signal ? signal.getDomainSignal().getDescriptor().getTickResolution() : signal.getDescriptor().getTickResolution();
+            try { samples_in_2_seconds = std::max<daq::Int>(2, daq::reader::getSampleRate(has_domain_signal ? signal.getDomainSignal().getDescriptor() : signal.getDescriptor()) * 2); } catch (...) { samples_in_2_seconds = 2; }
+            values.resize(samples_in_2_seconds);
+            times_int.resize(samples_in_2_seconds);
+            times.resize(samples_in_2_seconds);
+            values_int.resize(samples_in_2_seconds);
+            if (!has_domain_signal)
+            {
+                for (int i = 0; i < samples_in_2_seconds; i++)
+                    values_int[i] = 0;
+            }
+            reader = daq::TailReaderBuilder()
+                .setSignal(signal)
+                .setHistorySize(samples_in_2_seconds)
+                .setValueReadType(has_domain_signal ? daq::SampleType::Float32 : daq::SampleType::Int64)
+                .setDomainReadType(daq::SampleType::Int64)
+                .setSkipEvents(true)
+                .build();
+            start_time = -1;
         }
 
         if (ImGui::BeginTooltip())
         {
-            if (reader == nullptr || !reader.assigned())
-            {
-                daq::SignalPtr signal = opendaq_handler_->signals_[id].component_.as<daq::ISignal>();
-                reader = daq::TailReaderBuilder()
-                    .setSignal(signal)
-                    .setHistorySize(5000)
-                    .setValueReadType(daq::SampleType::Float32)
-                    .setDomainReadType(daq::SampleType::Int64)
-                    .setSkipEvents(true)
-                    .build();
-
-                signal_name = signal.getName().toStdString();
-                if (signal.getDescriptor().assigned() && signal.getDescriptor().getUnit().assigned() && signal.getDescriptor().getUnit().getSymbol().assigned())
-                    signal_unit = signal.getDescriptor().getUnit().getSymbol().toStdString();
-                else
-                    signal_unit = "";
-
-                start_time = -1;
-            }
-
-            daq::SizeT count{5000};
+            daq::SizeT count = samples_in_2_seconds;
             if (reader != nullptr && reader.assigned())
-                reader.readWithDomain(values, times_int, &count);
+            {
+                if (has_domain_signal)
+                    reader.readWithDomain(values.data(), times_int.data(), &count);
+                else
+                    reader.read(times_int.data(), &count);
+            }
             else
                 count = 0;
 
@@ -93,15 +123,31 @@ public:
                 if (start_time == -1)
                     start_time = times_int[0];
                 for (int i = 0; i < count; i++)
-                    times[i] = static_cast<float>(times_int[i] - start_time);
-
-                static ImPlotAxisFlags flags = /*ImPlotAxisFlags_NoTickLabels | */ImPlotAxisFlags_AutoFit;
-                if (ImPlot::BeginPlot("##Scrolling", ImVec2(800,300), ImPlotFlags_NoLegend))
                 {
-                    ImPlot::SetupAxes(nullptr, nullptr, flags | ImPlotAxisFlags_NoTickLabels, flags);
-                    ImPlot::SetupAxisLimits(ImAxis_X1,times[0], times[count-1], ImGuiCond_Always);
+                    times[i] = static_cast<float>(times_int[i] - start_time);
+                    times[i] = float((tick_resolution.getNumerator() * times[i]) / static_cast<double>(tick_resolution.getDenominator()));
+                }
+
+                static ImPlotAxisFlags flags = ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_ShowEdgeLabels;
+                if (ImPlot::BeginPlot("##SignalPreview", ImVec2(800,300), ImPlotFlags_NoLegend))
+                {
+                    ImPlot::SetupAxes(nullptr, nullptr, flags, flags);
                     ImPlot::SetupAxisLimits(ImAxis_Y1,-5,5);
-                    ImPlot::PlotLine("", times, values, (int)count);
+                    ImPlot::SetupAxisLimits(ImAxis_X1,times[0], times[count-1], ImGuiCond_Always);
+                    if (has_domain_signal)
+                    {
+                        ImPlot::PlotLine("", times.data(), values.data(), (int)count);
+                    }
+                    else
+                    {
+                        static double dummy_ticks[] = {0};
+                        static const char* dummy_labels[] = {"no value"};
+                        ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
+                        // ImPlot::SetupAxisLimits(ImAxis_X1,times_int[0], times_int[count-1], ImGuiCond_Always);
+                        ImPlot::SetupAxis(ImAxis_Y1, "", ImPlotAxisFlags_AutoFit);
+                        ImPlot::SetupAxisTicks(ImAxis_Y1, dummy_ticks, 1, dummy_labels, false);
+                        ImPlot::PlotLine("", times_int.data(), values_int.data(), (int)count);
+                    }
                     ImPlot::EndPlot();
                 }
             }
