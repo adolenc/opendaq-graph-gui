@@ -43,6 +43,7 @@ FetchContent_Declare(
   implot
   GIT_REPOSITORY https://github.com/epezent/implot.git
   GIT_TAG master
+  PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/implot-locked-axis.patch || echo "implot locked axis patch failed to apply"
 )
 FetchContent_MakeAvailable(implot)
 add_library(implot STATIC

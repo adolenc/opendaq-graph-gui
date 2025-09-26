@@ -1,0 +1,194 @@
+diff --git a/implot.cpp b/implot.cpp
+index effc52f..c5ff7c9 100644
+--- a/implot.cpp
++++ b/implot.cpp
+@@ -2703,16 +2703,82 @@ void SetupFinish() {
+             DrawList.AddText(label_pos, ax.ColorTxt, label);
+         }
+         if (ax.HasTickLabels()) {
++            // Calculate edge label areas if ShowEdgeLabels is enabled
++            bool has_edge_labels = ImHasFlag(ax.Flags, ImPlotAxisFlags_ShowEdgeLabels);
++            float left_edge_end = 0.0f, right_edge_start = 0.0f;
++            
++            if (has_edge_labels) {
++                char min_buff[IMPLOT_LABEL_MAX_SIZE];
++                char max_buff[IMPLOT_LABEL_MAX_SIZE];
++                
++                // Format the min and max values using the axis formatter
++                if (ax.Formatter != nullptr) {
++                    ax.Formatter(ax.Range.Min, min_buff, sizeof(min_buff), ax.FormatterData);
++                    ax.Formatter(ax.Range.Max, max_buff, sizeof(max_buff), ax.FormatterData);
++                } else {
++                    ImFormatString(min_buff, sizeof(min_buff), ax.HasFormatSpec ? ax.FormatSpec : IMPLOT_LABEL_FORMAT, ax.Range.Min);
++                    ImFormatString(max_buff, sizeof(max_buff), ax.HasFormatSpec ? ax.FormatSpec : IMPLOT_LABEL_FORMAT, ax.Range.Max);
++                }
++                
++                const ImVec2 min_label_size = ImGui::CalcTextSize(min_buff);
++                const ImVec2 max_label_size = ImGui::CalcTextSize(max_buff);
++                
++                // Calculate the right edge of left label and left edge of right label
++                left_edge_end = plot.PlotRect.Min.x + min_label_size.x;
++                right_edge_start = plot.PlotRect.Max.x - max_label_size.x;
++            }
++            
+             for (int j = 0; j < tkr.TickCount(); ++j) {
+                 const ImPlotTick& tk = tkr.Ticks[j];
+                 const float datum = ax.Datum1 + (opp ? (-gp.Style.LabelPadding.y -txt_height -tk.Level * (txt_height + gp.Style.LabelPadding.y))
+                                                      : gp.Style.LabelPadding.y + tk.Level * (txt_height + gp.Style.LabelPadding.y));
+-                if (tk.ShowLabel && tk.PixelPos >= plot.PlotRect.Min.x - 1 && tk.PixelPos <= plot.PlotRect.Max.x + 1) {
++                
++                // Check if tick is in visible range
++                bool in_visible_range = tk.ShowLabel && tk.PixelPos >= plot.PlotRect.Min.x - 1 && tk.PixelPos <= plot.PlotRect.Max.x + 1;
++                
++                // Check if tick overlaps with edge labels (if they exist)
++                bool overlaps_edge_labels = false;
++                if (has_edge_labels && in_visible_range) {
++                    float tick_label_left = tk.PixelPos - 0.5f * tk.LabelSize.x;
++                    float tick_label_right = tk.PixelPos + 0.5f * tk.LabelSize.x;
++                    overlaps_edge_labels = (tick_label_left < left_edge_end) || (tick_label_right > right_edge_start);
++                }
++                
++                if (in_visible_range && !overlaps_edge_labels) {
+                     ImVec2 start(tk.PixelPos - 0.5f * tk.LabelSize.x, datum);
+                     DrawList.AddText(start, ax.ColorTxt, tkr.GetText(j));
+                 }
+             }
+         }
++        
++        // render edge labels if flag is set
++        if (ImHasFlag(ax.Flags, ImPlotAxisFlags_ShowEdgeLabels)) {
++            char min_buff[IMPLOT_LABEL_MAX_SIZE];
++            char max_buff[IMPLOT_LABEL_MAX_SIZE];
++            
++            // Format the min and max values using the axis formatter
++            if (ax.Formatter != nullptr) {
++                ax.Formatter(ax.Range.Min, min_buff, sizeof(min_buff), ax.FormatterData);
++                ax.Formatter(ax.Range.Max, max_buff, sizeof(max_buff), ax.FormatterData);
++            } else {
++                // Use a more reasonable default format with limited precision
++                const char* format = ax.HasFormatSpec ? ax.FormatSpec : "%.2f";
++                ImFormatString(min_buff, sizeof(min_buff), format, ax.Range.Min);
++                ImFormatString(max_buff, sizeof(max_buff), format, ax.Range.Max);
++            }
++            
++            const ImVec2 min_label_size = ImGui::CalcTextSize(min_buff);
++            const ImVec2 max_label_size = ImGui::CalcTextSize(max_buff);
++            const float edge_datum = ax.Datum1 + (opp ? (-gp.Style.LabelPadding.y - txt_height) : gp.Style.LabelPadding.y);
++            
++            // Left edge (min) label - left-aligned to plot edge
++            const ImVec2 min_start(plot.PlotRect.Min.x, edge_datum);
++            DrawList.AddText(min_start, ax.ColorTxt, min_buff);
++            
++            // Right edge (max) label - right-aligned to plot edge
++            const ImVec2 max_start(plot.PlotRect.Max.x - max_label_size.x, edge_datum);
++            DrawList.AddText(max_start, ax.ColorTxt, max_buff);
++        }
+     }
+ 
+     // render y axis button, label, tick labels
+@@ -2741,15 +2807,92 @@ void SetupFinish() {
+             AddTextVertical(&DrawList, label_pos, ax.ColorTxt, label);
+         }
+         if (ax.HasTickLabels()) {
++            // Calculate edge label areas if ShowEdgeLabels is enabled
++            bool has_edge_labels = ImHasFlag(ax.Flags, ImPlotAxisFlags_ShowEdgeLabels);
++            float top_edge_end = 0.0f, bottom_edge_start = 0.0f;
++            
++            if (has_edge_labels) {
++                char min_buff[IMPLOT_LABEL_MAX_SIZE];
++                char max_buff[IMPLOT_LABEL_MAX_SIZE];
++                
++                // Format the min and max values using the axis formatter
++                if (ax.Formatter != nullptr) {
++                    ax.Formatter(ax.Range.Min, min_buff, sizeof(min_buff), ax.FormatterData);
++                    ax.Formatter(ax.Range.Max, max_buff, sizeof(max_buff), ax.FormatterData);
++                } else {
++                    const char* format = ax.HasFormatSpec ? ax.FormatSpec : IMPLOT_LABEL_FORMAT;
++                    ImFormatString(min_buff, sizeof(min_buff), format, ax.Range.Min);
++                    ImFormatString(max_buff, sizeof(max_buff), format, ax.Range.Max);
++                }
++                
++                const ImVec2 min_label_size = ImGui::CalcTextSize(min_buff);
++                const ImVec2 max_label_size = ImGui::CalcTextSize(max_buff);
++                
++                // Override the ticker's late size to account for edge labels
++                ImVec2 max_edge_size(ImMax(min_label_size.x, max_label_size.x), ImMax(min_label_size.y, max_label_size.y));
++                ax.Ticker.OverrideSizeLate(max_edge_size);
++                
++                // Calculate the bottom edge of top label and top edge of bottom label
++                top_edge_end = plot.PlotRect.Min.y + max_label_size.y;  // max is at top
++                bottom_edge_start = plot.PlotRect.Max.y - min_label_size.y;  // min is at bottom
++            }
++            
+             for (int j = 0; j < tkr.TickCount(); ++j) {
+                 const ImPlotTick& tk = tkr.Ticks[j];
+                 const float datum = ax.Datum1 + (opp ? gp.Style.LabelPadding.x : (-gp.Style.LabelPadding.x - tk.LabelSize.x));
+-                if (tk.ShowLabel && tk.PixelPos >= plot.PlotRect.Min.y - 1 && tk.PixelPos <= plot.PlotRect.Max.y + 1) {
++                
++                // Check if tick is in visible range
++                bool in_visible_range = tk.ShowLabel && tk.PixelPos >= plot.PlotRect.Min.y - 1 && tk.PixelPos <= plot.PlotRect.Max.y + 1;
++                
++                // Check if tick overlaps with edge labels (if they exist)
++                bool overlaps_edge_labels = false;
++                if (has_edge_labels && in_visible_range) {
++                    float tick_label_top = tk.PixelPos - 0.5f * tk.LabelSize.y;
++                    float tick_label_bottom = tk.PixelPos + 0.5f * tk.LabelSize.y;
++                    overlaps_edge_labels = (tick_label_top < top_edge_end) || (tick_label_bottom > bottom_edge_start);
++                }
++                
++                if (in_visible_range && !overlaps_edge_labels) {
+                     ImVec2 start(datum, tk.PixelPos - 0.5f * tk.LabelSize.y);
+                     DrawList.AddText(start, ax.ColorTxt, tkr.GetText(j));
+                 }
+             }
+         }
++        
++        // render edge labels if flag is set
++        if (ImHasFlag(ax.Flags, ImPlotAxisFlags_ShowEdgeLabels)) {
++            char min_buff[IMPLOT_LABEL_MAX_SIZE];
++            char max_buff[IMPLOT_LABEL_MAX_SIZE];
++            
++            // Format the min and max values using the axis formatter
++            if (ax.Formatter != nullptr) {
++                ax.Formatter(ax.Range.Min, min_buff, sizeof(min_buff), ax.FormatterData);
++                ax.Formatter(ax.Range.Max, max_buff, sizeof(max_buff), ax.FormatterData);
++            } else {
++                const char* format = ax.HasFormatSpec ? ax.FormatSpec : IMPLOT_LABEL_FORMAT;
++                ImFormatString(min_buff, sizeof(min_buff), format, ax.Range.Min);
++                ImFormatString(max_buff, sizeof(max_buff), format, ax.Range.Max);
++            }
++            
++            const ImVec2 min_label_size = ImGui::CalcTextSize(min_buff);
++            const ImVec2 max_label_size = ImGui::CalcTextSize(max_buff);
++            
++            // Override the ticker's late size to account for edge labels
++            ImVec2 max_edge_size(ImMax(min_label_size.x, max_label_size.x), ImMax(min_label_size.y, max_label_size.y));
++            ax.Ticker.OverrideSizeLate(max_edge_size);
++            
++            const float edge_datum = ax.Datum1 + (opp ? gp.Style.LabelPadding.x : (-gp.Style.LabelPadding.x - ImMax(min_label_size.x, max_label_size.x)));
++            
++            // Bottom edge (min) label - aligned to bottom of plot, right-aligned for left axis
++            const ImVec2 min_start(opp ? edge_datum : edge_datum + ImMax(min_label_size.x, max_label_size.x) - min_label_size.x, 
++                                  plot.PlotRect.Max.y - min_label_size.y);
++            DrawList.AddText(min_start, ax.ColorTxt, min_buff);
++            
++            // Top edge (max) label - aligned to top of plot, right-aligned for left axis
++            const ImVec2 max_start(opp ? edge_datum : edge_datum + ImMax(min_label_size.x, max_label_size.x) - max_label_size.x,
++                                  plot.PlotRect.Min.y);
++            DrawList.AddText(max_start, ax.ColorTxt, max_buff);
++        }
+     }
+ 
+ 
+diff --git a/implot.h b/implot.h
+index ae1f600..ec6e419 100644
+--- a/implot.h
++++ b/implot.h
+@@ -161,6 +161,7 @@ enum ImPlotAxisFlags_ {
+     ImPlotAxisFlags_PanStretch    = 1 << 13, // panning in a locked or constrained state will cause the axis to stretch if possible
+     ImPlotAxisFlags_LockMin       = 1 << 14, // the axis minimum value will be locked when panning/zooming
+     ImPlotAxisFlags_LockMax       = 1 << 15, // the axis maximum value will be locked when panning/zooming
++    ImPlotAxisFlags_ShowEdgeLabels = 1 << 16, // show min/max labels at the left and right edges of the plot area (useful for moving time axes)
+     ImPlotAxisFlags_Lock          = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax,
+     ImPlotAxisFlags_NoDecorations = ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels,
+     ImPlotAxisFlags_AuxDefault    = ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_Opposite
