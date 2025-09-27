@@ -6,26 +6,6 @@
 #include "imgui_stdlib.h"
 
 
-void RenderSelectedComponent(daq::ComponentPtr component, bool show_parents, bool show_attributes)
-{
-    if (!canCastTo<daq::IPropertyObject>(component))
-        return;
-
-    ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(5.0f, 5.0f));
-    while (component.assigned())
-    {
-        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-        ImGui::SeparatorText(("[" + component.getName().toStdString() + "]").c_str());
-        ImGui::PopStyleColor();
-        RenderComponentPropertiesAndAttributes(component, show_attributes);
-        if (!show_parents)
-            break;
-        component = component.getParent();
-    }
-    ImGui::PopStyleVar(2);
-}
-
 void RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_holder)
 {
     std::string prop_name = property.getName().toStdString();
@@ -186,6 +166,26 @@ void RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component, 
             ImGui::EndTooltip();
         }
     }
+}
+
+void RenderSelectedComponent(daq::ComponentPtr component, bool show_parents, bool show_attributes)
+{
+    if (!canCastTo<daq::IPropertyObject>(component))
+        return;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(5.0f, 5.0f));
+    while (component.assigned())
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+        ImGui::SeparatorText(("[" + component.getName().toStdString() + "]").c_str());
+        ImGui::PopStyleColor();
+        RenderComponentPropertiesAndAttributes(component, show_attributes);
+        if (!show_parents)
+            break;
+        component = component.getParent();
+    }
+    ImGui::PopStyleVar(2);
 }
 
 void DrawPropertiesWindow(const std::vector<daq::ComponentPtr>& selected_components)
