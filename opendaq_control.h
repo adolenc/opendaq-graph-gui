@@ -26,6 +26,25 @@ public:
     std::unordered_map<std::string, OpenDAQComponent> signals_{};
 };
 
+class OpenDAQNodeInteractionHandler: public ImGui::ImGuiNodesInteractionHandler
+{
+public:
+    OpenDAQNodeInteractionHandler(OpenDAQHandler* opendaq_handler);
+    void OnConnectionCreated(const ImGui::ImGuiNodesUid& output_id, const ImGui::ImGuiNodesUid& input_id) override;
+    void OnOutputHover(const ImGui::ImGuiNodesUid& id) override;
+    void OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUid>& selected_ids) override;
+    void RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 position) override;
+    void OnAddButtonClick(const ImGui::ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position) override;
+    void RenderNestedNodePopup(ImGui::ImGuiNodes* nodes);
+
+    std::vector<daq::ComponentPtr> selected_components_;
+    
+    daq::ComponentPtr add_button_click_component_;
+    std::optional<ImVec2> add_button_drop_position_;
+
+    OpenDAQHandler* opendaq_handler_;
+};
+
 template <class Interface>
 bool canCastTo(daq::IBaseObject* baseObject)
 {
