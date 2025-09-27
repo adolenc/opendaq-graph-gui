@@ -230,17 +230,19 @@ public:
         }
     }
 
-    void OnAddNestedNodeRequested(const ImGui::ImGuiNodesUid& parent_node_id) override
+    void OnAddButtonClick(const ImGui::ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position) override
     {
-        add_button_click_component_ = nullptr;
+        add_button_drop_position_ = position;
         if (auto it = opendaq_handler_->folders_.find(parent_node_id); it != opendaq_handler_->folders_.end())
             add_button_click_component_ = it->second.component_;
+        else
+            add_button_click_component_ = nullptr;
+
         ImGui::OpenPopup("AddNestedNodeMenu");
     }
 
     void RenderNestedNodePopup(ImGui::ImGuiNodes* nodes)
     {
-        // Handle the popup similar to ProcessContextMenu
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 
         if (ImGui::BeginPopup("AddNestedNodeMenu", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
@@ -248,7 +250,7 @@ public:
             ImGui::SeparatorText("Add nested function block");
             if (add_button_click_component_ == nullptr || !canCastTo<daq::IFunctionBlock>(add_button_click_component_))
             {
-                ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Cannot add nested function blocks here");
+                ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "This component doesn't support nested function blocks");
                 ImGui::EndPopup();
                 ImGui::PopStyleVar();
                 return;
@@ -263,7 +265,6 @@ public:
                 {
                     if (ImGui::MenuItem(fb_id.toStdString().c_str()))
                     {
-                        add_button_click_component_ = nullptr;
                         daq::FunctionBlockPtr nested_fb = parent_fb.addFunctionBlock(fb_id);
                         
                         std::vector<ImGui::ImGuiNodesIdentifier> input_ports;
@@ -281,15 +282,28 @@ public:
                             output_signals.push_back({signal.getName().toStdString(), signal.getGlobalId().toStdString()});
                         }
                         
-                        nodes->AddNode({nested_fb.getName().toStdString(), nested_fb.getGlobalId().toStdString()}, 
-                                      ImColor(0.3f, 0.5f, 0.8f, 1.0f),
-                                      input_ports,
-                                      output_signals,
-                                      parent_fb.getGlobalId().toStdString());
+                        if (add_button_drop_position_)
+                        {
+                            nodes->AddNode({nested_fb.getName().toStdString(), nested_fb.getGlobalId().toStdString()}, 
+                                          ImColor(0.3f, 0.5f, 0.8f, 1.0f),
+                                          add_button_drop_position_.value(),
+                                          input_ports,
+                                          output_signals,
+                                          add_button_click_component_.getGlobalId().toStdString());
+                        }
+                        else
+                        {
+                            nodes->AddNode({nested_fb.getName().toStdString(), nested_fb.getGlobalId().toStdString()}, 
+                                          ImColor(0.3f, 0.5f, 0.8f, 1.0f),
+                                          input_ports,
+                                          output_signals,
+                                          add_button_click_component_.getGlobalId().toStdString());
+                        }
                         
                         OpenDAQComponent c;
                         c.component_ = nested_fb;
                         opendaq_handler_->folders_[nested_fb.getGlobalId().toStdString()] = c;
+                        add_button_click_component_ = nullptr;
                     }
                     
                     if (ImGui::BeginItemTooltip())
@@ -315,7 +329,10 @@ public:
     }
 
     std::vector<daq::ComponentPtr> selected_components_;
+    
     daq::ComponentPtr add_button_click_component_;
+    std::optional<ImVec2> add_button_drop_position_;
+
     OpenDAQHandler* opendaq_handler_;
 };
 

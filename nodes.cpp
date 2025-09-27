@@ -566,10 +566,7 @@ void ImGuiNodes::ProcessInteractions()
 
             case ImGuiNodesState_HoveringAddButton:
             {
-                if (interaction_handler_)
-                    interaction_handler_->OnAddNestedNodeRequested(active_node_->uid_);
-                
-                state_ = ImGuiNodesState_Default;
+                state_ = ImGuiNodesState_DraggingParentConnection;
                 return;
             }
 
@@ -677,6 +674,17 @@ void ImGuiNodes::ProcessInteractions()
                 ImVec2 p4 = active_input_ ? (offset + (active_input_->pos_ * scale_)) : mouse_;
 
                 active_dragging_connection_ = ImVec4(p4.x, p4.y, p1.x, p1.y);
+                return;
+            }
+
+            case ImGuiNodesState_DraggingParentConnection:
+            {
+                ImVec2 p1 = mouse_;
+                ImVec2 offset = nodes_imgui_window_pos_ + scroll_;
+                ImVec2 button_center = active_node_->area_add_button_.GetCenter();
+                ImVec2 p4 = offset + (button_center * scale_);
+
+                active_dragging_connection_ = ImVec4(p1.x, p1.y, p4.x, p4.y);
                 return;
             }
         }
@@ -814,6 +822,25 @@ void ImGuiNodes::ProcessInteractions()
                         }
                     }
                 }
+            }
+
+            active_dragging_connection_ = ImVec4();
+            state_ = ImGuiNodesState_Default;
+            return;
+        }
+
+        case ImGuiNodesState_DraggingParentConnection:
+        {
+            if (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold))
+            {
+                if (interaction_handler_)
+                    interaction_handler_->OnAddButtonClick(active_node_->uid_, std::nullopt);
+            }
+            else
+            {
+                ImVec2 drop_position = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
+                if (interaction_handler_)
+                    interaction_handler_->OnAddButtonClick(active_node_->uid_, drop_position);
             }
 
             active_dragging_connection_ = ImVec4();
@@ -1035,7 +1062,21 @@ void ImGuiNodes::ProcessNodes()
     }
 
     if (active_dragging_connection_.x != active_dragging_connection_.z && active_dragging_connection_.y != active_dragging_connection_.w)
-        RenderConnection(ImVec2(active_dragging_connection_.x, active_dragging_connection_.y), ImVec2(active_dragging_connection_.z, active_dragging_connection_.w), ImColor(1.0f, 1.0f, 1.0f, 1.0f));
+    {
+        if (state_ == ImGuiNodesState_DraggingParentConnection)
+        {
+            RenderConnection(ImVec2(active_dragging_connection_.x, active_dragging_connection_.y), 
+                             ImVec2(active_dragging_connection_.z, active_dragging_connection_.w), 
+                             ImColor(0.0f, 1.0f, 0.0f, 0.05f), // Green with slight transparency like existing parent connections
+                            10.0f);
+        }
+        else
+        {
+            RenderConnection(ImVec2(active_dragging_connection_.x, active_dragging_connection_.y), 
+                            ImVec2(active_dragging_connection_.z, active_dragging_connection_.w), 
+                            ImColor(1.0f, 1.0f, 1.0f, 1.0f));
+        }
+    }
 
     ImGui::SetWindowFontScale(1.0f);
 
@@ -1071,6 +1112,7 @@ void ImGuiNodes::ProcessNodes()
         case ImGuiNodesState_Dragging: ImGui::Text("ImGuiNodesState_Draging"); break;
         case ImGuiNodesState_DraggingInput: ImGui::Text("ImGuiNodesState_DragingInput"); break;
         case ImGuiNodesState_DraggingOutput: ImGui::Text("ImGuiNodesState_DragingOutput"); break;
+        case ImGuiNodesState_DraggingParentConnection: ImGui::Text("ImGuiNodesState_DraggingParentConnection"); break;
         case ImGuiNodesState_Selecting: ImGui::Text("ImGuiNodesState_Selecting"); break;
         default: ImGui::Text("UNKNOWN"); break;
     }

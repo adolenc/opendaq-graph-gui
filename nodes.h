@@ -6,6 +6,7 @@
 #include "imgui_internal.h"
 #include <vector>
 #include <string>
+#include <optional>
 
 namespace ImGui
 {
@@ -43,6 +44,7 @@ enum ImGuiNodesState_
     ImGuiNodesState_Dragging,
     ImGuiNodesState_DraggingInput,
     ImGuiNodesState_DraggingOutput,
+    ImGuiNodesState_DraggingParentConnection,
     ImGuiNodesState_Selecting
 };
 
@@ -144,7 +146,7 @@ public:
     virtual void OnSelectionChanged(const std::vector<ImGuiNodesUid>& selected_ids) {}
     virtual void OnConnectionCreated(const ImGuiNodesUid& output_id, const ImGuiNodesUid& input_id) {}
     virtual void RenderPopupMenu(ImGuiNodes* nodes, ImVec2 position) {}
-    virtual void OnAddNestedNodeRequested(const ImGuiNodesUid& parent_node_id) {}
+    virtual void OnAddButtonClick(const ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position) {}
 };
 
 struct ImGuiNodes
