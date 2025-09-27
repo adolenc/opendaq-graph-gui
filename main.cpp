@@ -230,7 +230,92 @@ public:
         }
     }
 
+    void OnAddNestedNodeRequested(const ImGui::ImGuiNodesUid& parent_node_id) override
+    {
+        add_button_click_component_ = nullptr;
+        if (auto it = opendaq_handler_->folders_.find(parent_node_id); it != opendaq_handler_->folders_.end())
+            add_button_click_component_ = it->second.component_;
+        ImGui::OpenPopup("AddNestedNodeMenu");
+    }
+
+    void RenderNestedNodePopup(ImGui::ImGuiNodes* nodes)
+    {
+        // Handle the popup similar to ProcessContextMenu
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
+
+        if (ImGui::BeginPopup("AddNestedNodeMenu", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
+        {
+            ImGui::SeparatorText("Add nested function block");
+            if (add_button_click_component_ == nullptr || !canCastTo<daq::IFunctionBlock>(add_button_click_component_))
+            {
+                ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Cannot add nested function blocks here");
+                ImGui::EndPopup();
+                ImGui::PopStyleVar();
+                return;
+            }
+
+            try
+            {
+                daq::FunctionBlockPtr parent_fb = castTo<daq::IFunctionBlock>(add_button_click_component_);
+                bool has_any = false;
+                auto available_nested_fbs = parent_fb.getAvailableFunctionBlockTypes();
+                for (const auto [fb_id, desc]: available_nested_fbs)
+                {
+                    if (ImGui::MenuItem(fb_id.toStdString().c_str()))
+                    {
+                        add_button_click_component_ = nullptr;
+                        daq::FunctionBlockPtr nested_fb = parent_fb.addFunctionBlock(fb_id);
+                        
+                        std::vector<ImGui::ImGuiNodesIdentifier> input_ports;
+                        std::vector<ImGui::ImGuiNodesIdentifier> output_signals;
+                        
+                        for (const daq::InputPortPtr& input_port : nested_fb.getInputPorts())
+                        {
+                            input_ports.push_back({input_port.getName().toStdString(), input_port.getGlobalId().toStdString()});
+                            opendaq_handler_->input_ports_[input_port.getGlobalId().toStdString()] = {input_port, nested_fb};
+                        }
+
+                        for (const daq::SignalPtr& signal : nested_fb.getSignals())
+                        {
+                            opendaq_handler_->signals_[signal.getGlobalId().toStdString()] = {signal, nested_fb};
+                            output_signals.push_back({signal.getName().toStdString(), signal.getGlobalId().toStdString()});
+                        }
+                        
+                        nodes->AddNode({nested_fb.getName().toStdString(), nested_fb.getGlobalId().toStdString()}, 
+                                      ImColor(0.3f, 0.5f, 0.8f, 1.0f),
+                                      input_ports,
+                                      output_signals,
+                                      parent_fb.getGlobalId().toStdString());
+                        
+                        OpenDAQComponent c;
+                        c.component_ = nested_fb;
+                        opendaq_handler_->folders_[nested_fb.getGlobalId().toStdString()] = c;
+                    }
+                    
+                    if (ImGui::BeginItemTooltip())
+                    {
+                        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+                        ImGui::TextUnformatted(desc.getDescription().toStdString().c_str());
+                        ImGui::PopTextWrapPos();
+                        ImGui::EndTooltip();
+                    }
+                }
+                if (available_nested_fbs.getCount() == 0)
+                    ImGui::Text("No nested function blocks available");
+            }
+            catch (...)
+            {
+                ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: Cannot add nested function blocks to this component");
+            }
+            
+            ImGui::EndPopup();
+        }
+
+        ImGui::PopStyleVar();
+    }
+
     std::vector<daq::ComponentPtr> selected_components_;
+    daq::ComponentPtr add_button_click_component_;
     OpenDAQHandler* opendaq_handler_;
 };
 
@@ -369,6 +454,7 @@ int main(int, char**)
         if (ImGui::Begin("Node Editor", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus))
         {
             nodes_editor.Update();
+            node_interaction_handler.RenderNestedNodePopup(&nodes_editor);
         }
         ImGui::End();
         ImGui::PopStyleVar(1);
