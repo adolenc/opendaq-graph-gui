@@ -249,18 +249,26 @@ void OpenDAQNodeInteractionHandler::RenderPopupMenu(ImGui::ImGuiNodes* nodes, Im
     }
 
     ImGui::SeparatorText("Connect to device");
-    // TODO: need to cache these and refresh on demand
-    // for (const auto device_info : opendaq_handler_->instance_.getAvailableDevices())
-    // {
-    //     auto device_connection_string = device_info.getConnectionString();
-    //     if (ImGui::MenuItem(device_connection_string.toStdString().c_str()))
-    //     {
-    //         opendaq_handler_->instance_.addDevice(device_connection_string);
-    //         nodes->AddNode(device_connection_string.toStdString().c_str(), ImColor(0, 100, 200), position,
-    //                        {}, {},
-    //                        "");
-    //     }
-    // }
+    
+    if (ImGui::Button("Discover devices"))
+        available_devices_ = opendaq_handler_->instance_.getAvailableDevices();
+    
+    if (available_devices_.assigned() && available_devices_.getCount() > 0)
+    {
+        for (const auto& device_info : available_devices_)
+        {
+            std::string device_connection_name = device_info.getName();
+            std::string device_connection_string = device_info.getConnectionString();
+            if (ImGui::MenuItem((device_connection_name + " (" + device_connection_string + ")").c_str()))
+            {
+                opendaq_handler_->instance_.addDevice(device_connection_string);
+                nodes->AddNode(device_connection_string.c_str(), ImColor(0, 100, 200), position,
+                               {}, {},
+                               "");
+            }
+        }
+    }
+    
     std::string device_connection_string = "daq.nd://";
     ImGui::InputText("##w", &device_connection_string);
     if (ImGui::IsItemDeactivatedAfterEdit())

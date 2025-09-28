@@ -43,6 +43,8 @@ public:
     std::optional<ImVec2> add_button_drop_position_;
 
     OpenDAQHandler* opendaq_handler_;
+    
+    daq::ListPtr<daq::IDeviceInfo> available_devices_;
 };
 
 template <class Interface>
