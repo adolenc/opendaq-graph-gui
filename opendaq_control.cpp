@@ -110,8 +110,8 @@ void OpenDAQNodeInteractionHandler::OnOutputHover(const ImGui::ImGuiNodesUid& id
     }
 
     static int samples_in_2_seconds{0};
-    static std::vector<float> values;
-    static std::vector<float> times;
+    static std::vector<double> values;
+    static std::vector<double> times;
     static std::vector<ImS64> values_int;
     static std::vector<ImS64> times_int;
     static std::string signal_name{""};
@@ -144,12 +144,15 @@ void OpenDAQNodeInteractionHandler::OnOutputHover(const ImGui::ImGuiNodesUid& id
         if (!has_domain_signal)
         {
             for (int i = 0; i < samples_in_2_seconds; i++)
+            {
                 values_int[i] = 0;
+                values[i] = 0;
+            }
         }
         reader = daq::TailReaderBuilder()
             .setSignal(signal)
             .setHistorySize(samples_in_2_seconds)
-            .setValueReadType(has_domain_signal ? daq::SampleType::Float32 : daq::SampleType::Int64)
+            .setValueReadType(has_domain_signal ? daq::SampleType::Float64 : daq::SampleType::Int64)
             .setDomainReadType(daq::SampleType::Int64)
             .setSkipEvents(true)
             .build();
@@ -176,8 +179,13 @@ void OpenDAQNodeInteractionHandler::OnOutputHover(const ImGui::ImGuiNodesUid& id
                 start_time = times_int[0];
             for (int i = 0; i < count; i++)
             {
-                times[i] = static_cast<float>(times_int[i] - start_time);
-                times[i] = float((tick_resolution.getNumerator() * times[i]) / static_cast<double>(tick_resolution.getDenominator()));
+                if (!has_domain_signal)
+                    times[i] = double(tick_resolution.getNumerator() * times_int[i] / static_cast<double>(tick_resolution.getDenominator()));
+                else
+                {
+                    times[i] = static_cast<double>(times_int[i] - start_time);
+                    times[i] = double(tick_resolution.getNumerator() * times[i] / static_cast<double>(tick_resolution.getDenominator()));
+                }
             }
 
             static ImPlotAxisFlags flags = ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_ShowEdgeLabels;
@@ -198,7 +206,7 @@ void OpenDAQNodeInteractionHandler::OnOutputHover(const ImGui::ImGuiNodesUid& id
                     // ImPlot::SetupAxisLimits(ImAxis_X1,times_int[0], times_int[count-1], ImGuiCond_Always);
                     ImPlot::SetupAxis(ImAxis_Y1, "", ImPlotAxisFlags_AutoFit);
                     ImPlot::SetupAxisTicks(ImAxis_Y1, dummy_ticks, 1, dummy_labels, false);
-                    ImPlot::PlotLine("", times_int.data(), values_int.data(), (int)count);
+                    ImPlot::PlotLine("", times.data(), values.data(), (int)count);
                 }
                 ImPlot::EndPlot();
             }

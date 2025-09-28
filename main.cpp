@@ -92,6 +92,7 @@ int main(int, char**)
     ImGuiIO& io = ImGui::GetIO();
 
     ImGui::StyleColorsDark();
+    ImPlot::GetStyle().UseISO8601 = true;
 
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
