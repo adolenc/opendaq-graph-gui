@@ -258,7 +258,7 @@ void OpenDAQNodeInteractionHandler::RenderPopupMenu(ImGui::ImGuiNodes* nodes, Im
 
     ImGui::SeparatorText("Connect to device");
     
-    if (ImGui::Button("Discover devices"))
+    if (ImGui::Button(available_devices_.assigned() && available_devices_.getCount() > 0 ? "Refresh devices" : "Discover devices"))
         available_devices_ = opendaq_handler_->instance_.getAvailableDevices();
     
     if (available_devices_.assigned() && available_devices_.getCount() > 0)
@@ -394,4 +394,29 @@ void OpenDAQNodeInteractionHandler::RenderNestedNodePopup(ImGui::ImGuiNodes* nod
     }
 
     ImGui::PopStyleVar();
+}
+
+void OpenDAQNodeInteractionHandler::ShowStartupPopup(ImGui::ImGuiNodes* nodes)
+{
+    static bool show_startup_popup_ = true;
+    if (show_startup_popup_)
+    {
+        show_startup_popup_ = false;
+        ImGui::OpenPopup("Startup");
+    }
+    
+    ImGui::SetNextWindowPos(ImGui::GetIO().DisplaySize * 0.5f, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    if (ImGui::BeginPopupModal("Startup", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
+    {
+        ImGui::Text("Welcome to openDAQ GUI!");
+        ImGui::Text("Connect to a device or add function blocks to get started.");
+        ImGui::Separator();
+
+        RenderPopupMenu(nodes, ImVec2(0,0));
+        ImGui::Separator();
+
+        if (ImGui::Button("Dismiss"))
+            ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
 }

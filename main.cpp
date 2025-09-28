@@ -141,6 +141,8 @@ int main(int, char**)
         }
 
         DrawPropertiesWindow(node_interaction_handler.selected_components_);
+        if (false)
+            node_interaction_handler.ShowStartupPopup(&nodes_editor);
         ImGui::ShowDemoWindow();
 
 #ifdef IMGUI_HAS_VIEWPORT
