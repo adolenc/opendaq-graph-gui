@@ -331,15 +331,17 @@ bool ImGuiNodes::SortSelectedNodesOrder()
             SET_FLAG(node->state_, ImGuiNodesNodeStateFlag_Selected);
             nodes_selected.push_back(node);
             selected_ids.push_back(node->uid_);
-            for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
-                if (IS_SET(node->inputs_[input_idx].state_, ImGuiNodesConnectorStateFlag_Selected))
-                    selected_ids.push_back(node->inputs_[input_idx].uid_);
-            for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
-                if (IS_SET(node->outputs_[output_idx].state_, ImGuiNodesConnectorStateFlag_Selected))
-                    selected_ids.push_back(node->outputs_[output_idx].uid_);
         }
         else
             nodes_unselected.push_back(node);
+            
+        // Always check for selected connectors, regardless of node selection state
+        for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+            if (IS_SET(node->inputs_[input_idx].state_, ImGuiNodesConnectorStateFlag_Selected))
+                selected_ids.push_back(node->inputs_[input_idx].uid_);
+        for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+            if (IS_SET(node->outputs_[output_idx].state_, ImGuiNodesConnectorStateFlag_Selected))
+                selected_ids.push_back(node->outputs_[output_idx].uid_);
     }
 
     if (interaction_handler_)
@@ -741,6 +743,7 @@ void ImGuiNodes::ProcessInteractions()
                             CLEAR_FLAG(nodes_[node_idx]->state_, ImGuiNodesNodeStateFlag_Selected);
                         SET_FLAG(active_input_->state_, ImGuiNodesConnectorStateFlag_Selected);
                     }
+                    SortSelectedNodesOrder();
                     state_ = ImGuiNodesState_HoveringInput;
                 }
                 else if (active_output_)
@@ -756,6 +759,7 @@ void ImGuiNodes::ProcessInteractions()
                             CLEAR_FLAG(nodes_[node_idx]->state_, ImGuiNodesNodeStateFlag_Selected);
                         SET_FLAG(active_output_->state_, ImGuiNodesConnectorStateFlag_Selected);
                     }
+                    SortSelectedNodesOrder();
                     state_ = ImGuiNodesState_HoveringOutput;
                 }
                 else
@@ -808,6 +812,7 @@ void ImGuiNodes::ProcessInteractions()
                                 CLEAR_FLAG(nodes_[node_idx]->state_, ImGuiNodesNodeStateFlag_Selected);
                             SET_FLAG(active_input_->state_, ImGuiNodesConnectorStateFlag_Selected);
                         }
+                        SortSelectedNodesOrder();
                     }
                     else if (state_ == ImGuiNodesState_DraggingOutput && active_output_)
                     {
@@ -820,6 +825,7 @@ void ImGuiNodes::ProcessInteractions()
                                 CLEAR_FLAG(nodes_[node_idx]->state_, ImGuiNodesNodeStateFlag_Selected);
                             SET_FLAG(active_output_->state_, ImGuiNodesConnectorStateFlag_Selected);
                         }
+                        SortSelectedNodesOrder();
                     }
                 }
             }
