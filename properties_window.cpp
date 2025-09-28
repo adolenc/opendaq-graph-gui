@@ -98,12 +98,315 @@ void RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_h
         ImGui::EndDisabled();
 }
 
+std::string SampleTypeToString(daq::SampleType sample_type)
+{
+    switch (sample_type)
+    {
+        case daq::SampleType::Undefined: return "daq::Undefined";
+        case daq::SampleType::Float32: return "daq::Float32";
+        case daq::SampleType::Float64: return "daq::Float64";
+        case daq::SampleType::UInt8: return "daq::UInt8";
+        case daq::SampleType::Int8: return "daq::Int8";
+        case daq::SampleType::UInt16: return "daq::UInt16";
+        case daq::SampleType::Int16: return "daq::Int16";
+        case daq::SampleType::UInt32: return "daq::UInt32";
+        case daq::SampleType::Int32: return "daq::Int32";
+        case daq::SampleType::UInt64: return "daq::UInt64";
+        case daq::SampleType::Int64: return "daq::Int64";
+        case daq::SampleType::RangeInt64: return "daq::RangeInt64";
+        case daq::SampleType::ComplexFloat32: return "daq::ComplexFloat32";
+        case daq::SampleType::ComplexFloat64: return "daq::ComplexFloat64";
+        case daq::SampleType::Binary: return "daq::Binary";
+        case daq::SampleType::String: return "daq::String";
+        case daq::SampleType::Struct: return "daq::Struct";
+        default: return "Unknown (" + std::to_string(static_cast<int>(sample_type)) + ")";
+    }
+}
+
+std::string CoreTypeToString(daq::CoreType core_type)
+{
+    switch (core_type)
+    {
+        case daq::ctBool: return "daq::Bool";
+        case daq::ctInt: return "daq::Int";
+        case daq::ctFloat: return "daq::Float";
+        case daq::ctString: return "daq::String";
+        case daq::ctList: return "daq::List";
+        case daq::ctDict: return "daq::Dict";
+        case daq::ctRatio: return "daq::Ratio";
+        case daq::ctProc: return "daq::Proc";
+        case daq::ctObject: return "daq::Object";
+        case daq::ctBinaryData: return "daq::BinaryData";
+        case daq::ctFunc: return "daq::Func";
+        case daq::ctComplexNumber: return "daq::ComplexNumber";
+        case daq::ctStruct: return "daq::Struct";
+        case daq::ctEnumeration: return "daq::Enumeration";
+        case daq::ctUndefined: return "daq::Undefined";
+        default: return "Unknown (" + std::to_string(static_cast<int>(core_type)) + ")";
+    }
+}
+
+void RenderDescriptorAttribute(const std::string& name, const daq::BaseObjectPtr& value, int depth)
+{
+    if (!value.assigned())
+    {
+        ImGui::BeginDisabled();
+        std::string null_str = "(null)";
+        ImGui::InputText(name.c_str(), &null_str);
+        ImGui::EndDisabled();
+        return;
+    }
+    
+    ImGui::BeginDisabled();
+    
+    if (value.supportsInterface<daq::IString>())
+    {
+        std::string str_value = value;
+        ImGui::InputText(name.c_str(), &str_value);
+    }
+    else if (value.supportsInterface<daq::IInteger>())
+    {
+        int int_value = value;
+        ImGui::InputInt(name.c_str(), &int_value);
+    }
+    else if (value.supportsInterface<daq::IFloat>())
+    {
+        double double_value = value;
+        ImGui::InputDouble(name.c_str(), &double_value);
+    }
+    else if (value.supportsInterface<daq::IBoolean>())
+    {
+        bool bool_value = value;
+        ImGui::Checkbox(name.c_str(), &bool_value);
+    }
+    else if (value.supportsInterface<daq::IRatio>())
+    {
+        daq::RatioPtr ratio_val = value;
+        std::string ratio_str = std::to_string((long long)ratio_val.getNumerator())
+                              + "/"
+                              + std::to_string((long long)ratio_val.getDenominator());
+        ImGui::InputText(name.c_str(), &ratio_str);
+    }
+    else if (value.supportsInterface<daq::IUnit>())
+    {
+        daq::UnitPtr unit_val = value;
+        std::string symbol = unit_val.getSymbol().assigned() ? unit_val.getSymbol().toStdString() : "None";
+        std::string quantity = unit_val.getQuantity().assigned() ? unit_val.getQuantity().toStdString() : "None";
+        std::string unit_str = symbol + " (" + quantity + ")";
+        ImGui::InputText(name.c_str(), &unit_str);
+    }
+    else if (value.supportsInterface<daq::IList>())
+    {
+        ImGui::EndDisabled();
+        auto list_val = value.asPtr<daq::IList>();
+        if (ImGui::TreeNodeEx((name + " (List)").c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            for (int i = 0; i < list_val.getCount(); i++)
+            {
+                auto item = list_val.getItemAt(i);
+                RenderDescriptorAttribute("[" + std::to_string(i) + "]", item, depth + 1);
+            }
+            ImGui::TreePop();
+        }
+        return;
+    }
+    else if (value.supportsInterface<daq::IDict>())
+    {
+        ImGui::EndDisabled();
+        auto dict_val = value.asPtr<daq::IDict>();
+        if (ImGui::TreeNodeEx((name + " (Dict)").c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            for (const auto& key : dict_val.getKeyList())
+            {
+                auto dict_value = dict_val.get(key);
+                std::string key_str = key.supportsInterface<daq::IString>() ? 
+                    key.asPtr<daq::IString>().toStdString() : 
+                    static_cast<std::string>(key.toString());
+                RenderDescriptorAttribute(key_str, dict_value, depth + 1);
+            }
+            ImGui::TreePop();
+        }
+        return;
+    }
+    else
+    {
+        try
+        {
+            std::string str_rep = value;
+            ImGui::InputText(name.c_str(), &str_rep);
+        }
+        catch (...)
+        {
+            std::string error_str = "<unable to convert>";
+            ImGui::InputText(name.c_str(), &error_str);
+        }
+    }
+    
+    ImGui::EndDisabled();
+}
+
+void RenderAllDescriptorAttributes(const daq::DataDescriptorPtr& descriptor, const std::string& title)
+{
+    if (!descriptor.assigned())
+    {
+        ImGui::Text("No %s available", title.c_str());
+        return;
+    }
+
+    ImGui::BeginDisabled();
+        
+        std::string text;
+        try
+        {
+            auto core_type = descriptor.getSampleType();
+            text = SampleTypeToString(core_type);
+        } catch (...)
+        {
+            text = "<unavailable>";
+        }
+        ImGui::InputText("Core Type", &text);
+
+        if (descriptor.getDimensions().assigned())
+        {
+            auto dimensions = descriptor.getDimensions();
+            try
+            {
+                text = "[";
+                for (int i = 0; i < dimensions.getCount(); i++)
+                {
+                    if (i > 0) text += ", ";
+                    text += std::to_string((long long)dimensions.getItemAt(i).asPtr<daq::IInteger>());
+                }
+                text += "]";
+            } catch (...)
+            {
+                text = "<error>";
+            }
+        }
+        else
+            text = "None";
+        ImGui::InputText("Dimensions", &text);
+
+        text = descriptor.getName().assigned() ? descriptor.getName().toStdString() : "None";
+        ImGui::InputText("Name", &text);
+
+        text = descriptor.getOrigin().assigned() ? descriptor.getOrigin().toStdString() : "None";
+        ImGui::InputText("Origin", &text);
+
+        text = "";
+        if (descriptor.getPostScaling().assigned())
+            RenderDescriptorAttribute("Post Scaling", descriptor.getPostScaling(), 0);
+        else
+            ImGui::InputText("Post Scaling", &text);
+
+        text = std::to_string(descriptor.getRawSampleSize());
+        ImGui::InputText("Raw Sample Size", &text);
+
+        text = "";
+        if (descriptor.getReferenceDomainInfo().assigned())
+            RenderDescriptorAttribute("Reference Domain Info", descriptor.getReferenceDomainInfo(), 0);
+        else
+            ImGui::InputText("Reference Domain Info", &text);
+
+        if (descriptor.getRule().assigned())
+            RenderDescriptorAttribute("Rule", descriptor.getRule(), 0);
+        else
+            ImGui::InputText("Rule", &text);
+
+        text = std::to_string(descriptor.getSampleSize());
+        ImGui::InputText("Sample Size", &text);
+
+        try {
+            text = SampleTypeToString(descriptor.getSampleType());
+        } catch (...) {
+            text = "<unavailable>";
+        }
+        ImGui::InputText("Sample Type", &text);
+
+        text = "";
+        if (descriptor.getStructFields().assigned())
+            RenderDescriptorAttribute("Struct Fields", descriptor.getStructFields(), 0);
+        else
+            ImGui::InputText("Struct Fields", &text);
+
+        if (auto tick_res = descriptor.getTickResolution(); tick_res.assigned())
+            text = std::to_string((long long)tick_res.getNumerator()) + "/" + std::to_string((long long)tick_res.getDenominator());
+        else
+            text = "None";
+        ImGui::InputText("Tick Resolution", &text);
+
+        if (auto unit = descriptor.getUnit(); unit.assigned())
+        {
+            std::string symbol = unit.getSymbol().assigned() ? unit.getSymbol().toStdString() : "None";
+            std::string quantity = unit.getQuantity().assigned() ? unit.getQuantity().toStdString() : "None";
+            text = symbol + " (" + quantity + ")";
+        }
+        else
+            text = "None";
+        ImGui::InputText("Unit", &text);
+
+        if (descriptor.getValueRange().assigned())
+            RenderDescriptorAttribute("Value Range", descriptor.getValueRange(), 0);
+        else
+        {
+            text = "None";
+            ImGui::InputText("Value Range", &text);
+        }
+
+        ImGui::EndDisabled();
+
+        auto metadata = descriptor.getMetadata();
+        if (metadata.assigned() && metadata.getCount() > 0)
+        {
+            if (ImGui::TreeNodeEx("Metadata", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                for (const auto& key : metadata.getKeyList())
+                {
+                    auto value = metadata.get(key);
+                    std::string key_str = key.supportsInterface<daq::IString>() ? 
+                        key.asPtr<daq::IString>().toStdString() : 
+                        static_cast<std::string>(key.toString());
+                    RenderDescriptorAttribute(key_str, value, 1);
+                }
+                ImGui::TreePop();
+            }
+        }
+}
+
 void RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component, bool show_attributes)
 {
-    const daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(component);
+    daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(component);
     for (const auto& property : property_holder.getVisibleProperties())
     {
         RenderProperty(property, property_holder);
+    }
+
+    if (canCastTo<daq::ISignal>(component))
+    {
+        daq::SignalPtr signal = castTo<daq::ISignal>(component);
+        
+        if (ImGui::BeginTabBar("SignalDescriptors"))
+        {
+            if (signal.getDescriptor().assigned())
+            {
+                if (ImGui::BeginTabItem("Signal Descriptor"))
+                {
+                    RenderAllDescriptorAttributes(signal.getDescriptor(), "Signal Descriptor");
+                    ImGui::EndTabItem();
+                }
+            }
+            
+            auto domain_signal = signal.getDomainSignal();
+            if (domain_signal.assigned() && domain_signal.getDescriptor().assigned())
+            {
+                if (ImGui::BeginTabItem("Domain Signal Descriptor"))
+                {
+                    RenderAllDescriptorAttributes(domain_signal.getDescriptor(), "Domain Signal Descriptor");
+                    ImGui::EndTabItem();
+                }
+            }
+            ImGui::EndTabBar();
+        }
     }
 
     if (!show_attributes)
@@ -164,6 +467,110 @@ void RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component, 
         {
             ImGui::Text("%s", value.c_str());
             ImGui::EndTooltip();
+        }
+    }
+
+    if (canCastTo<daq::ISignal>(component))
+    {
+        daq::SignalPtr signal = castTo<daq::ISignal>(component);
+        
+        {
+            bool value = signal.getPublic();
+            if (ImGui::Checkbox("Public", &value))
+                signal.setPublic(value);
+        }
+        {
+            std::string value = signal.getDomainSignal().assigned()
+                              ? signal.getDomainSignal().getGlobalId().toStdString()
+                              : "";
+            ImGui::BeginDisabled();
+            ImGui::InputText("Domain Signal ID", &value);
+            ImGui::EndDisabled();
+        }
+        {
+            bool value = signal.getStreamed();
+            ImGui::BeginDisabled();
+            ImGui::Checkbox("Streamed", &value);
+            ImGui::EndDisabled();
+        }
+        {
+            std::string last_value_str = "N/A";
+            try {
+                if (signal.getLastValue().assigned()) {
+                    auto last_val = signal.getLastValue();
+                    if (last_val.supportsInterface<daq::IString>())
+                        last_value_str = last_val.asPtr<daq::IString>().toStdString();
+                    else if (last_val.supportsInterface<daq::IInteger>())
+                        last_value_str = std::to_string((long long)last_val.asPtr<daq::IInteger>());
+                    else if (last_val.supportsInterface<daq::IFloat>())
+                        last_value_str = std::to_string((double)last_val.asPtr<daq::IFloat>());
+                    else
+                        last_value_str = static_cast<std::string>(last_val.toString());
+                }
+            } catch (...) {
+                last_value_str = "<error reading value>";
+            }
+            ImGui::BeginDisabled();
+            ImGui::InputText("Last Value", &last_value_str);
+            ImGui::EndDisabled();
+        }
+        {
+            // Status - from Python line 166-169
+            std::string status_str = "OK";  // Default assumption
+            try
+            {
+                auto status_container = signal.getStatusContainer();
+                if (status_container.assigned())
+                {
+                    auto statuses = status_container.getStatuses();
+                    if (statuses.assigned() && statuses.getCount() > 0)
+                        status_str = "Multiple statuses available";
+                }
+            } catch (...)
+            {
+                status_str = "<unavailable>";
+            }
+            ImGui::BeginDisabled();
+            ImGui::InputText("Status", &status_str);
+            ImGui::EndDisabled();
+        }
+    }
+
+    if (canCastTo<daq::IInputPort>(component))
+    {
+        auto input_port = castTo<daq::IInputPort>(component);
+        daq::InputPortPtr input_port_ptr(input_port);
+        
+        {
+            std::string value = input_port_ptr.getSignal().assigned()
+                ? input_port_ptr.getSignal().getGlobalId().toStdString()
+                : "";
+            ImGui::BeginDisabled();
+            ImGui::InputText("Signal ID", &value);
+            ImGui::EndDisabled();
+        }
+        {
+            bool value = input_port_ptr.getRequiresSignal();
+            ImGui::BeginDisabled();
+            ImGui::Checkbox("Requires Signal", &value);
+            ImGui::EndDisabled();
+        }
+        {
+            std::string status_str = "OK";  // Default assumption
+            try {
+                auto status_container = input_port_ptr.getStatusContainer();
+                if (status_container.assigned()) {
+                    auto statuses = status_container.getStatuses();
+                    if (statuses.assigned() && statuses.getCount() > 0) {
+                        status_str = "Multiple statuses available"; // Simplified for now
+                    }
+                }
+            } catch (...) {
+                status_str = "<unavailable>";
+            }
+            ImGui::BeginDisabled();
+            ImGui::InputText("Status", &status_str);
+            ImGui::EndDisabled();
         }
     }
 }
