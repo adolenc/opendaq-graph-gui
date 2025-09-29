@@ -314,6 +314,14 @@ void OpenDAQNodeInteractionHandler::RenderNestedNodePopup(ImGui::ImGuiNodes* nod
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 
+    if (ImGui::BeginPopup("NodesContextMenu", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
+    {
+        RenderPopupMenu(nodes, add_button_drop_position_ ? add_button_drop_position_.value() : ImGui::GetMousePos());
+        ImGui::EndPopup();
+        ImGui::PopStyleVar();
+        return;
+    }
+
     if (ImGui::BeginPopup("AddNestedNodeMenu", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
     {
         ImGui::SeparatorText("Add nested function block");
@@ -450,6 +458,12 @@ void OpenDAQNodeInteractionHandler::ShowStartupPopup(ImGui::ImGuiNodes* nodes)
             ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
+}
+
+void OpenDAQNodeInteractionHandler::OnEmptySpaceClick(ImVec2 position)
+{
+    add_button_drop_position_ = position;
+    ImGui::OpenPopup("NodesContextMenu");
 }
 
 void OpenDAQNodeInteractionHandler::OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, std::optional<ImVec2> /*position*/)

@@ -378,7 +378,6 @@ void ImGuiNodes::Update()
         interaction_handler_->OnOutputHover("");
 
     ProcessNodes();
-    ProcessContextMenu();
 }
 
 void ImGuiNodes::ProcessInteractions()
@@ -479,7 +478,7 @@ void ImGuiNodes::ProcessInteractions()
 
     if (ImGui::IsMouseDoubleClicked(0))
     {
-        if (OtherImGuiWindowIsBlockingInteraction() && !ImGui::IsPopupOpen("NodesContextMenu"))
+        if (OtherImGuiWindowIsBlockingInteraction() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId))
             return;
 
         switch (state_)
@@ -534,7 +533,7 @@ void ImGuiNodes::ProcessInteractions()
 
     if (ImGui::IsMouseClicked(0))
     {
-        if (OtherImGuiWindowIsBlockingInteraction() && !ImGui::IsPopupOpen("NodesContextMenu") && !ImGui::IsPopupOpen("AddNestedNodeMenu"))
+        if (OtherImGuiWindowIsBlockingInteraction() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId))
         {
             blocked_by_imgui_interaction = true;
             return;
@@ -602,7 +601,7 @@ void ImGuiNodes::ProcessInteractions()
 
     if (ImGui::IsMouseDragging(0))
     {
-        if (blocked_by_imgui_interaction && !ImGui::IsPopupOpen("NodesContextMenu") && !ImGui::IsPopupOpen("AddNestedNodeMenu"))
+        if (blocked_by_imgui_interaction && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId))
             return;
             
         switch (state_)
@@ -704,10 +703,13 @@ void ImGuiNodes::ProcessInteractions()
         {
             if (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold) &&
                 !OtherImGuiWindowIsBlockingInteraction() &&
-                !ImGui::IsPopupOpen("NodesContextMenu") &&
-                !ImGui::IsPopupOpen("AddNestedNodeMenu"))
+                !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId))
             {
-                ImGui::OpenPopup("NodesContextMenu");
+                if (interaction_handler_)
+                {
+                    ImVec2 position = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
+                    interaction_handler_->OnEmptySpaceClick(position);
+                }
             }
             return;
         }
@@ -1147,22 +1149,6 @@ void ImGuiNodes::ProcessNodes()
         ImGui::Text("Active_input: %s", active_input_->name_.c_str());
     if (active_output_)
         ImGui::Text("Active_output: %s", active_output_->name_.c_str());
-}
-
-
-void ImGuiNodes::ProcessContextMenu()
-{
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
-
-    if (ImGui::BeginPopup("NodesContextMenu", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
-    {
-        ImVec2 position = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
-        if (interaction_handler_)
-            interaction_handler_->RenderPopupMenu(this, position);
-        ImGui::EndPopup();
-    }
-
-    ImGui::PopStyleVar();
 }
 
 void ImGuiNodesInput::TranslateInput(ImVec2 delta)
