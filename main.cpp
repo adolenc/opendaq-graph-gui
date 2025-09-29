@@ -10,9 +10,19 @@
 #include "nodes.h"
 #include <SDL.h>
 #include <SDL_opengl.h>
+#include <opendaq/version.h>
+#include <cstring>
 
-int main(int, char**)
+int main(int argc, char** argv)
 {
+    if (argc > 1 && (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0))
+    {
+        unsigned int major, minor, revision;
+        daqOpenDaqGetVersion(&major, &minor, &revision);
+        printf("openDAQ GUI - built with openDAQ v%u.%u.%u\n", major, minor, revision);
+        return 0;
+    }
+
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0)
     {
         printf("Error: %s\n", SDL_GetError());
