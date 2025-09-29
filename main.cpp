@@ -1,6 +1,7 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 #include "implot.h"
+#include "imsearch.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
 #include "properties_window.h"
@@ -89,6 +90,7 @@ int main(int, char**)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImPlot::CreateContext();
+    ImSearch::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
 
     ImGui::StyleColorsDark();
@@ -179,6 +181,7 @@ int main(int, char**)
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL2_Shutdown();
+    ImSearch::DestroyContext();
     ImPlot::DestroyContext();
     ImGui::DestroyContext();
 

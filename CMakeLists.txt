@@ -66,6 +66,19 @@ add_library(implot STATIC
 )
 target_include_directories(implot PUBLIC ${implot_SOURCE_DIR} ${imgui_SOURCE_DIR})
 
+# imsearch
+FetchContent_Declare(
+  imsearch
+  GIT_REPOSITORY https://github.com/GuusKemperman/imsearch.git
+  GIT_TAG main
+)
+FetchContent_MakeAvailable(imsearch)
+add_library(imsearch STATIC
+  ${imsearch_SOURCE_DIR}/imsearch.cpp
+  ${imsearch_SOURCE_DIR}/imsearch_demo.cpp
+)
+target_include_directories(imsearch PUBLIC ${imsearch_SOURCE_DIR} ${imgui_SOURCE_DIR})
+
 # sdl2
 FetchContent_Declare(
     SDL2
@@ -81,4 +94,4 @@ target_link_libraries(imgui PUBLIC SDL2::SDL2 SDL2::SDL2main OpenGL::GL)
 
 add_executable(${PROJECT_NAME} main.cpp nodes.cpp opendaq_control.cpp properties_window.cpp)
 target_include_directories(${PROJECT_NAME} PUBLIC ${openDAQ_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PUBLIC daq::opendaq imgui implot)
+target_link_libraries(${PROJECT_NAME} PUBLIC daq::opendaq imgui implot imsearch)
