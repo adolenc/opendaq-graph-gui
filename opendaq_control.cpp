@@ -518,7 +518,7 @@ void OpenDAQNodeInteractionHandler::RenderNestedNodePopup(ImGui::ImGuiNodes* nod
                 const OpenDAQComponent& sig = e.second;
 
                 std::string entry_name = sig.component_.getName().toStdString() + " (" + id + ")";
-                ImSearch::SearchableItem(entry_name.c_str(), [&](const char*)
+                ImSearch::SearchableItem(entry_name.c_str(), [=](const char*)
                     {
                         if (ImGui::Selectable(entry_name.c_str()))
                         {
