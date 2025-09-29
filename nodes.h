@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include <optional>
+#include <unordered_map>
 
 namespace ImGui
 {
@@ -188,6 +189,7 @@ private:
     ImGuiNodesInteractionHandler* interaction_handler_ = nullptr;
 
     ImVector<ImGuiNodesNode*> nodes_;
+    std::unordered_map<ImGuiNodesUid, ImGuiNodesNode*> nodes_by_uid_;
 
     void ProcessInteractions();
     void ProcessNodes();

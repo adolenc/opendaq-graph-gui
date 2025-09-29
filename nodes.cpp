@@ -248,14 +248,9 @@ void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color,
     ImVec2 pos(0.0f, 0.0f);
     if (!parent_uid.empty())
     {
-        for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+        if (auto it = nodes_by_uid_.find(parent_uid); it != nodes_by_uid_.end())
         {
-            ImGuiNodesNode* node = nodes_[node_idx];
-            if (node->uid_ == parent_uid)
-            {
-                pos = node->area_node_.GetCenter() + ImVec2(200.0f, 0.0f);
-                break;
-            }
+            pos = it->second->area_node_.GetCenter() + ImVec2(200.0f, 0.0f);
         }
     }
     pos += ImVec2(0.0f, (float)(nodes_.size() * 20));
@@ -271,14 +266,9 @@ void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2
     node->parent_node_ = NULL;
     if (!parent_uid.empty())
     {
-        for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+        if (auto it = nodes_by_uid_.find(parent_uid); it != nodes_by_uid_.end())
         {
-            ImGuiNodesNode* parent_node = nodes_[node_idx];
-            if (parent_node->uid_ == parent_uid)
-            {
-                node->parent_node_ = parent_node;
-                break;
-            }
+            node->parent_node_ = it->second;
         }
     }
 
@@ -308,6 +298,7 @@ void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2
     SET_FLAG(node->state_, ImGuiNodesNodeStateFlag_Visible | ImGuiNodesNodeStateFlag_Hovered);
 
     nodes_.push_back(node);
+    nodes_by_uid_[node->uid_] = node;
 }
 
 bool ImGuiNodes::SortSelectedNodesOrder()
@@ -1512,45 +1503,33 @@ ImGuiNodes::~ImGuiNodes()
 
 void ImGuiNodes::SetWarning(const ImGuiNodesUid& uid, const std::string& message)
 {
-    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+    if (auto it = nodes_by_uid_.find(uid); it != nodes_by_uid_.end())
     {
-        ImGuiNodesNode* node = nodes_[node_idx];
-        if (node->uid_ == uid)
-        {
-            SET_FLAG(node->state_, ImGuiNodesNodeStateFlag_Warning);
-            node->warning_message_ = message;
-            break;
-        }
+        ImGuiNodesNode* node = it->second;
+        SET_FLAG(node->state_, ImGuiNodesNodeStateFlag_Warning);
+        node->warning_message_ = message;
     }
 }
 
 void ImGuiNodes::SetError(const ImGuiNodesUid& uid, const std::string& message)
 {
-    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+    if (auto it = nodes_by_uid_.find(uid); it != nodes_by_uid_.end())
     {
-        ImGuiNodesNode* node = nodes_[node_idx];
-        if (node->uid_ == uid)
-        {
-            SET_FLAG(node->state_, ImGuiNodesNodeStateFlag_Error);
-            node->error_message_ = message;
-            break;
-        }
+        ImGuiNodesNode* node = it->second;
+        SET_FLAG(node->state_, ImGuiNodesNodeStateFlag_Error);
+        node->error_message_ = message;
     }
 }
 
 void ImGuiNodes::SetOk(const ImGuiNodesUid& uid)
 {
-    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+    if (auto it = nodes_by_uid_.find(uid); it != nodes_by_uid_.end())
     {
-        ImGuiNodesNode* node = nodes_[node_idx];
-        if (node->uid_ == uid)
-        {
-            CLEAR_FLAG(node->state_, ImGuiNodesNodeStateFlag_Warning);
-            CLEAR_FLAG(node->state_, ImGuiNodesNodeStateFlag_Error);
-            node->warning_message_.clear();
-            node->error_message_.clear();
-            break;
-        }
+        ImGuiNodesNode* node = it->second;
+        CLEAR_FLAG(node->state_, ImGuiNodesNodeStateFlag_Warning);
+        CLEAR_FLAG(node->state_, ImGuiNodesNodeStateFlag_Error);
+        node->warning_message_.clear();
+        node->error_message_.clear();
     }
 }
 
