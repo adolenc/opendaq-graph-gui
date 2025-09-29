@@ -1,15 +1,28 @@
 cmake_minimum_required(VERSION 3.11)
 project(opendaq-gui)
 set(CMAKE_CXX_STANDARD 17)
-
-# opendaq - with cpptrace patch applied
 include(FetchContent)
-FetchContent_Declare(
-  openDAQ
-  GIT_REPOSITORY https://github.com/openDAQ/openDAQ.git
-  GIT_TAG v3.20.4
-  PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/opendaq-cpptrace.patch || echo "opendaq-cpptrace patch failed to apply"
-)
+
+# build everything into the bin/ folder (otherwise Windows builds into different folders)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# opendaq - with cpptrace patch applied on linux
+if (WIN32)
+  FetchContent_Declare(
+    openDAQ
+    GIT_REPOSITORY https://github.com/openDAQ/openDAQ.git
+    GIT_TAG v3.20.4
+  )
+else()
+  FetchContent_Declare(
+    openDAQ
+    GIT_REPOSITORY https://github.com/openDAQ/openDAQ.git
+    GIT_TAG v3.20.4
+    PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/opendaq-cpptrace.patch || echo opendaq-cpptrace patch failed to apply>
+  )
+endif()
 set(OPENDAQ_ENABLE_TESTS OFF CACHE BOOL "")
 set(OPENDAQ_ENABLE_TEST_UTILS OFF CACHE BOOL "")
 set(OPENDAQ_ENABLE_ACCESS_CONTROL OFF CACHE BOOL "")
