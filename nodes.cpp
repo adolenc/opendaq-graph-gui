@@ -50,18 +50,24 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
         if (ImGui::IsMouseDragging(1) && !blocked_by_imgui_interaction)
             scroll_ += io.MouseDelta;
 
-        ImVec2 focus = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
+        if (io.MouseWheel != 0.0f)
+        {
+            if (!OtherImGuiWindowIsBlockingInteraction())
+            {
+                ImVec2 focus = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
 
-        if (io.MouseWheel < 0.0f)
-            for (float zoom = io.MouseWheel; zoom < 0.0f; zoom += 1.0f)
-                scale_ = ImMax(0.3f, scale_ / 1.15f);
+                if (io.MouseWheel < 0.0f)
+                    for (float zoom = io.MouseWheel; zoom < 0.0f; zoom += 1.0f)
+                        scale_ = ImMax(0.3f, scale_ / 1.15f);
 
-        if (io.MouseWheel > 0.0f)
-            for (float zoom = io.MouseWheel; zoom > 0.0f; zoom -= 1.0f)
-                scale_ = ImMin(3.0f, scale_ * 1.15f);
+                if (io.MouseWheel > 0.0f)
+                    for (float zoom = io.MouseWheel; zoom > 0.0f; zoom -= 1.0f)
+                        scale_ = ImMin(3.0f, scale_ * 1.15f);
 
-        ImVec2 shift = scroll_ + (focus * scale_);
-        scroll_ += mouse_ - shift - nodes_imgui_window_pos_;
+                ImVec2 shift = scroll_ + (focus * scale_);
+                scroll_ += mouse_ - shift - nodes_imgui_window_pos_;
+            }
+        }
     }
 
     const float grid = 64.0f * scale_;
