@@ -147,6 +147,7 @@ public:
     virtual void OnConnectionCreated(const ImGuiNodesUid& output_id, const ImGuiNodesUid& input_id) {}
     virtual void RenderPopupMenu(ImGuiNodes* nodes, ImVec2 position) {}
     virtual void OnAddButtonClick(const ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position) {}
+    virtual void OnInputDropped(const ImGuiNodesUid& input_uid, std::optional<ImVec2> position) {}
 };
 
 struct ImGuiNodes

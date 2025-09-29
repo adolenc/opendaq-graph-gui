@@ -35,6 +35,7 @@ public:
     void OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUid>& selected_ids) override;
     void RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 position) override;
     void OnAddButtonClick(const ImGui::ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position) override;
+    void OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, std::optional<ImVec2> /*position*/) override;
     void RenderNestedNodePopup(ImGui::ImGuiNodes* nodes);
     void ShowStartupPopup(ImGui::ImGuiNodes* nodes);
 
@@ -42,6 +43,8 @@ public:
     
     daq::ComponentPtr add_button_click_component_;
     std::optional<ImVec2> add_button_drop_position_;
+
+    daq::ComponentPtr dragged_input_port_component_;
 
     OpenDAQHandler* opendaq_handler_;
     

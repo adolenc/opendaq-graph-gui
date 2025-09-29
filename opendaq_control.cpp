@@ -1,6 +1,7 @@
 #include "opendaq_control.h"
 #include "imgui_stdlib.h"
 #include "implot.h"
+#include "imsearch.h"
 
 
 OpenDAQHandler::OpenDAQHandler()
@@ -393,6 +394,36 @@ void OpenDAQNodeInteractionHandler::RenderNestedNodePopup(ImGui::ImGuiNodes* nod
         ImGui::EndPopup();
     }
 
+    if (ImGui::BeginPopup("AddInputMenu", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
+    {
+        if (ImSearch::BeginSearch())
+        {
+            ImSearch::SearchBar();
+
+            for (const auto& e : opendaq_handler_->signals_)
+            {
+                const std::string& id = e.first;
+                const OpenDAQComponent& sig = e.second;
+
+                std::string entry_name = sig.component_.getName().toStdString() + " (" + id + ")";
+                ImSearch::SearchableItem(entry_name.c_str(), [&](const char*)
+                    {
+                        if (ImGui::Selectable(entry_name.c_str()))
+                        {
+                            daq::InputPortPtr input_port = castTo<daq::IInputPort>(dragged_input_port_component_);
+                            daq::SignalPtr signal = castTo<daq::ISignal>(sig.component_);
+
+                            if (signal.assigned() && input_port.assigned())
+                                input_port.connect(signal);
+                        }
+                    });
+            }
+
+            ImSearch::EndSearch();
+        }
+        ImGui::EndPopup();
+    }
+
     ImGui::PopStyleVar();
 }
 
@@ -419,4 +450,14 @@ void OpenDAQNodeInteractionHandler::ShowStartupPopup(ImGui::ImGuiNodes* nodes)
             ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
+}
+
+void OpenDAQNodeInteractionHandler::OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, std::optional<ImVec2> /*position*/)
+{
+    if (auto it = opendaq_handler_->input_ports_.find(input_uid); it != opendaq_handler_->input_ports_.end())
+        dragged_input_port_component_ = it->second.component_;
+    else
+        dragged_input_port_component_ = nullptr;
+
+    ImGui::OpenPopup("AddInputMenu");
 }

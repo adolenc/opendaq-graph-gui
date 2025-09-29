@@ -828,6 +828,14 @@ void ImGuiNodes::ProcessInteractions()
                         SortSelectedNodesOrder();
                     }
                 }
+                else
+                {
+                    if (state_ == ImGuiNodesState_DraggingInput)
+                    {
+                        if (interaction_handler_)
+                            interaction_handler_->OnInputDropped(active_input_->uid_, std::nullopt);
+                    }
+                }
             }
 
             active_dragging_connection_ = ImVec4();
