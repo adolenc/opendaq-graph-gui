@@ -40,6 +40,9 @@ public:
     void RenderNestedNodePopup(ImGui::ImGuiNodes* nodes);
     void ShowStartupPopup(ImGui::ImGuiNodes* nodes);
 
+    void RenderFunctionBlockOptions(ImGui::ImGuiNodes* nodes, daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position);
+    void RenderDeviceOptions(ImGui::ImGuiNodes* nodes, daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position);
+
     std::vector<daq::ComponentPtr> selected_components_;
     
     daq::ComponentPtr add_button_click_component_;

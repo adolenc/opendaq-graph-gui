@@ -235,19 +235,90 @@ void OpenDAQNodeInteractionHandler::OnSelectionChanged(const std::vector<ImGui::
     }
 }
 
-void OpenDAQNodeInteractionHandler::RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 position)
+void OpenDAQNodeInteractionHandler::RenderFunctionBlockOptions(ImGui::ImGuiNodes* nodes, daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position)
 {
-    ImGui::SeparatorText("Add a function block");
-    for (const auto [fb_id, desc]: opendaq_handler_->instance_.getAvailableFunctionBlockTypes())
+    daq::DictPtr<daq::IString, daq::IFunctionBlockType> available_fbs;
+    
+    try
+    {
+        if (canCastTo<daq::IInstance>(parent_component))
+        {
+            daq::InstancePtr instance = castTo<daq::IInstance>(parent_component);
+            available_fbs = instance.getAvailableFunctionBlockTypes();
+        }
+        else if (canCastTo<daq::IDevice>(parent_component))
+        {
+            daq::DevicePtr device = castTo<daq::IDevice>(parent_component);
+            available_fbs = device.getAvailableFunctionBlockTypes();
+        }
+        else if (canCastTo<daq::IFunctionBlock>(parent_component))
+        {
+            daq::FunctionBlockPtr function_block = castTo<daq::IFunctionBlock>(parent_component);
+            available_fbs = function_block.getAvailableFunctionBlockTypes();
+        }
+        else
+            return;
+    }
+    catch (...)
+    {
+        return;
+    }
+
+    if (!available_fbs.assigned() || available_fbs.getCount() == 0)
+    {
+        ImGui::Text("No function blocks available");
+        return;
+    }
+
+    for (const auto [fb_id, desc] : available_fbs)
     {
         if (ImGui::MenuItem(fb_id.toStdString().c_str()))
         {
-            daq::FunctionBlockPtr fb = opendaq_handler_->instance_.addFunctionBlock(fb_id);
-            nodes->AddNode({fb.getName().toStdString(), fb.getGlobalId().toStdString()}, ImColor(100, 100, 200), position,
-                           {}, {},
-                           "");
-            opendaq_handler_->folders_[fb.getGlobalId().toStdString()] = {fb, {}};
+            daq::FunctionBlockPtr fb;
+            if (canCastTo<daq::IInstance>(parent_component))
+            {
+                daq::InstancePtr instance = castTo<daq::IInstance>(parent_component);
+                fb = instance.addFunctionBlock(fb_id);
+            }
+            else if (canCastTo<daq::IDevice>(parent_component))
+            {
+                daq::DevicePtr device = castTo<daq::IDevice>(parent_component);
+                fb = device.addFunctionBlock(fb_id);
+            }
+            else if (canCastTo<daq::IFunctionBlock>(parent_component))
+            {
+                daq::FunctionBlockPtr function_block = castTo<daq::IFunctionBlock>(parent_component);
+                fb = function_block.addFunctionBlock(fb_id);
+            }
+
+            if (fb.assigned())
+            {
+                std::vector<ImGui::ImGuiNodesIdentifier> input_ports;
+                std::vector<ImGui::ImGuiNodesIdentifier> output_signals;
+
+                for (const daq::InputPortPtr& input_port : fb.getInputPorts())
+                {
+                    input_ports.push_back({input_port.getName().toStdString(), input_port.getGlobalId().toStdString()});
+                    opendaq_handler_->input_ports_[input_port.getGlobalId().toStdString()] = {input_port, fb};
+                }
+
+                for (const daq::SignalPtr& signal : fb.getSignals())
+                {
+                    opendaq_handler_->signals_[signal.getGlobalId().toStdString()] = {signal, fb};
+                    output_signals.push_back({signal.getName().toStdString(), signal.getGlobalId().toStdString()});
+                }
+
+                nodes->AddNode({fb.getName().toStdString(), fb.getGlobalId().toStdString()},
+                              ImColor(0.3f, 0.5f, 0.8f, 1.0f),
+                              position,
+                              input_ports,
+                              output_signals,
+                              parent_id);
+
+                opendaq_handler_->folders_[fb.getGlobalId().toStdString()] = {fb, {}};
+            }
         }
+
         if (ImGui::BeginItemTooltip())
         {
             ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -256,12 +327,27 @@ void OpenDAQNodeInteractionHandler::RenderPopupMenu(ImGui::ImGuiNodes* nodes, Im
             ImGui::EndTooltip();
         }
     }
+}
 
-    ImGui::SeparatorText("Connect to device");
-    
+void OpenDAQNodeInteractionHandler::RenderDeviceOptions(ImGui::ImGuiNodes* nodes, daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position)
+{
+    if (!canCastTo<daq::IDevice>(parent_component))
+        return;
+
+    daq::DevicePtr parent_device = castTo<daq::IDevice>(parent_component);
+
     if (ImGui::Button(available_devices_.assigned() && available_devices_.getCount() > 0 ? "Refresh devices" : "Discover devices"))
-        available_devices_ = opendaq_handler_->instance_.getAvailableDevices();
-    
+    {
+        try
+        {
+            available_devices_ = parent_device.getAvailableDevices();
+        }
+        catch (...)
+        {
+            available_devices_ = nullptr;
+        }
+    }
+
     if (available_devices_.assigned() && available_devices_.getCount() > 0)
     {
         for (const auto& device_info : available_devices_)
@@ -270,33 +356,45 @@ void OpenDAQNodeInteractionHandler::RenderPopupMenu(ImGui::ImGuiNodes* nodes, Im
             std::string device_connection_string = device_info.getConnectionString();
             if (ImGui::MenuItem((device_connection_name + " (" + device_connection_string + ")").c_str()))
             {
-                opendaq_handler_->instance_.addDevice(device_connection_string);
-                nodes->AddNode(device_connection_string.c_str(), ImColor(0, 100, 200), position,
+                const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
+                nodes->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, ImColor(0, 100, 200), position,
                                {}, {},
-                               "");
+                               parent_id);
+                opendaq_handler_->folders_[dev.getGlobalId().toStdString()] = {dev, {}};
             }
         }
     }
-    
+
     std::string device_connection_string = "daq.nd://";
     ImGui::InputText("##w", &device_connection_string);
     if (ImGui::IsItemDeactivatedAfterEdit())
     {
-        opendaq_handler_->instance_.addDevice(device_connection_string);
-        nodes->AddNode(device_connection_string.c_str(), ImColor(0, 100, 200), position,
+        const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
+        nodes->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, ImColor(0, 100, 200), position,
                        {}, {},
-                       "");
+                       parent_id);
+        opendaq_handler_->folders_[dev.getGlobalId().toStdString()] = {dev, {}};
         ImGui::CloseCurrentPopup();
     }
     ImGui::SameLine();
     if (ImGui::Button("Connect"))
     {
-        opendaq_handler_->instance_.addDevice(device_connection_string);
-        nodes->AddNode(device_connection_string.c_str(), ImColor(0, 100, 200), position,
+        const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
+        nodes->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, ImColor(0, 100, 200), position,
                        {}, {},
-                       "");
+                       parent_id);
+        opendaq_handler_->folders_[dev.getGlobalId().toStdString()] = {dev, {}};
         ImGui::CloseCurrentPopup();
     }
+}
+
+void OpenDAQNodeInteractionHandler::RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 position)
+{
+    ImGui::SeparatorText("Add a function block");
+    RenderFunctionBlockOptions(nodes, opendaq_handler_->instance_, "", position);
+
+    ImGui::SeparatorText("Connect to device");
+    RenderDeviceOptions(nodes, opendaq_handler_->instance_, "", position);
 }
 
 void OpenDAQNodeInteractionHandler::OnAddButtonClick(const ImGui::ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position)
@@ -324,79 +422,40 @@ void OpenDAQNodeInteractionHandler::RenderNestedNodePopup(ImGui::ImGuiNodes* nod
 
     if (ImGui::BeginPopup("AddNestedNodeMenu", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
     {
-        ImGui::SeparatorText("Add nested function block");
-        if (add_button_click_component_ == nullptr || !canCastTo<daq::IFunctionBlock>(add_button_click_component_))
+        if (add_button_click_component_ == nullptr)
         {
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "This component doesn't support nested function blocks");
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "No component selected");
             ImGui::EndPopup();
             ImGui::PopStyleVar();
             return;
         }
 
-        try
-        {
-            daq::FunctionBlockPtr parent_fb = castTo<daq::IFunctionBlock>(add_button_click_component_);
-            bool has_any = false;
-            auto available_nested_fbs = parent_fb.getAvailableFunctionBlockTypes();
-            for (const auto [fb_id, desc]: available_nested_fbs)
-            {
-                if (ImGui::MenuItem(fb_id.toStdString().c_str()))
-                {
-                    daq::FunctionBlockPtr nested_fb = parent_fb.addFunctionBlock(fb_id);
-                    
-                    std::vector<ImGui::ImGuiNodesIdentifier> input_ports;
-                    std::vector<ImGui::ImGuiNodesIdentifier> output_signals;
-                    
-                    for (const daq::InputPortPtr& input_port : nested_fb.getInputPorts())
-                    {
-                        input_ports.push_back({input_port.getName().toStdString(), input_port.getGlobalId().toStdString()});
-                        opendaq_handler_->input_ports_[input_port.getGlobalId().toStdString()] = {input_port, nested_fb};
-                    }
+        bool supports_fbs = canCastTo<daq::IInstance>(add_button_click_component_) || 
+                            canCastTo<daq::IDevice>(add_button_click_component_) || 
+                            canCastTo<daq::IFunctionBlock>(add_button_click_component_);
+        bool supports_devices = canCastTo<daq::IDevice>(add_button_click_component_);
 
-                    for (const daq::SignalPtr& signal : nested_fb.getSignals())
-                    {
-                        opendaq_handler_->signals_[signal.getGlobalId().toStdString()] = {signal, nested_fb};
-                        output_signals.push_back({signal.getName().toStdString(), signal.getGlobalId().toStdString()});
-                    }
-                    
-                    if (add_button_drop_position_)
-                    {
-                        nodes->AddNode({nested_fb.getName().toStdString(), nested_fb.getGlobalId().toStdString()}, 
-                                      ImColor(0.3f, 0.5f, 0.8f, 1.0f),
-                                      add_button_drop_position_.value(),
-                                      input_ports,
-                                      output_signals,
-                                      add_button_click_component_.getGlobalId().toStdString());
-                    }
-                    else
-                    {
-                        nodes->AddNode({nested_fb.getName().toStdString(), nested_fb.getGlobalId().toStdString()}, 
-                                      ImColor(0.3f, 0.5f, 0.8f, 1.0f),
-                                      input_ports,
-                                      output_signals,
-                                      add_button_click_component_.getGlobalId().toStdString());
-                    }
-                    
-                    OpenDAQComponent c;
-                    c.component_ = nested_fb;
-                    opendaq_handler_->folders_[nested_fb.getGlobalId().toStdString()] = c;
-                    add_button_click_component_ = nullptr;
-                }
-                
-                if (ImGui::BeginItemTooltip())
-                {
-                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-                    ImGui::TextUnformatted(desc.getDescription().toStdString().c_str());
-                    ImGui::PopTextWrapPos();
-                    ImGui::EndTooltip();
-                }
-            }
-            if (available_nested_fbs.getCount() == 0)
-                ImGui::Text("No nested function blocks available");
-        }
-        catch (...)
+        if (supports_fbs)
         {
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: Cannot add nested function blocks to this component");
+            ImGui::SeparatorText("Add function block");
+            RenderFunctionBlockOptions(nodes, 
+                                      add_button_click_component_, 
+                                      add_button_click_component_.getGlobalId().toStdString(),
+                                      add_button_drop_position_ ? add_button_drop_position_.value() : ImVec2(0, 0));
+        }
+
+        if (supports_devices)
+        {
+            ImGui::SeparatorText("Connect to device");
+            RenderDeviceOptions(nodes, 
+                              add_button_click_component_, 
+                              add_button_click_component_.getGlobalId().toStdString(),
+                              add_button_drop_position_ ? add_button_drop_position_.value() : ImVec2(0, 0));
+        }
+
+        if (!supports_fbs && !supports_devices)
+        {
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "This component doesn't support nested components");
         }
         
         ImGui::EndPopup();
