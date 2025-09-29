@@ -60,8 +60,20 @@ void OpenDAQHandler::RetrieveTopology(daq::ComponentPtr component, ImGui::ImGuiN
     {
         OpenDAQComponent c;
         c.component_ = component;
+        c.parent_ = parent_id.empty() ? nullptr : folders_[parent_id].component_;
+        
+        if (canCastTo<daq::IDevice>(component))
+        {
+            c.color_index_ = next_color_index_;
+            next_color_index_ = (next_color_index_ + 1) % color_palette_size_;
+        }
+        else if (!parent_id.empty())
+        {
+            c.color_index_ = folders_[parent_id].color_index_;
+        }
 
-        nodes.AddNode({component.getName().toStdString(), component.getGlobalId().toStdString()}, ImColor(0.4f, 0.6f, 0.3f, 1.0f),
+        nodes.AddNode({component.getName().toStdString(), component.getGlobalId().toStdString()}, 
+                      color_palette_[c.color_index_],
                       input_ports,
                       output_signals,
                       parent_id);
@@ -308,14 +320,20 @@ void OpenDAQNodeInteractionHandler::RenderFunctionBlockOptions(ImGui::ImGuiNodes
                     output_signals.push_back({signal.getName().toStdString(), signal.getGlobalId().toStdString()});
                 }
 
+                int color_index = parent_id.empty() ? 0 : opendaq_handler_->folders_[parent_id].color_index_;
+
                 nodes->AddNode({fb.getName().toStdString(), fb.getGlobalId().toStdString()},
-                              ImColor(0.3f, 0.5f, 0.8f, 1.0f),
+                              opendaq_handler_->color_palette_[color_index],
                               position,
                               input_ports,
                               output_signals,
                               parent_id);
 
-                opendaq_handler_->folders_[fb.getGlobalId().toStdString()] = {fb, {}};
+                OpenDAQComponent c;
+                c.component_ = fb;
+                c.parent_ = parent_component;
+                c.color_index_ = color_index;
+                opendaq_handler_->folders_[fb.getGlobalId().toStdString()] = c;
             }
         }
 
@@ -357,10 +375,19 @@ void OpenDAQNodeInteractionHandler::RenderDeviceOptions(ImGui::ImGuiNodes* nodes
             if (ImGui::MenuItem((device_connection_name + " (" + device_connection_string + ")").c_str()))
             {
                 const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
-                nodes->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, ImColor(0, 100, 200), position,
+                int color_index = opendaq_handler_->next_color_index_;
+                opendaq_handler_->next_color_index_ = (opendaq_handler_->next_color_index_ + 1) % opendaq_handler_->color_palette_size_;
+                nodes->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
+                               opendaq_handler_->color_palette_[color_index], 
+                               position,
                                {}, {},
                                parent_id);
-                opendaq_handler_->folders_[dev.getGlobalId().toStdString()] = {dev, {}};
+                
+                OpenDAQComponent c;
+                c.component_ = dev;
+                c.parent_ = parent_component;
+                c.color_index_ = color_index;
+                opendaq_handler_->folders_[dev.getGlobalId().toStdString()] = c;
             }
         }
     }
@@ -370,20 +397,38 @@ void OpenDAQNodeInteractionHandler::RenderDeviceOptions(ImGui::ImGuiNodes* nodes
     if (ImGui::IsItemDeactivatedAfterEdit())
     {
         const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
-        nodes->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, ImColor(0, 100, 200), position,
+        int color_index = opendaq_handler_->next_color_index_;
+        opendaq_handler_->next_color_index_ = (opendaq_handler_->next_color_index_ + 1) % opendaq_handler_->color_palette_size_;
+        nodes->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
+                       opendaq_handler_->color_palette_[color_index], 
+                       position,
                        {}, {},
                        parent_id);
-        opendaq_handler_->folders_[dev.getGlobalId().toStdString()] = {dev, {}};
+        
+        OpenDAQComponent c;
+        c.component_ = dev;
+        c.parent_ = parent_component;
+        c.color_index_ = color_index;
+        opendaq_handler_->folders_[dev.getGlobalId().toStdString()] = c;
         ImGui::CloseCurrentPopup();
     }
     ImGui::SameLine();
     if (ImGui::Button("Connect"))
     {
         const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
-        nodes->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, ImColor(0, 100, 200), position,
+        int color_index = opendaq_handler_->next_color_index_;
+        opendaq_handler_->next_color_index_ = (opendaq_handler_->next_color_index_ + 1) % opendaq_handler_->color_palette_size_;
+        nodes->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
+                       opendaq_handler_->color_palette_[color_index], 
+                       position,
                        {}, {},
                        parent_id);
-        opendaq_handler_->folders_[dev.getGlobalId().toStdString()] = {dev, {}};
+        
+        OpenDAQComponent c;
+        c.component_ = dev;
+        c.parent_ = parent_component;
+        c.color_index_ = color_index;
+        opendaq_handler_->folders_[dev.getGlobalId().toStdString()] = c;
         ImGui::CloseCurrentPopup();
     }
 }
