@@ -965,14 +965,17 @@ void ImGuiNodes::ProcessNodes()
 
     ImGui::SetWindowFontScale(scale_);
 
-    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+    if (HAS_ANY_FLAG(state_, ImGuiNodesState_HoveringNode | ImGuiNodesState_HoveringInput | ImGuiNodesState_HoveringOutput | ImGuiNodesState_HoveringAddButton))
     {
-        const ImGuiNodesNode* node = nodes_[node_idx];
-        IM_ASSERT(node);
-        if (node->parent_node_)
+        for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
         {
-            ImVec2 head_offset(0.0f, node->area_name_.GetHeight() * 0.8f);
-            RenderConnection(offset + (node->area_node_.GetTL() + head_offset) * scale_, offset + (node->parent_node_->area_node_.GetTR() + head_offset) * scale_, ImColor(0.0f, 1.0f, 0.0f, 0.05f), 10.0f);
+            const ImGuiNodesNode* node = nodes_[node_idx];
+            IM_ASSERT(node);
+            if (node->parent_node_)
+            {
+                ImVec2 head_offset(0.0f, node->area_name_.GetHeight() * 0.8f);
+                RenderConnection(offset + (node->area_node_.GetTL() + head_offset) * scale_, offset + (node->parent_node_->area_node_.GetTR() + head_offset) * scale_, ImColor(0.0f, 1.0f, 0.0f, 0.05f), 10.0f);
+            }
         }
     }
 
