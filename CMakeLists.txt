@@ -9,20 +9,18 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # opendaq - with cpptrace patch applied on linux
-if (WIN32)
-  FetchContent_Declare(
-    openDAQ
-    GIT_REPOSITORY https://github.com/openDAQ/openDAQ.git
-    GIT_TAG v3.20.4
-  )
-else()
-  FetchContent_Declare(
-    openDAQ
-    GIT_REPOSITORY https://github.com/openDAQ/openDAQ.git
-    GIT_TAG v3.20.4
-    PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/opendaq-cpptrace.patch || echo "opendaq-cpptrace patch failed to apply"
+set(OPENDAQ_PATCH_COMMAND)
+if (NOT WIN32)
+  set(OPENDAQ_PATCH_COMMAND
+    PATCH_COMMAND git apply --check ${CMAKE_CURRENT_SOURCE_DIR}/patches/opendaq-cpptrace.patch 2>/dev/null || git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/opendaq-cpptrace.patch || true
   )
 endif()
+FetchContent_Declare(
+  openDAQ
+  GIT_REPOSITORY https://github.com/openDAQ/openDAQ.git
+  GIT_TAG v3.20.4
+  ${OPENDAQ_PATCH_COMMAND}
+)
 set(OPENDAQ_ENABLE_TESTS OFF CACHE BOOL "")
 set(OPENDAQ_ENABLE_TEST_UTILS OFF CACHE BOOL "")
 set(OPENDAQ_ENABLE_ACCESS_CONTROL OFF CACHE BOOL "")
@@ -36,7 +34,7 @@ FetchContent_Declare(
   imgui
   GIT_REPOSITORY https://github.com/ocornut/imgui.git
   GIT_TAG v1.92.0
-  PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/imgui-32bit-vertices.patch || echo "imgui-32bit-vertices patch failed to apply"
+  PATCH_COMMAND git apply --check ${CMAKE_CURRENT_SOURCE_DIR}/patches/imgui-32bit-vertices.patch 2>/dev/null || git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/imgui-32bit-vertices.patch || true
 )
 FetchContent_MakeAvailable(imgui)
 add_library(imgui STATIC
@@ -57,7 +55,7 @@ FetchContent_Declare(
   implot
   GIT_REPOSITORY https://github.com/epezent/implot.git
   GIT_TAG master
-  PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/implot-locked-axis.patch || echo "implot locked axis patch failed to apply"
+  PATCH_COMMAND git apply --check ${CMAKE_CURRENT_SOURCE_DIR}/patches/implot-locked-axis.patch 2>/dev/null || git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/implot-locked-axis.patch || true
 )
 FetchContent_MakeAvailable(implot)
 add_library(implot STATIC
