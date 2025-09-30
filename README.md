@@ -1,13 +1,14 @@
 ## Building from source
 
 Installed OpenGL dev library is required to build this project.
-Other dependencies (SDL2, imgui, implot, openDAQ) are fetched and built automatically using CMake:
+Other dependencies (SDL2, imgui, implot, imsearch, openDAQ) are fetched and built automatically using CMake:
 
 ```sh
 mkdir build
 cd build
 cmake ..
 make
+./bin/opendaq-gui
 ```
 
 ## Acknowledgements
