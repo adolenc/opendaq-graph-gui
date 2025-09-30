@@ -20,7 +20,7 @@ else()
     openDAQ
     GIT_REPOSITORY https://github.com/openDAQ/openDAQ.git
     GIT_TAG v3.20.4
-    PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/opendaq-cpptrace.patch || echo opendaq-cpptrace patch failed to apply>
+    PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/opendaq-cpptrace.patch || echo "opendaq-cpptrace patch failed to apply"
   )
 endif()
 set(OPENDAQ_ENABLE_TESTS OFF CACHE BOOL "")
@@ -36,6 +36,7 @@ FetchContent_Declare(
   imgui
   GIT_REPOSITORY https://github.com/ocornut/imgui.git
   GIT_TAG v1.92.0
+  PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/imgui-32bit-vertices.patch || echo "imgui-32bit-vertices patch failed to apply"
 )
 FetchContent_MakeAvailable(imgui)
 add_library(imgui STATIC
