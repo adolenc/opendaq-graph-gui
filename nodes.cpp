@@ -252,14 +252,17 @@ void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color,
                          ImGuiNodesUid parent_uid)
 {
     ImVec2 pos(0.0f, 0.0f);
-    if (!parent_uid.empty())
+    if (!batch_add_mode_)
     {
-        if (auto it = nodes_by_uid_.find(parent_uid); it != nodes_by_uid_.end())
+        if (!parent_uid.empty())
         {
-            pos = it->second->area_node_.GetCenter() + ImVec2(200.0f, 0.0f);
+            if (auto it = nodes_by_uid_.find(parent_uid); it != nodes_by_uid_.end())
+            {
+                pos = it->second->area_node_.GetCenter() + ImVec2(200.0f, 0.0f);
+            }
         }
+        pos += ImVec2(0.0f, (float)(nodes_.size() * 20));
     }
-    pos += ImVec2(0.0f, (float)(nodes_.size() * 20));
     AddNode(name, color, pos, inputs, outputs, parent_uid);
 }
 
@@ -1568,6 +1571,71 @@ void ImGuiNodes::ClearAllConnectorSelections()
         for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
             CLEAR_FLAG(node->outputs_[output_idx].state_, ImGuiNodesConnectorStateFlag_Selected);
     }
+}
+
+void ImGuiNodes::BeginBatchAdd()
+{
+    batch_add_mode_ = true;
+}
+
+void ImGuiNodes::EndBatchAdd()
+{
+    batch_add_mode_ = false;
+
+    if (nodes_.empty())
+        return;
+
+    std::unordered_map<ImGuiNodesUid, std::vector<ImGuiNodesNode*>> children_map;
+    std::vector<ImGuiNodesNode*> root_nodes;
+
+    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+    {
+        ImGuiNodesNode* node = nodes_[node_idx];
+        if (node->parent_node_)
+            children_map[node->parent_node_->uid_].push_back(node);
+        else
+            root_nodes.push_back(node);
+    }
+
+    float horizontal_spacing = 250.0f;
+    float vertical_spacing = 20.0f;
+    float start_x = 100.0f;
+
+    auto layout_tree = [&](auto& self, ImGuiNodesNode* node, float x, float y) -> float {
+        std::vector<ImGuiNodesNode*>& children = children_map[node->uid_];
+        
+        if (children.empty())
+        {
+            ImVec2 target_pos(x, y + node->area_node_.GetHeight() * 0.5f);
+            node->TranslateNode(target_pos - node->area_node_.GetCenter());
+            return y + node->area_node_.GetHeight() + vertical_spacing;
+        }
+
+        float child_y = y;
+        float first_child_center_y = 0.0f;
+        float last_child_center_y = 0.0f;
+        
+        for (int i = 0; i < children.size(); ++i)
+        {
+            ImGuiNodesNode* child = children[i];
+            child_y = self(self, child, x + horizontal_spacing, child_y);
+            
+            if (i == 0)
+                first_child_center_y = child->area_node_.GetCenter().y;
+            if (i == children.size() - 1)
+                last_child_center_y = child->area_node_.GetCenter().y;
+        }
+
+        float center_y = (first_child_center_y + last_child_center_y) * 0.5f;
+        ImVec2 target_pos(x, center_y);
+        node->TranslateNode(target_pos - node->area_node_.GetCenter());
+        
+        return child_y;
+    };
+
+    float current_y = 100.0f;
+    for (ImGuiNodesNode* root : root_nodes)
+        current_y = layout_tree(layout_tree, root, start_x, current_y);
 }
 
 #undef IS_SET

@@ -102,7 +102,9 @@ int main(int argc, char** argv)
         static bool initialized = false;
         if (!initialized)
         {
+            nodes_editor.BeginBatchAdd();
             instance.RetrieveTopology(instance.instance_, nodes_editor);
+            nodes_editor.EndBatchAdd();
             nodes_editor.SetWarning(power.getGlobalId().toStdString(), "This is a warning message");
             initialized = true;
         }

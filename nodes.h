@@ -168,6 +168,8 @@ public:
                  const std::vector<ImGuiNodesIdentifier>& inputs,
                  const std::vector<ImGuiNodesIdentifier>& outputs,
                  ImGuiNodesUid parent_uid = "");
+    void BeginBatchAdd();
+    void EndBatchAdd();
     void SetWarning(const ImGuiNodesUid& uid, const std::string& message);
     void SetError(const ImGuiNodesUid& uid, const std::string& message);
     void SetOk(const ImGuiNodesUid& uid);
@@ -191,6 +193,8 @@ private:
 
     ImVector<ImGuiNodesNode*> nodes_;
     std::unordered_map<ImGuiNodesUid, ImGuiNodesNode*> nodes_by_uid_;
+
+    bool batch_add_mode_ = false;
 
     void ProcessInteractions();
     void ProcessNodes();
