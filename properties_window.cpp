@@ -65,7 +65,8 @@ void RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_h
         case daq::ctString:
             {
                 std::string value = property_holder.getPropertyValue(prop_name);
-                ImGui::InputText(prop_name_for_display.c_str(), &value);
+                if (ImGui::InputText(prop_name_for_display.c_str(), &value))
+                    property_holder.setPropertyValue(prop_name, value);
                 break;
             }
         case daq::ctProc:
