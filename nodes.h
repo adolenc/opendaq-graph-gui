@@ -144,6 +144,7 @@ class ImGuiNodesInteractionHandler
 {
 public:
     virtual void OnOutputHover(const ImGuiNodesUid& id) {};
+    virtual void OnInputHover(const ImGuiNodesUid& id) {};
     virtual void OnSelectionChanged(const std::vector<ImGuiNodesUid>& selected_ids) {}
     virtual void OnConnectionCreated(const ImGuiNodesUid& output_id, const ImGuiNodesUid& input_id) {}
     virtual void RenderPopupMenu(ImGuiNodes* nodes, ImVec2 position) {}

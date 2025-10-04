@@ -247,6 +247,29 @@ void OpenDAQNodeInteractionHandler::OnOutputHover(const ImGui::ImGuiNodesUid& id
     }
 }
 
+void OpenDAQNodeInteractionHandler::OnInputHover(const ImGui::ImGuiNodesUid& id)
+{
+    if (id == "")
+    {
+        OnOutputHover("");
+        return;
+    }
+
+    auto it = opendaq_handler_->input_ports_.find(id);
+    if (it == opendaq_handler_->input_ports_.end())
+        return;
+
+    daq::InputPortPtr input_port = it->second.component_.as<daq::IInputPort>();
+    if (!input_port.assigned())
+        return;
+
+    daq::SignalPtr signal = input_port.getSignal();
+    if (!signal.assigned())
+        return;
+
+    OnOutputHover(signal.getGlobalId().toStdString());
+}
+
 void OpenDAQNodeInteractionHandler::OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUid>& selected_ids)
 {
     selected_components_.clear();
