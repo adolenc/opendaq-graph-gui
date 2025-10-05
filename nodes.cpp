@@ -1191,15 +1191,15 @@ void ImGuiNodesInput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, 
 {
     if (state != ImGuiNodesState_Dragging && IS_SET(state_, ImGuiNodesConnectorStateFlag_Hovered) && !IS_SET(state_, ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget))
     {
-        const ImColor color = source_node_ == NULL ? ImColor(0.0f, 0.0f, 1.0f, 0.5f) : ImColor(1.0f, 0.5f, 0.0f, 0.5f);
+        const ImColor color = ImColor(1.0f, 1.0f, 1.0f, 0.3f);
         draw_list->AddRectFilled((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, color);
     }
 
     if (HAS_ANY_FLAG(state_, ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget | ImGuiNodesConnectorStateFlag_Dragging))
-        draw_list->AddRectFilled((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImColor(0.0f, 1.0f, 0.0f, 0.5f));
+        draw_list->AddRectFilled((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 0.3f));
 
     if (IS_SET(state_, ImGuiNodesConnectorStateFlag_Selected))
-        draw_list->AddRect((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 1.0f), 0.0f, 0, 2.0f * scale);
+        draw_list->AddRect((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImColor(0.0f, 0.0f, 0.0f, 0.3f), 0.0f, 0, 2.0f * scale);
 
     bool consider_fill = false;
     consider_fill |= IS_SET(state_, ImGuiNodesConnectorStateFlag_Dragging);
@@ -1250,13 +1250,13 @@ ImGuiNodesOutput::ImGuiNodesOutput(const ImGuiNodesIdentifier& name)
 void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const
 {
     if (state != ImGuiNodesState_Dragging && IS_SET(state_, ImGuiNodesConnectorStateFlag_Hovered) && !IS_SET(state_, ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget))
-        draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(0.0f, 0.0f, 1.0f, 0.5f));
+        draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 0.3f));
 
     if (HAS_ANY_FLAG(state_, ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget | ImGuiNodesConnectorStateFlag_Dragging))
-        draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(0.0f, 1.0f, 0.0f, 0.5f));
+        draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 0.3f));
 
     if (IS_SET(state_, ImGuiNodesConnectorStateFlag_Selected))
-        draw_list->AddRect((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 1.0f), 0.0f, 0, 2.0f * scale);
+        draw_list->AddRect((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 0.3f), 0.0f, 0, 2.0f * scale);
 
     bool consider_fill = false;
     consider_fill |= IS_SET(state_, ImGuiNodesConnectorStateFlag_Dragging);
@@ -1345,14 +1345,8 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
     node_rect.Max *= scale;
     node_rect.Translate(offset);
 
-    float rounding = title_height_ * scale * 0.3f;
-    rounding = 0;
-
-    ImColor head_color = color_, body_color = color_;
-    head_color.Value.x *= 0.6;
-    head_color.Value.y *= 0.6;
-    head_color.Value.z *= 0.6;
-    head_color.Value.w = 1.00f;
+    ImColor head_color = ImColor(0.f, 0.f, 0.f, 0.15f), body_color = color_;
+    body_color.Value.w = 0.9f;		
 
     if (IS_SET(state_, ImGuiNodesNodeStateFlag_Warning))
         head_color = ImColor(0.8f, 0.4f, 0.1f, 1.0f);  // Darker orange warning color
@@ -1360,9 +1354,7 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
     if (IS_SET(state_, ImGuiNodesNodeStateFlag_Error))
         head_color = ImColor(0.8f, 0.1f, 0.1f, 1.0f);  // Red error color
 
-    body_color.Value.w = 0.75f;		
-
-    const ImVec2 outline(4.0f * scale, 4.0f * scale);
+    const ImVec2 outline(3.0f * scale, 3.0f * scale);
 
     const ImDrawFlags rounding_corners_flags = ImDrawFlags_RoundCornersAll;
 
@@ -1374,15 +1366,10 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
             head_color.Value.w = 0.25f;
     }
 
-    draw_list->AddRectFilled(node_rect.Min, node_rect.Max, body_color, rounding, rounding_corners_flags);
+    draw_list->AddRectFilled(node_rect.Min, node_rect.Max, body_color);
 
     const ImVec2 head = node_rect.GetTR() + ImVec2(0.0f, title_height_ * scale);
-
-    if (!IS_SET(state_, ImGuiNodesNodeStateFlag_Collapsed))
-        draw_list->AddLine(ImVec2(node_rect.Min.x, head.y), ImVec2(head.x - 1.0f, head.y), ImColor(0.0f, 0.0f, 0.0f, 0.5f), 2.0f);
-
-    const ImDrawFlags head_corners_flags = IS_SET(state_, ImGuiNodesNodeStateFlag_Collapsed) ? rounding_corners_flags : ImDrawFlags_RoundCornersTop;
-    draw_list->AddRectFilled(node_rect.Min, head, head_color, rounding, head_corners_flags);	
+    draw_list->AddRectFilled(node_rect.Min, head, head_color);	
 
     if (IS_SET(state_, ImGuiNodesNodeStateFlag_Disabled))
     {
@@ -1423,19 +1410,10 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
     ImGui::SetCursorScreenPos((area_name_.Min * scale) + offset);
     ImGui::Text("%s", name_.c_str());
 
-    if (HAS_ANY_FLAG(state_, ImGuiNodesNodeStateFlag_MarkedForSelection | ImGuiNodesNodeStateFlag_Selected))
-    {
-        // Create a subtle highlighted border color based on the node's color
-        ImColor border_color = color_;
-        border_color.Value.x *= 1.3f;  // Slightly brighten
-        border_color.Value.y *= 1.3f;
-        border_color.Value.z *= 1.3f;
-        border_color.Value.w = 0.8f;   // Semi-transparent
-        
-        draw_list->AddRect(node_rect.Min - outline, node_rect.Max + outline, border_color, rounding, rounding_corners_flags, 2.0f * scale);
-    }
+    draw_list->AddRect(node_rect.Min - outline * 0.5f, node_rect.Max + outline * 0.5f, ImColor(0.0f, 0.0f, 0.0f, 1.0f), 0, 0, 3.0f * scale);
 
-    draw_list->AddRect(node_rect.Min - outline * 0.5f, node_rect.Max + outline * 0.5f, ImColor(0.0f, 0.0f, 0.0f, 0.5f), rounding, rounding_corners_flags, 3.0f * scale);
+    if (HAS_ANY_FLAG(state_, ImGuiNodesNodeStateFlag_MarkedForSelection | ImGuiNodesNodeStateFlag_Selected))
+        draw_list->AddRect(node_rect.Min - outline*1.5f, node_rect.Max + outline*1.5f, color_, 0, 0, 2.0f * scale);
 
     if (HAS_ANY_FLAG(state_, ImGuiNodesNodeStateFlag_Hovered | ImGuiNodesNodeStateFlag_Selected))
     {
