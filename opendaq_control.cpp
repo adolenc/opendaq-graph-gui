@@ -245,6 +245,7 @@ void OpenDAQNodeInteractionHandler::OnOutputHover(const ImGui::ImGuiNodesUid& id
                 ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.3f);
                 ImPlot::PlotShaded("Uncertain Data", plot_times.data(), plot_values_min.data(), plot_values_max.data(), (int)points_in_plot_buffer, 0, pos_in_plot_buffer);
                 ImPlot::PlotLine("", plot_times.data(), plot_values_avg.data(), (int)points_in_plot_buffer, 0, pos_in_plot_buffer);
+                ImPlot::PopStyleVar();
             }
             else
             {
