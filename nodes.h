@@ -170,6 +170,7 @@ public:
                  ImGuiNodesUid parent_uid = "");
     void BeginBatchAdd();
     void EndBatchAdd();
+    void AddConnection(const ImGuiNodesUid& output_uid, const ImGuiNodesUid& input_uid);
     void SetWarning(const ImGuiNodesUid& uid, const std::string& message);
     void SetError(const ImGuiNodesUid& uid, const std::string& message);
     void SetOk(const ImGuiNodesUid& uid);
@@ -191,8 +192,16 @@ private:
 
     ImGuiNodesInteractionHandler* interaction_handler_ = nullptr;
 
+    struct OutputWithOwner
+    {
+        ImGuiNodesOutput* output;
+        ImGuiNodesNode* node;
+    };
+
     ImVector<ImGuiNodesNode*> nodes_;
     std::unordered_map<ImGuiNodesUid, ImGuiNodesNode*> nodes_by_uid_;
+    std::unordered_map<ImGuiNodesUid, ImGuiNodesInput*> inputs_by_uid_;
+    std::unordered_map<ImGuiNodesUid, OutputWithOwner> outputs_by_uid_;
 
     bool batch_add_mode_ = false;
 

@@ -54,6 +54,7 @@ public:
     void OnEmptySpaceClick(ImVec2 position) override;
     void RenderNestedNodePopup(ImGui::ImGuiNodes* nodes);
     void ShowStartupPopup(ImGui::ImGuiNodes* nodes);
+    void RetrieveConnections(ImGui::ImGuiNodes& nodes);
 
     void RenderFunctionBlockOptions(ImGui::ImGuiNodes* nodes, daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position);
     void RenderDeviceOptions(ImGui::ImGuiNodes* nodes, daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position);

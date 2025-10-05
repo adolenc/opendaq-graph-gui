@@ -308,6 +308,12 @@ void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2
 
     nodes_.push_back(node);
     nodes_by_uid_[node->uid_] = node;
+    
+    for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+        inputs_by_uid_[node->inputs_[input_idx].uid_] = &node->inputs_[input_idx];
+    
+    for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+        outputs_by_uid_[node->outputs_[output_idx].uid_] = {&node->outputs_[output_idx], node};
 }
 
 bool ImGuiNodes::SortSelectedNodesOrder()
@@ -960,6 +966,12 @@ void ImGuiNodes::ProcessInteractions()
                     IM_ASSERT(output.connections_count_ == 0);
                 }
     
+                nodes_by_uid_.erase(node->uid_);
+                for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+                    inputs_by_uid_.erase(node->inputs_[input_idx].uid_);
+                for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+                    outputs_by_uid_.erase(node->outputs_[output_idx].uid_);
+                
                 delete node;
             }
             else
@@ -1556,6 +1568,26 @@ void ImGuiNodes::SetOk(const ImGuiNodesUid& uid)
         CLEAR_FLAG(node->state_, ImGuiNodesNodeStateFlag_Error);
         node->warning_message_.clear();
         node->error_message_.clear();
+    }
+}
+
+void ImGuiNodes::AddConnection(const ImGuiNodesUid& output_uid, const ImGuiNodesUid& input_uid)
+{
+    auto input_it = inputs_by_uid_.find(input_uid);
+    auto output_it = outputs_by_uid_.find(output_uid);
+    
+    if (input_it != inputs_by_uid_.end() && output_it != outputs_by_uid_.end())
+    {
+        ImGuiNodesInput* input = input_it->second;
+        ImGuiNodesOutput* output = output_it->second.output;
+        ImGuiNodesNode* source_node = output_it->second.node;
+        
+        if (input->source_output_)
+            input->source_output_->connections_count_--;
+        
+        input->source_node_ = source_node;
+        input->source_output_ = output;
+        output->connections_count_++;
     }
 }
 

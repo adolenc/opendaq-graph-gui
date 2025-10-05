@@ -94,6 +94,20 @@ OpenDAQNodeInteractionHandler::OpenDAQNodeInteractionHandler(OpenDAQHandler* ope
 {
 };
 
+void OpenDAQNodeInteractionHandler::RetrieveConnections(ImGui::ImGuiNodes& nodes)
+{
+    for (const auto& [input_uid, input_component] : opendaq_handler_->input_ports_)
+    {
+        daq::InputPortPtr input_port = input_component.component_.as<daq::IInputPort>();
+        if (input_port.assigned() && input_port.getSignal().assigned())
+        {
+            daq::SignalPtr connected_signal = input_port.getSignal();
+            std::string signal_uid = connected_signal.getGlobalId().toStdString();
+            nodes.AddConnection(signal_uid, input_uid);
+        }
+    }
+}
+
 void OpenDAQNodeInteractionHandler::OnConnectionCreated(const ImGui::ImGuiNodesUid& output_id, const ImGui::ImGuiNodesUid& input_id)
 {
     daq::SignalPtr signal;

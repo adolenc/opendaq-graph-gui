@@ -105,6 +105,7 @@ int main(int argc, char** argv)
             nodes_editor.BeginBatchAdd();
             instance.RetrieveTopology(instance.instance_, nodes_editor);
             nodes_editor.EndBatchAdd();
+            node_interaction_handler.RetrieveConnections(nodes_editor);
             nodes_editor.SetWarning(power.getGlobalId().toStdString(), "This is a warning message");
             initialized = true;
         }
