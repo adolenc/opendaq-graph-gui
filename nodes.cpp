@@ -809,13 +809,8 @@ void ImGuiNodes::ProcessInteractions()
             {
                 IM_ASSERT(hovered_node);
                 IM_ASSERT(active_node_);
-                active_input_->source_node_ = state_ == ImGuiNodesState_DraggingInput ? hovered_node : active_node_;
-
-                if (active_input_->source_output_)
-                    active_input_->source_output_->connections_count_--;
-
-                active_input_->source_output_ = active_output_;
-                active_output_->connections_count_++;
+                
+                AddConnection(active_output_->uid_, active_input_->uid_);
                 if (interaction_handler_)
                     interaction_handler_->OnConnectionCreated(active_output_->uid_, active_input_->uid_);
             }
