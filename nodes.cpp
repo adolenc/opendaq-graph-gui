@@ -515,10 +515,7 @@ void ImGuiNodes::ProcessInteractions()
             {
                 if (active_input_->source_node_)
                 {
-                    active_input_->source_output_->connections_count_--;
-                    active_input_->source_output_ = NULL;
-                    active_input_->source_node_ = NULL;
-
+                    RemoveConnection(active_input_->uid_);
                     state_ = ImGuiNodesState_DraggingInput;
                 }
 
@@ -661,9 +658,7 @@ void ImGuiNodes::ProcessInteractions()
                     active_node_ = active_input_->source_node_;
                     active_output_ = active_input_->source_output_;
 
-                    active_input_->source_output_->connections_count_--;
-                    active_input_->source_output_ = NULL;
-                    active_input_->source_node_ = NULL;
+                    RemoveConnection(active_input_->uid_);
 
                     state_ = ImGuiNodesState_DraggingOutput;
                     return;
@@ -893,13 +888,7 @@ void ImGuiNodes::ProcessInteractions()
             {
                 ImGuiNodesInput& input = node->inputs_[input_idx];
                 if (IS_SET(input.state_, ImGuiNodesConnectorStateFlag_Selected))
-                {
-                    if (input.source_output_)
-                        input.source_output_->connections_count_--;
-                    
-                    input.source_node_ = NULL;
-                    input.source_output_ = NULL;
-                }
+                    RemoveConnection(input.uid_);
                 CLEAR_FLAG(input.state_, ImGuiNodesConnectorStateFlag_Selected);
             }
             
@@ -933,26 +922,15 @@ void ImGuiNodes::ProcessInteractions()
                         ImGuiNodesInput& input = sweep->inputs_[input_idx];
 
                         if (node == input.source_node_)
-                        {
-                            if (input.source_output_)
-                                input.source_output_->connections_count_--;
-
-                            input.source_node_ = NULL;
-                            input.source_output_ = NULL;
-                        }
+                            RemoveConnection(input.uid_);
                     }
                 }
 
                 for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
                 {
                     ImGuiNodesInput& input = node->inputs_[input_idx];
-                    
-                    if (input.source_output_)
-                        input.source_output_->connections_count_--;
-                    
+                    RemoveConnection(input.uid_);
                     input.name_.clear();
-                    input.source_node_ = NULL;
-                    input.source_output_ = NULL;
                 }
 
                 for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
@@ -1583,6 +1561,22 @@ void ImGuiNodes::AddConnection(const ImGuiNodesUid& output_uid, const ImGuiNodes
         input->source_node_ = source_node;
         input->source_output_ = output;
         output->connections_count_++;
+    }
+}
+
+void ImGuiNodes::RemoveConnection(const ImGuiNodesUid& input_uid)
+{
+    auto input_it = inputs_by_uid_.find(input_uid);
+    
+    if (input_it != inputs_by_uid_.end())
+    {
+        ImGuiNodesInput* input = input_it->second;
+        
+        if (input->source_output_)
+            input->source_output_->connections_count_--;
+        
+        input->source_node_ = NULL;
+        input->source_output_ = NULL;
     }
 }
 

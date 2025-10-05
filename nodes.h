@@ -171,6 +171,7 @@ public:
     void BeginBatchAdd();
     void EndBatchAdd();
     void AddConnection(const ImGuiNodesUid& output_uid, const ImGuiNodesUid& input_uid);
+    void RemoveConnection(const ImGuiNodesUid& input_uid);
     void SetWarning(const ImGuiNodesUid& uid, const std::string& message);
     void SetError(const ImGuiNodesUid& uid, const std::string& message);
     void SetOk(const ImGuiNodesUid& uid);
