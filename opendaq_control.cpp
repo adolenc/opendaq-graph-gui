@@ -127,7 +127,7 @@ void OpenDAQNodeInteractionHandler::OnOutputHover(const ImGui::ImGuiNodesUid& id
     static daq::RatioPtr tick_resolution;
     static std::string last_id{""};
 
-    static size_t MAX_PLOT_POINTS = 1000;
+    static size_t MAX_PLOT_POINTS = 900;
     static std::vector<double> plot_values_avg(MAX_PLOT_POINTS);
     static std::vector<double> plot_values_min(MAX_PLOT_POINTS);
     static std::vector<double> plot_values_max(MAX_PLOT_POINTS);
@@ -136,6 +136,7 @@ void OpenDAQNodeInteractionHandler::OnOutputHover(const ImGui::ImGuiNodesUid& id
     static size_t pos_in_plot_buffer = 0;
     static size_t points_in_plot_buffer = 0;
     static float step = 1.0f;
+    static float seconds_shown = 2.0f;
 
     if (id == "")
     {
@@ -178,7 +179,7 @@ void OpenDAQNodeInteractionHandler::OnOutputHover(const ImGui::ImGuiNodesUid& id
         tick_resolution = has_domain_signal ? signal.getDomainSignal().getDescriptor().getTickResolution() : signal.getDescriptor().getTickResolution();
         float samples_per_second;
         try { samples_per_second = std::max<daq::Int>(1, daq::reader::getSampleRate(has_domain_signal ? signal.getDomainSignal().getDescriptor() : signal.getDescriptor())); } catch (...) { samples_per_second = 1; }
-        step = std::ceil(std::max(1.0f, (float)samples_per_second / (float)MAX_PLOT_POINTS));
+        step = std::floor(std::max(1.0f, (float)samples_per_second * seconds_shown / (float)MAX_PLOT_POINTS));
         
         reader = daq::StreamReaderBuilder()
             .setSignal(signal)
@@ -190,7 +191,7 @@ void OpenDAQNodeInteractionHandler::OnOutputHover(const ImGui::ImGuiNodesUid& id
         start_time = -1;
     }
 
-    static size_t READ_BUFFER_SIZE = 1024;
+    static size_t READ_BUFFER_SIZE = 1024 * 10;
     static std::vector<double> read_values(READ_BUFFER_SIZE);
     static std::vector<int64_t> read_times(READ_BUFFER_SIZE);
     if (reader != nullptr && reader.assigned())
@@ -241,7 +242,7 @@ void OpenDAQNodeInteractionHandler::OnOutputHover(const ImGui::ImGuiNodesUid& id
             if (has_domain_signal)
             {
                 ImPlot::SetupAxisLimits(ImAxis_Y1, -5, 5);
-                ImPlot::SetupAxisLimits(ImAxis_X1, end_time - 1.0f, end_time, ImGuiCond_Always);
+                ImPlot::SetupAxisLimits(ImAxis_X1, end_time - seconds_shown, end_time, ImGuiCond_Always);
                 ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.3f);
                 ImPlot::PlotShaded("Uncertain Data", plot_times.data(), plot_values_min.data(), plot_values_max.data(), (int)points_in_plot_buffer, 0, pos_in_plot_buffer);
                 ImPlot::PlotLine("", plot_times.data(), plot_values_avg.data(), (int)points_in_plot_buffer, 0, pos_in_plot_buffer);
