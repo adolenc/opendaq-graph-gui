@@ -2,6 +2,7 @@
 #include "imgui_stdlib.h"
 #include "implot.h"
 #include "imsearch.h"
+#include "signal.h"
 
 
 OpenDAQNodeEditor::OpenDAQNodeEditor()
@@ -118,129 +119,43 @@ void OpenDAQNodeEditor::OnConnectionCreated(const ImGui::ImGuiNodesUid& output_i
 
 void OpenDAQNodeEditor::OnOutputHover(const ImGui::ImGuiNodesUid& id)
 {
-    static daq::StreamReaderPtr reader;
-    static daq::RatioPtr tick_resolution;
     static std::string last_id{""};
-
-    static size_t MAX_PLOT_POINTS = 900;
-    static std::vector<double> plot_values_avg(MAX_PLOT_POINTS);
-    static std::vector<double> plot_values_min(MAX_PLOT_POINTS);
-    static std::vector<double> plot_values_max(MAX_PLOT_POINTS);
-    static std::vector<double> plot_times(MAX_PLOT_POINTS);
-    static double end_time = 0;
-    static size_t pos_in_plot_buffer = 0;
-    static size_t points_in_plot_buffer = 0;
-    static float step = 1.0f;
-    static float seconds_shown = 2.0f;
+    static OpenDAQSignal signal_preview;
 
     if (id == "")
     {
         // user stopped hovering
-        reader = nullptr;
+        signal_preview = OpenDAQSignal();
         last_id = "";
-        end_time = 0;
-        pos_in_plot_buffer = 0;
-        points_in_plot_buffer = 0;
         return;
     }
 
-    static std::string signal_name{""};
-    static std::string signal_unit{""};
-    static bool has_domain_signal;
-    static int64_t start_time{-1};
-    
     if (last_id != id)
     {
         // reinitialization with a new signal
         last_id = id;
         daq::SignalPtr signal = signals_[id].component_.as<daq::ISignal>();
-
-        signal_name = signal.getName().toStdString();
-        if (signal.getDescriptor().assigned() && signal.getDescriptor().getUnit().assigned() && signal.getDescriptor().getUnit().getSymbol().assigned())
-            signal_unit = signal.getDescriptor().getUnit().getSymbol().toStdString();
-        else
-            signal_unit = "";
-
-        if (!signal.getDescriptor().assigned())
-        {
-            reader = nullptr;
-            end_time = 0;
-            pos_in_plot_buffer = 0;
-            points_in_plot_buffer = 0;
-            return;
-        }
-        
-        has_domain_signal = signal.getDomainSignal().assigned();
-        tick_resolution = has_domain_signal ? signal.getDomainSignal().getDescriptor().getTickResolution() : signal.getDescriptor().getTickResolution();
-        float samples_per_second;
-        try { samples_per_second = std::max<daq::Int>(1, daq::reader::getSampleRate(has_domain_signal ? signal.getDomainSignal().getDescriptor() : signal.getDescriptor())); } catch (...) { samples_per_second = 1; }
-        step = std::floor(std::max(1.0f, (float)samples_per_second * seconds_shown / (float)MAX_PLOT_POINTS));
-        
-        reader = daq::StreamReaderBuilder()
-            .setSignal(signal)
-            .setValueReadType(has_domain_signal ? daq::SampleType::Float64 : daq::SampleType::Int64)
-            .setDomainReadType(daq::SampleType::Int64)
-            .setSkipEvents(true)
-            .build();
-        
-        start_time = -1;
+        signal_preview = OpenDAQSignal(signal, 2.0, 1000);
     }
 
-    static size_t READ_BUFFER_SIZE = 1024 * 10;
-    static std::vector<double> read_values(READ_BUFFER_SIZE);
-    static std::vector<int64_t> read_times(READ_BUFFER_SIZE);
-    if (reader != nullptr && reader.assigned())
-    {
-        while (true)
-        {
-            daq::SizeT read_count = READ_BUFFER_SIZE;
-            if (has_domain_signal)
-                reader.readWithDomain(read_values.data(), read_times.data(), &read_count);
-            else
-                reader.read(read_values.data(), &read_count);
-            if (read_count == 0)
-                break;
-            
-            if (start_time == -1)
-                start_time = read_times[0];
-
-            for (size_t i = 0, read_pos = 0; i + step < read_count; i += step)
-            {
-                plot_times[pos_in_plot_buffer] = (read_times[read_pos] - start_time) * tick_resolution.getNumerator() / (double)tick_resolution.getDenominator();
-                plot_values_avg[pos_in_plot_buffer] = 0;
-                plot_values_min[pos_in_plot_buffer] = 1e30;
-                plot_values_max[pos_in_plot_buffer] = -1e30;
-                for (size_t j = 0; j < step; ++j, ++read_pos)
-                {
-                    plot_values_avg[pos_in_plot_buffer] += read_values[read_pos];
-                    plot_values_min[pos_in_plot_buffer] = std::min(read_values[read_pos], plot_values_min[pos_in_plot_buffer]);
-                    plot_values_max[pos_in_plot_buffer] = std::max(read_values[read_pos], plot_values_max[pos_in_plot_buffer]);
-                }
-                plot_values_avg[pos_in_plot_buffer] = plot_values_avg[pos_in_plot_buffer] / step;
-
-                end_time = plot_times[pos_in_plot_buffer];
-                pos_in_plot_buffer += 1; if (pos_in_plot_buffer >= MAX_PLOT_POINTS) pos_in_plot_buffer = 0;
-                points_in_plot_buffer = std::min(points_in_plot_buffer + 1, MAX_PLOT_POINTS);
-            }
-        }
-    }
+    signal_preview.Update();
 
     if (ImGui::BeginTooltip())
     {
-        ImGui::Text("%s [%s]", signal_name.c_str(), signal_unit.c_str());
+        ImGui::Text("%s [%s]", signal_preview.signal_name_.c_str(), signal_preview.signal_unit_.c_str());
         
         static ImPlotAxisFlags flags = ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_ShowEdgeLabels;
         if (ImPlot::BeginPlot("##SignalPreview", ImVec2(800,300), ImPlotFlags_NoLegend))
         {
             ImPlot::SetupAxes(nullptr, nullptr, flags, flags);
             
-            if (has_domain_signal)
+            if (signal_preview.has_domain_signal_)
             {
                 ImPlot::SetupAxisLimits(ImAxis_Y1, -5, 5);
-                ImPlot::SetupAxisLimits(ImAxis_X1, end_time - seconds_shown, end_time, ImGuiCond_Always);
+                ImPlot::SetupAxisLimits(ImAxis_X1, signal_preview.end_time_seconds_ - 2.0, signal_preview.end_time_seconds_, ImGuiCond_Always);
                 ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.3f);
-                ImPlot::PlotShaded("Uncertain Data", plot_times.data(), plot_values_min.data(), plot_values_max.data(), (int)points_in_plot_buffer, 0, pos_in_plot_buffer);
-                ImPlot::PlotLine("", plot_times.data(), plot_values_avg.data(), (int)points_in_plot_buffer, 0, pos_in_plot_buffer);
+                ImPlot::PlotShaded("Uncertain Data", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_min_.data(), signal_preview.plot_values_max_.data(), (int)signal_preview.points_in_plot_buffer_, 0, signal_preview.pos_in_plot_buffer_);
+                ImPlot::PlotLine("", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_avg_.data(), (int)signal_preview.points_in_plot_buffer_, 0, signal_preview.pos_in_plot_buffer_);
                 ImPlot::PopStyleVar();
             }
             else
@@ -250,7 +165,7 @@ void OpenDAQNodeEditor::OnOutputHover(const ImGui::ImGuiNodesUid& id)
                 ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
                 ImPlot::SetupAxis(ImAxis_Y1, "", ImPlotAxisFlags_AutoFit);
                 ImPlot::SetupAxisTicks(ImAxis_Y1, dummy_ticks, 1, dummy_labels, false);
-                ImPlot::PlotLine("", plot_times.data(), plot_values_avg.data(), (int)points_in_plot_buffer);
+                ImPlot::PlotLine("", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_avg_.data(), (int)signal_preview.points_in_plot_buffer_);
             }
             ImPlot::EndPlot();
         }
