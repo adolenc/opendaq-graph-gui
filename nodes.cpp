@@ -19,6 +19,46 @@ static bool OtherImGuiWindowIsBlockingInteraction()
 
 unsigned int ImGuiNodesIdentifier::id_counter_ = 0;
 
+ImVec2 ImGuiNodes::UpdateEdgeScrolling()
+{
+    const ImGuiIO& io = ImGui::GetIO();
+
+    if (io.MouseDragMaxDistanceSqr[0] <= 25.0f * 25.0f)
+        return ImVec2(0.0f, 0.0f);
+
+    const float edge_zone = 80.0f;
+    const float max_scroll_speed = 20.0f;
+
+    ImVec2 canvas_min = nodes_imgui_window_pos_;
+    ImVec2 canvas_max = nodes_imgui_window_pos_ + nodes_imgui_window_size_;
+
+    ImVec2 scroll_delta(0.0f, 0.0f);
+    if (mouse_.x < canvas_min.x + edge_zone)
+    {
+        float t = std::clamp((canvas_min.x + edge_zone - mouse_.x) / edge_zone, 0.0f, 1.0f);
+        scroll_delta.x = t * max_scroll_speed;
+    }
+    else if (mouse_.x > canvas_max.x - edge_zone)
+    {
+        float t = std::clamp((mouse_.x - (canvas_max.x - edge_zone)) / edge_zone, 0.0f, 1.0f);
+        scroll_delta.x = -t * max_scroll_speed;
+    }
+
+    if (mouse_.y < canvas_min.y + edge_zone)
+    {
+        float t = std::clamp((canvas_min.y + edge_zone - mouse_.y) / edge_zone, 0.0f, 1.0f);
+        scroll_delta.y = t * max_scroll_speed;
+    }
+    else if (mouse_.y > canvas_max.y - edge_zone)
+    {
+        float t = std::clamp((mouse_.y - (canvas_max.y - edge_zone)) / edge_zone, 0.0f, 1.0f);
+        scroll_delta.y = -t * max_scroll_speed;
+    }
+
+    scroll_ += scroll_delta;
+    return scroll_delta;
+}
+
 void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
 {
     const ImGuiIO& io = ImGui::GetIO();
@@ -665,11 +705,13 @@ void ImGuiNodes::ProcessInteractions()
                     return;
                 }
 
+                ImVec2 edge_scroll_delta = UpdateEdgeScrolling();
+                ImVec2 total_delta = (io.MouseDelta - edge_scroll_delta) / scale_;
                 if (!IS_SET(active_node_->state_, ImGuiNodesNodeStateFlag_Selected))
-                    active_node_->TranslateNode(io.MouseDelta / scale_, false);
+                    active_node_->TranslateNode(total_delta, false);
                 else
                     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
-                        nodes_[node_idx]->TranslateNode(io.MouseDelta / scale_, true);
+                        nodes_[node_idx]->TranslateNode(total_delta, true);
 
                 return;
             }
@@ -692,37 +734,7 @@ void ImGuiNodes::ProcessInteractions()
                     active_dragging_connection_ = ImVec4(p4.x, p4.y, p1.x, p1.y);
                 }
 
-                if (io.MouseDragMaxDistanceSqr[0] > 25.0f * 25.0f)
-                {
-                    const float edge_zone = 80.0f;
-                    const float max_scroll_speed = 20.0f;
-
-                    ImVec2 canvas_min = nodes_imgui_window_pos_;
-                    ImVec2 canvas_max = nodes_imgui_window_pos_ + nodes_imgui_window_size_;
-
-                    if (mouse_.x < canvas_min.x + edge_zone)
-                    {
-                        float t = std::clamp((canvas_min.x + edge_zone - mouse_.x) / edge_zone, 0.0f, 1.0f);
-                        scroll_ += ImVec2(t * max_scroll_speed, 0.0f);
-                    }
-                    else if (mouse_.x > canvas_max.x - edge_zone)
-                    {
-                        float t = std::clamp((mouse_.x - (canvas_max.x - edge_zone)) / edge_zone, 0.0f, 1.0f);
-                        scroll_ += ImVec2(-t * max_scroll_speed, 0.0f);
-                    }
-
-                    if (mouse_.y < canvas_min.y + edge_zone)
-                    {
-                        float t = std::clamp((canvas_min.y + edge_zone - mouse_.y) / edge_zone, 0.0f, 1.0f);
-                        scroll_ += ImVec2(0.0f, t * max_scroll_speed);
-                    }
-                    else if (mouse_.y > canvas_max.y - edge_zone)
-                    {
-                        float t = std::clamp((mouse_.y - (canvas_max.y - edge_zone)) / edge_zone, 0.0f, 1.0f);
-                        scroll_ += ImVec2(0.0f, -t * max_scroll_speed);
-                    }
-                }
-
+                UpdateEdgeScrolling();
                 return;
             }
 

@@ -213,6 +213,7 @@ private:
     void RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color, float thickness = 1.5f);
     inline bool SortSelectedNodesOrder();
     void ClearAllConnectorSelections();
+    ImVec2 UpdateEdgeScrolling();
 };
 
 }
