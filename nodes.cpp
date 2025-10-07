@@ -1,4 +1,5 @@
 #include "nodes.h"
+#include <algorithm>
 
 using namespace ImGui;
 
@@ -674,22 +675,54 @@ void ImGuiNodes::ProcessInteractions()
             }
 
             case ImGuiNodesState_DraggingInput:
-            {
-                ImVec2 offset = nodes_imgui_window_pos_ + scroll_;
-                ImVec2 p1 = offset + (active_input_->pos_ * scale_);
-                ImVec2 p4 = active_output_ ? (offset + (active_output_->pos_ * scale_)) : mouse_;
-
-                active_dragging_connection_ = ImVec4(p1.x, p1.y, p4.x, p4.y);
-                return;
-            }
-
             case ImGuiNodesState_DraggingOutput:
             {
                 ImVec2 offset = nodes_imgui_window_pos_ + scroll_;
-                ImVec2 p1 = offset + (active_output_->pos_ * scale_);
-                ImVec2 p4 = active_input_ ? (offset + (active_input_->pos_ * scale_)) : mouse_;
 
-                active_dragging_connection_ = ImVec4(p4.x, p4.y, p1.x, p1.y);
+                if (state_ == ImGuiNodesState_DraggingInput)
+                {
+                    ImVec2 p1 = offset + (active_input_->pos_ * scale_);
+                    ImVec2 p4 = active_output_ ? (offset + (active_output_->pos_ * scale_)) : mouse_;
+                    active_dragging_connection_ = ImVec4(p1.x, p1.y, p4.x, p4.y);
+                }
+                else // state_ == ImGuiNodesState_DraggingOutput
+                {
+                    ImVec2 p1 = offset + (active_output_->pos_ * scale_);
+                    ImVec2 p4 = active_input_ ? (offset + (active_input_->pos_ * scale_)) : mouse_;
+                    active_dragging_connection_ = ImVec4(p4.x, p4.y, p1.x, p1.y);
+                }
+
+                if (io.MouseDragMaxDistanceSqr[0] > 25.0f * 25.0f)
+                {
+                    const float edge_zone = 80.0f;
+                    const float max_scroll_speed = 20.0f;
+
+                    ImVec2 canvas_min = nodes_imgui_window_pos_;
+                    ImVec2 canvas_max = nodes_imgui_window_pos_ + nodes_imgui_window_size_;
+
+                    if (mouse_.x < canvas_min.x + edge_zone)
+                    {
+                        float t = std::clamp((canvas_min.x + edge_zone - mouse_.x) / edge_zone, 0.0f, 1.0f);
+                        scroll_ += ImVec2(t * max_scroll_speed, 0.0f);
+                    }
+                    else if (mouse_.x > canvas_max.x - edge_zone)
+                    {
+                        float t = std::clamp((mouse_.x - (canvas_max.x - edge_zone)) / edge_zone, 0.0f, 1.0f);
+                        scroll_ += ImVec2(-t * max_scroll_speed, 0.0f);
+                    }
+
+                    if (mouse_.y < canvas_min.y + edge_zone)
+                    {
+                        float t = std::clamp((canvas_min.y + edge_zone - mouse_.y) / edge_zone, 0.0f, 1.0f);
+                        scroll_ += ImVec2(0.0f, t * max_scroll_speed);
+                    }
+                    else if (mouse_.y > canvas_max.y - edge_zone)
+                    {
+                        float t = std::clamp((mouse_.y - (canvas_max.y - edge_zone)) / edge_zone, 0.0f, 1.0f);
+                        scroll_ += ImVec2(0.0f, -t * max_scroll_speed);
+                    }
+                }
+
                 return;
             }
 
