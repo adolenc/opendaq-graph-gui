@@ -29,16 +29,18 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    OpenDAQHandler instance;
-    daq::DevicePtr dev = instance.instance_.addDevice(instance.instance_.getAvailableDevices()[0].getConnectionString());
-    auto stat = instance.instance_.addFunctionBlock("RefFBModuleStatistics");
-    auto power = instance.instance_.addFunctionBlock("RefFBModulePower");
+    OpenDAQNodeEditor opendaq_editor;
+    daq::DevicePtr dev = opendaq_editor.instance_.addDevice(opendaq_editor.instance_.getAvailableDevices()[0].getConnectionString());
+    auto stat = opendaq_editor.instance_.addFunctionBlock("RefFBModuleStatistics");
+    auto power = opendaq_editor.instance_.addFunctionBlock("RefFBModulePower");
+    auto a = dev.addFunctionBlock("RefFBModuleStatistics");
+    a.addFunctionBlock("RefFBModuleTrigger");
+    dev.addFunctionBlock("RefFBModulePower");
     stat.getInputPorts()[0].connect(power.getSignals()[0]);
     auto power2 = dev.addFunctionBlock("RefFBModulePower");
     power2.getInputPorts()[0].connect(stat.getSignals()[0]);
 
-    OpenDAQNodeInteractionHandler node_interaction_handler(&instance);
-    ImGui::ImGuiNodes nodes_editor(&node_interaction_handler);
+    ImGui::ImGuiNodes nodes_editor(&opendaq_editor);
 
     const char* glsl_version = "#version 130";
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
@@ -103,16 +105,16 @@ int main(int argc, char** argv)
         if (!initialized)
         {
             nodes_editor.BeginBatchAdd();
-            instance.RetrieveTopology(instance.instance_, nodes_editor);
+            opendaq_editor.RetrieveTopology(opendaq_editor.instance_, nodes_editor);
             nodes_editor.EndBatchAdd();
-            node_interaction_handler.RetrieveConnections(nodes_editor);
+            opendaq_editor.RetrieveConnections(nodes_editor);
             nodes_editor.SetWarning(power.getGlobalId().toStdString(), "This is a warning message");
             initialized = true;
         }
 
-        DrawPropertiesWindow(node_interaction_handler.selected_components_);
+        DrawPropertiesWindow(opendaq_editor.selected_components_);
         if (false)
-            node_interaction_handler.ShowStartupPopup(&nodes_editor);
+            opendaq_editor.ShowStartupPopup(&nodes_editor);
         ImGui::ShowDemoWindow();
 
 #ifdef IMGUI_HAS_VIEWPORT
@@ -128,7 +130,7 @@ int main(int argc, char** argv)
         if (ImGui::Begin("Node Editor", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus))
         {
             nodes_editor.Update();
-            node_interaction_handler.RenderNestedNodePopup(&nodes_editor);
+            opendaq_editor.RenderNestedNodePopup(&nodes_editor);
         }
         ImGui::End();
         ImGui::PopStyleVar(1);

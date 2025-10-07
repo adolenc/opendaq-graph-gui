@@ -4,12 +4,12 @@
 #include "imsearch.h"
 
 
-OpenDAQHandler::OpenDAQHandler()
+OpenDAQNodeEditor::OpenDAQNodeEditor()
     : instance_(daq::Instance("."))
 {
 }
 
-void OpenDAQHandler::RetrieveTopology(daq::ComponentPtr component, ImGui::ImGuiNodes& nodes, std::string parent_id)
+void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, ImGui::ImGuiNodes& nodes, std::string parent_id)
 {
     if (component == nullptr)
         return;
@@ -89,14 +89,9 @@ void OpenDAQHandler::RetrieveTopology(daq::ComponentPtr component, ImGui::ImGuiN
     }
 }
 
-OpenDAQNodeInteractionHandler::OpenDAQNodeInteractionHandler(OpenDAQHandler* opendaq_handler)
-    : opendaq_handler_(opendaq_handler)
+void OpenDAQNodeEditor::RetrieveConnections(ImGui::ImGuiNodes& nodes)
 {
-};
-
-void OpenDAQNodeInteractionHandler::RetrieveConnections(ImGui::ImGuiNodes& nodes)
-{
-    for (const auto& [input_uid, input_component] : opendaq_handler_->input_ports_)
+    for (const auto& [input_uid, input_component] : input_ports_)
     {
         daq::InputPortPtr input_port = input_component.component_.as<daq::IInputPort>();
         if (input_port.assigned() && input_port.getSignal().assigned())
@@ -108,20 +103,20 @@ void OpenDAQNodeInteractionHandler::RetrieveConnections(ImGui::ImGuiNodes& nodes
     }
 }
 
-void OpenDAQNodeInteractionHandler::OnConnectionCreated(const ImGui::ImGuiNodesUid& output_id, const ImGui::ImGuiNodesUid& input_id)
+void OpenDAQNodeEditor::OnConnectionCreated(const ImGui::ImGuiNodesUid& output_id, const ImGui::ImGuiNodesUid& input_id)
 {
     daq::SignalPtr signal;
     daq::InputPortPtr input_port;
-    if (auto it = opendaq_handler_->signals_.find(output_id); it != opendaq_handler_->signals_.end())
+    if (auto it = signals_.find(output_id); it != signals_.end())
         signal = it->second.component_.as<daq::ISignal>();
-    if (auto it = opendaq_handler_->input_ports_.find(input_id); it != opendaq_handler_->input_ports_.end())
+    if (auto it = input_ports_.find(input_id); it != input_ports_.end())
         input_port = it->second.component_.as<daq::IInputPort>();
 
     if (signal.assigned() && input_port.assigned())
         input_port.connect(signal);
 }
 
-void OpenDAQNodeInteractionHandler::OnOutputHover(const ImGui::ImGuiNodesUid& id)
+void OpenDAQNodeEditor::OnOutputHover(const ImGui::ImGuiNodesUid& id)
 {
     static daq::StreamReaderPtr reader;
     static daq::RatioPtr tick_resolution;
@@ -158,7 +153,7 @@ void OpenDAQNodeInteractionHandler::OnOutputHover(const ImGui::ImGuiNodesUid& id
     {
         // reinitialization with a new signal
         last_id = id;
-        daq::SignalPtr signal = opendaq_handler_->signals_[id].component_.as<daq::ISignal>();
+        daq::SignalPtr signal = signals_[id].component_.as<daq::ISignal>();
 
         signal_name = signal.getName().toStdString();
         if (signal.getDescriptor().assigned() && signal.getDescriptor().getUnit().assigned() && signal.getDescriptor().getUnit().getSymbol().assigned())
@@ -263,7 +258,7 @@ void OpenDAQNodeInteractionHandler::OnOutputHover(const ImGui::ImGuiNodesUid& id
     }
 }
 
-void OpenDAQNodeInteractionHandler::OnInputHover(const ImGui::ImGuiNodesUid& id)
+void OpenDAQNodeEditor::OnInputHover(const ImGui::ImGuiNodesUid& id)
 {
     if (id == "")
     {
@@ -271,8 +266,8 @@ void OpenDAQNodeInteractionHandler::OnInputHover(const ImGui::ImGuiNodesUid& id)
         return;
     }
 
-    auto it = opendaq_handler_->input_ports_.find(id);
-    if (it == opendaq_handler_->input_ports_.end())
+    auto it = input_ports_.find(id);
+    if (it == input_ports_.end())
         return;
 
     daq::InputPortPtr input_port = it->second.component_.as<daq::IInputPort>();
@@ -286,21 +281,21 @@ void OpenDAQNodeInteractionHandler::OnInputHover(const ImGui::ImGuiNodesUid& id)
     OnOutputHover(signal.getGlobalId().toStdString());
 }
 
-void OpenDAQNodeInteractionHandler::OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUid>& selected_ids)
+void OpenDAQNodeEditor::OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUid>& selected_ids)
 {
     selected_components_.clear();
     for (ImGui::ImGuiNodesUid id : selected_ids)
     {
-        if (auto it = opendaq_handler_->folders_.find(id); it != opendaq_handler_->folders_.end())
+        if (auto it = folders_.find(id); it != folders_.end())
             selected_components_.push_back(it->second.component_);
-        if (auto it = opendaq_handler_->input_ports_.find(id); it != opendaq_handler_->input_ports_.end())
+        if (auto it = input_ports_.find(id); it != input_ports_.end())
             selected_components_.push_back(it->second.component_);
-        if (auto it = opendaq_handler_->signals_.find(id); it != opendaq_handler_->signals_.end())
+        if (auto it = signals_.find(id); it != signals_.end())
             selected_components_.push_back(it->second.component_);
     }
 }
 
-void OpenDAQNodeInteractionHandler::RenderFunctionBlockOptions(ImGui::ImGuiNodes* nodes, daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position)
+void OpenDAQNodeEditor::RenderFunctionBlockOptions(ImGui::ImGuiNodes* nodes, daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position)
 {
     daq::DictPtr<daq::IString, daq::IFunctionBlockType> available_fbs;
     
@@ -364,19 +359,19 @@ void OpenDAQNodeInteractionHandler::RenderFunctionBlockOptions(ImGui::ImGuiNodes
                 for (const daq::InputPortPtr& input_port : fb.getInputPorts())
                 {
                     input_ports.push_back({input_port.getName().toStdString(), input_port.getGlobalId().toStdString()});
-                    opendaq_handler_->input_ports_[input_port.getGlobalId().toStdString()] = {input_port, fb};
+                    input_ports_[input_port.getGlobalId().toStdString()] = {input_port, fb};
                 }
 
                 for (const daq::SignalPtr& signal : fb.getSignals())
                 {
-                    opendaq_handler_->signals_[signal.getGlobalId().toStdString()] = {signal, fb};
+                    signals_[signal.getGlobalId().toStdString()] = {signal, fb};
                     output_signals.push_back({signal.getName().toStdString(), signal.getGlobalId().toStdString()});
                 }
 
-                int color_index = parent_id.empty() ? 0 : opendaq_handler_->folders_[parent_id].color_index_;
+                int color_index = parent_id.empty() ? 0 : folders_[parent_id].color_index_;
 
                 nodes->AddNode({fb.getName().toStdString(), fb.getGlobalId().toStdString()},
-                              opendaq_handler_->color_palette_[color_index],
+                              color_palette_[color_index],
                               position,
                               input_ports,
                               output_signals,
@@ -386,7 +381,7 @@ void OpenDAQNodeInteractionHandler::RenderFunctionBlockOptions(ImGui::ImGuiNodes
                 c.component_ = fb;
                 c.parent_ = parent_component;
                 c.color_index_ = color_index;
-                opendaq_handler_->folders_[fb.getGlobalId().toStdString()] = c;
+                folders_[fb.getGlobalId().toStdString()] = c;
             }
         }
 
@@ -400,7 +395,7 @@ void OpenDAQNodeInteractionHandler::RenderFunctionBlockOptions(ImGui::ImGuiNodes
     }
 }
 
-void OpenDAQNodeInteractionHandler::RenderDeviceOptions(ImGui::ImGuiNodes* nodes, daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position)
+void OpenDAQNodeEditor::RenderDeviceOptions(ImGui::ImGuiNodes* nodes, daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position)
 {
     if (!canCastTo<daq::IDevice>(parent_component))
         return;
@@ -428,10 +423,10 @@ void OpenDAQNodeInteractionHandler::RenderDeviceOptions(ImGui::ImGuiNodes* nodes
             if (ImGui::MenuItem((device_connection_name + " (" + device_connection_string + ")").c_str()))
             {
                 const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
-                int color_index = opendaq_handler_->next_color_index_;
-                opendaq_handler_->next_color_index_ = (opendaq_handler_->next_color_index_ + 1) % opendaq_handler_->color_palette_size_;
+                int color_index = next_color_index_;
+                next_color_index_ = (next_color_index_ + 1) % color_palette_size_;
                 nodes->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
-                               opendaq_handler_->color_palette_[color_index], 
+                               color_palette_[color_index], 
                                position,
                                {}, {},
                                parent_id);
@@ -440,7 +435,7 @@ void OpenDAQNodeInteractionHandler::RenderDeviceOptions(ImGui::ImGuiNodes* nodes
                 c.component_ = dev;
                 c.parent_ = parent_component;
                 c.color_index_ = color_index;
-                opendaq_handler_->folders_[dev.getGlobalId().toStdString()] = c;
+                folders_[dev.getGlobalId().toStdString()] = c;
             }
         }
     }
@@ -450,10 +445,10 @@ void OpenDAQNodeInteractionHandler::RenderDeviceOptions(ImGui::ImGuiNodes* nodes
     if (ImGui::IsItemDeactivatedAfterEdit())
     {
         const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
-        int color_index = opendaq_handler_->next_color_index_;
-        opendaq_handler_->next_color_index_ = (opendaq_handler_->next_color_index_ + 1) % opendaq_handler_->color_palette_size_;
+        int color_index = next_color_index_;
+        next_color_index_ = (next_color_index_ + 1) % color_palette_size_;
         nodes->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
-                       opendaq_handler_->color_palette_[color_index], 
+                       color_palette_[color_index], 
                        position,
                        {}, {},
                        parent_id);
@@ -462,17 +457,17 @@ void OpenDAQNodeInteractionHandler::RenderDeviceOptions(ImGui::ImGuiNodes* nodes
         c.component_ = dev;
         c.parent_ = parent_component;
         c.color_index_ = color_index;
-        opendaq_handler_->folders_[dev.getGlobalId().toStdString()] = c;
+        folders_[dev.getGlobalId().toStdString()] = c;
         ImGui::CloseCurrentPopup();
     }
     ImGui::SameLine();
     if (ImGui::Button("Connect"))
     {
         const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
-        int color_index = opendaq_handler_->next_color_index_;
-        opendaq_handler_->next_color_index_ = (opendaq_handler_->next_color_index_ + 1) % opendaq_handler_->color_palette_size_;
+        int color_index = next_color_index_;
+        next_color_index_ = (next_color_index_ + 1) % color_palette_size_;
         nodes->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
-                       opendaq_handler_->color_palette_[color_index], 
+                       color_palette_[color_index], 
                        position,
                        {}, {},
                        parent_id);
@@ -481,24 +476,24 @@ void OpenDAQNodeInteractionHandler::RenderDeviceOptions(ImGui::ImGuiNodes* nodes
         c.component_ = dev;
         c.parent_ = parent_component;
         c.color_index_ = color_index;
-        opendaq_handler_->folders_[dev.getGlobalId().toStdString()] = c;
+        folders_[dev.getGlobalId().toStdString()] = c;
         ImGui::CloseCurrentPopup();
     }
 }
 
-void OpenDAQNodeInteractionHandler::RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 position)
+void OpenDAQNodeEditor::RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 position)
 {
     ImGui::SeparatorText("Add a function block");
-    RenderFunctionBlockOptions(nodes, opendaq_handler_->instance_, "", position);
+    RenderFunctionBlockOptions(nodes, instance_, "", position);
 
     ImGui::SeparatorText("Connect to device");
-    RenderDeviceOptions(nodes, opendaq_handler_->instance_, "", position);
+    RenderDeviceOptions(nodes, instance_, "", position);
 }
 
-void OpenDAQNodeInteractionHandler::OnAddButtonClick(const ImGui::ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position)
+void OpenDAQNodeEditor::OnAddButtonClick(const ImGui::ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position)
 {
     add_button_drop_position_ = position;
-    if (auto it = opendaq_handler_->folders_.find(parent_node_id); it != opendaq_handler_->folders_.end())
+    if (auto it = folders_.find(parent_node_id); it != folders_.end())
         add_button_click_component_ = it->second.component_;
     else
         add_button_click_component_ = nullptr;
@@ -506,7 +501,7 @@ void OpenDAQNodeInteractionHandler::OnAddButtonClick(const ImGui::ImGuiNodesUid&
     ImGui::OpenPopup("AddNestedNodeMenu");
 }
 
-void OpenDAQNodeInteractionHandler::RenderNestedNodePopup(ImGui::ImGuiNodes* nodes)
+void OpenDAQNodeEditor::RenderNestedNodePopup(ImGui::ImGuiNodes* nodes)
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 
@@ -565,7 +560,7 @@ void OpenDAQNodeInteractionHandler::RenderNestedNodePopup(ImGui::ImGuiNodes* nod
         {
             ImSearch::SearchBar();
 
-            for (const auto& e : opendaq_handler_->signals_)
+            for (const auto& e : signals_)
             {
                 const std::string& id = e.first;
                 const OpenDAQComponent& sig = e.second;
@@ -592,7 +587,7 @@ void OpenDAQNodeInteractionHandler::RenderNestedNodePopup(ImGui::ImGuiNodes* nod
     ImGui::PopStyleVar();
 }
 
-void OpenDAQNodeInteractionHandler::ShowStartupPopup(ImGui::ImGuiNodes* nodes)
+void OpenDAQNodeEditor::ShowStartupPopup(ImGui::ImGuiNodes* nodes)
 {
     static bool show_startup_popup_ = true;
     if (show_startup_popup_)
@@ -617,15 +612,15 @@ void OpenDAQNodeInteractionHandler::ShowStartupPopup(ImGui::ImGuiNodes* nodes)
     }
 }
 
-void OpenDAQNodeInteractionHandler::OnEmptySpaceClick(ImVec2 position)
+void OpenDAQNodeEditor::OnEmptySpaceClick(ImVec2 position)
 {
     add_button_drop_position_ = position;
     ImGui::OpenPopup("NodesContextMenu");
 }
 
-void OpenDAQNodeInteractionHandler::OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, std::optional<ImVec2> /*position*/)
+void OpenDAQNodeEditor::OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, std::optional<ImVec2> /*position*/)
 {
-    if (auto it = opendaq_handler_->input_ports_.find(input_uid); it != opendaq_handler_->input_ports_.end())
+    if (auto it = input_ports_.find(input_uid); it != input_ports_.end())
         dragged_input_port_component_ = it->second.component_;
     else
         dragged_input_port_component_ = nullptr;
