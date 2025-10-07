@@ -19,7 +19,7 @@ class OpenDAQNodeEditor : public ImGui::ImGuiNodesInteractionHandler
 {
 public:
     OpenDAQNodeEditor();
-    void RetrieveTopology(daq::ComponentPtr component, ImGui::ImGuiNodes& nodes, std::string parent_id = "");
+    void RetrieveTopology(daq::ComponentPtr component, std::string parent_id = "");
     void OnConnectionCreated(const ImGui::ImGuiNodesUid& output_id, const ImGui::ImGuiNodesUid& input_id) override;
     void OnOutputHover(const ImGui::ImGuiNodesUid& id) override;
     void OnInputHover(const ImGui::ImGuiNodesUid& id) override;
@@ -28,12 +28,12 @@ public:
     void OnAddButtonClick(const ImGui::ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position) override;
     void OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, std::optional<ImVec2> /*position*/) override;
     void OnEmptySpaceClick(ImVec2 position) override;
-    void RenderNestedNodePopup(ImGui::ImGuiNodes* nodes);
-    void ShowStartupPopup(ImGui::ImGuiNodes* nodes);
-    void RetrieveConnections(ImGui::ImGuiNodes& nodes);
+    void RenderNestedNodePopup();
+    void ShowStartupPopup();
+    void RetrieveConnections();
 
-    void RenderFunctionBlockOptions(ImGui::ImGuiNodes* nodes, daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position);
-    void RenderDeviceOptions(ImGui::ImGuiNodes* nodes, daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position);
+    void RenderFunctionBlockOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position);
+    void RenderDeviceOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position);
 
     daq::InstancePtr instance_;
     std::unordered_map<std::string, OpenDAQComponent> folders_{};
@@ -49,6 +49,8 @@ public:
     
     daq::ListPtr<daq::IDeviceInfo> available_devices_;
 
+    ImGui::ImGuiNodes* nodes_ = nullptr;
+    
     int next_color_index_ = 1;
     static constexpr ImColor color_palette_[] = {
         ImColor(0.4f, 0.6f, 0.9f, 1.0f),  // Blue

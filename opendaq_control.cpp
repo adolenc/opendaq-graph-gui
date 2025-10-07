@@ -9,7 +9,7 @@ OpenDAQNodeEditor::OpenDAQNodeEditor()
 {
 }
 
-void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, ImGui::ImGuiNodes& nodes, std::string parent_id)
+void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::string parent_id)
 {
     if (component == nullptr)
         return;
@@ -72,7 +72,7 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, ImGui::ImG
             c.color_index_ = folders_[parent_id].color_index_;
         }
 
-        nodes.AddNode({component.getName().toStdString(), component.getGlobalId().toStdString()}, 
+        nodes_->AddNode({component.getName().toStdString(), component.getGlobalId().toStdString()}, 
                       color_palette_[c.color_index_],
                       input_ports,
                       output_signals,
@@ -85,11 +85,11 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, ImGui::ImG
     {
         daq::FolderPtr folder = castTo<daq::IFolder>(component);
         for (const auto& item : folder.getItems())
-            RetrieveTopology(item, nodes, new_parent_id);
+            RetrieveTopology(item, new_parent_id);
     }
 }
 
-void OpenDAQNodeEditor::RetrieveConnections(ImGui::ImGuiNodes& nodes)
+void OpenDAQNodeEditor::RetrieveConnections()
 {
     for (const auto& [input_uid, input_component] : input_ports_)
     {
@@ -98,7 +98,7 @@ void OpenDAQNodeEditor::RetrieveConnections(ImGui::ImGuiNodes& nodes)
         {
             daq::SignalPtr connected_signal = input_port.getSignal();
             std::string signal_uid = connected_signal.getGlobalId().toStdString();
-            nodes.AddConnection(signal_uid, input_uid);
+            nodes_->AddConnection(signal_uid, input_uid);
         }
     }
 }
@@ -295,7 +295,7 @@ void OpenDAQNodeEditor::OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUi
     }
 }
 
-void OpenDAQNodeEditor::RenderFunctionBlockOptions(ImGui::ImGuiNodes* nodes, daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position)
+void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position)
 {
     daq::DictPtr<daq::IString, daq::IFunctionBlockType> available_fbs;
     
@@ -370,7 +370,7 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(ImGui::ImGuiNodes* nodes, daq
 
                 int color_index = parent_id.empty() ? 0 : folders_[parent_id].color_index_;
 
-                nodes->AddNode({fb.getName().toStdString(), fb.getGlobalId().toStdString()},
+                nodes_->AddNode({fb.getName().toStdString(), fb.getGlobalId().toStdString()},
                               color_palette_[color_index],
                               position,
                               input_ports,
@@ -395,7 +395,7 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(ImGui::ImGuiNodes* nodes, daq
     }
 }
 
-void OpenDAQNodeEditor::RenderDeviceOptions(ImGui::ImGuiNodes* nodes, daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position)
+void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position)
 {
     if (!canCastTo<daq::IDevice>(parent_component))
         return;
@@ -425,7 +425,7 @@ void OpenDAQNodeEditor::RenderDeviceOptions(ImGui::ImGuiNodes* nodes, daq::Compo
                 const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
                 int color_index = next_color_index_;
                 next_color_index_ = (next_color_index_ + 1) % color_palette_size_;
-                nodes->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
+                nodes_->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
                                color_palette_[color_index], 
                                position,
                                {}, {},
@@ -447,7 +447,7 @@ void OpenDAQNodeEditor::RenderDeviceOptions(ImGui::ImGuiNodes* nodes, daq::Compo
         const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
         int color_index = next_color_index_;
         next_color_index_ = (next_color_index_ + 1) % color_palette_size_;
-        nodes->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
+        nodes_->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
                        color_palette_[color_index], 
                        position,
                        {}, {},
@@ -466,7 +466,7 @@ void OpenDAQNodeEditor::RenderDeviceOptions(ImGui::ImGuiNodes* nodes, daq::Compo
         const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
         int color_index = next_color_index_;
         next_color_index_ = (next_color_index_ + 1) % color_palette_size_;
-        nodes->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
+        nodes_->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
                        color_palette_[color_index], 
                        position,
                        {}, {},
@@ -484,10 +484,10 @@ void OpenDAQNodeEditor::RenderDeviceOptions(ImGui::ImGuiNodes* nodes, daq::Compo
 void OpenDAQNodeEditor::RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 position)
 {
     ImGui::SeparatorText("Add a function block");
-    RenderFunctionBlockOptions(nodes, instance_, "", position);
+    RenderFunctionBlockOptions(instance_, "", position);
 
     ImGui::SeparatorText("Connect to device");
-    RenderDeviceOptions(nodes, instance_, "", position);
+    RenderDeviceOptions(instance_, "", position);
 }
 
 void OpenDAQNodeEditor::OnAddButtonClick(const ImGui::ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position)
@@ -501,13 +501,13 @@ void OpenDAQNodeEditor::OnAddButtonClick(const ImGui::ImGuiNodesUid& parent_node
     ImGui::OpenPopup("AddNestedNodeMenu");
 }
 
-void OpenDAQNodeEditor::RenderNestedNodePopup(ImGui::ImGuiNodes* nodes)
+void OpenDAQNodeEditor::RenderNestedNodePopup()
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 
     if (ImGui::BeginPopup("NodesContextMenu", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
     {
-        RenderPopupMenu(nodes, add_button_drop_position_ ? add_button_drop_position_.value() : ImGui::GetMousePos());
+        RenderPopupMenu(nodes_, add_button_drop_position_ ? add_button_drop_position_.value() : ImGui::GetMousePos());
         ImGui::EndPopup();
         ImGui::PopStyleVar();
         return;
@@ -531,8 +531,7 @@ void OpenDAQNodeEditor::RenderNestedNodePopup(ImGui::ImGuiNodes* nodes)
         if (supports_fbs)
         {
             ImGui::SeparatorText("Add function block");
-            RenderFunctionBlockOptions(nodes, 
-                                      add_button_click_component_, 
+            RenderFunctionBlockOptions(add_button_click_component_, 
                                       add_button_click_component_.getGlobalId().toStdString(),
                                       add_button_drop_position_ ? add_button_drop_position_.value() : ImVec2(0, 0));
         }
@@ -540,8 +539,7 @@ void OpenDAQNodeEditor::RenderNestedNodePopup(ImGui::ImGuiNodes* nodes)
         if (supports_devices)
         {
             ImGui::SeparatorText("Connect to device");
-            RenderDeviceOptions(nodes, 
-                              add_button_click_component_, 
+            RenderDeviceOptions(add_button_click_component_, 
                               add_button_click_component_.getGlobalId().toStdString(),
                               add_button_drop_position_ ? add_button_drop_position_.value() : ImVec2(0, 0));
         }
@@ -587,7 +585,7 @@ void OpenDAQNodeEditor::RenderNestedNodePopup(ImGui::ImGuiNodes* nodes)
     ImGui::PopStyleVar();
 }
 
-void OpenDAQNodeEditor::ShowStartupPopup(ImGui::ImGuiNodes* nodes)
+void OpenDAQNodeEditor::ShowStartupPopup()
 {
     static bool show_startup_popup_ = true;
     if (show_startup_popup_)
@@ -603,7 +601,7 @@ void OpenDAQNodeEditor::ShowStartupPopup(ImGui::ImGuiNodes* nodes)
         ImGui::Text("Connect to a device or add function blocks to get started.");
         ImGui::Separator();
 
-        RenderPopupMenu(nodes, ImVec2(0,0));
+        RenderPopupMenu(nodes_, ImVec2(0,0));
         ImGui::Separator();
 
         if (ImGui::Button("Dismiss"))

@@ -30,6 +30,9 @@ int main(int argc, char** argv)
     }
 
     OpenDAQNodeEditor opendaq_editor;
+    ImGui::ImGuiNodes nodes_editor(&opendaq_editor);
+    opendaq_editor.nodes_ = &nodes_editor;
+    
     daq::DevicePtr dev = opendaq_editor.instance_.addDevice(opendaq_editor.instance_.getAvailableDevices()[0].getConnectionString());
     auto stat = opendaq_editor.instance_.addFunctionBlock("RefFBModuleStatistics");
     auto power = opendaq_editor.instance_.addFunctionBlock("RefFBModulePower");
@@ -39,8 +42,6 @@ int main(int argc, char** argv)
     stat.getInputPorts()[0].connect(power.getSignals()[0]);
     auto power2 = dev.addFunctionBlock("RefFBModulePower");
     power2.getInputPorts()[0].connect(stat.getSignals()[0]);
-
-    ImGui::ImGuiNodes nodes_editor(&opendaq_editor);
 
     const char* glsl_version = "#version 130";
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
@@ -105,16 +106,16 @@ int main(int argc, char** argv)
         if (!initialized)
         {
             nodes_editor.BeginBatchAdd();
-            opendaq_editor.RetrieveTopology(opendaq_editor.instance_, nodes_editor);
+            opendaq_editor.RetrieveTopology(opendaq_editor.instance_);
             nodes_editor.EndBatchAdd();
-            opendaq_editor.RetrieveConnections(nodes_editor);
+            opendaq_editor.RetrieveConnections();
             nodes_editor.SetWarning(power.getGlobalId().toStdString(), "This is a warning message");
             initialized = true;
         }
 
         DrawPropertiesWindow(opendaq_editor.selected_components_);
         if (false)
-            opendaq_editor.ShowStartupPopup(&nodes_editor);
+            opendaq_editor.ShowStartupPopup();
         ImGui::ShowDemoWindow();
 
 #ifdef IMGUI_HAS_VIEWPORT
@@ -130,7 +131,7 @@ int main(int argc, char** argv)
         if (ImGui::Begin("Node Editor", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus))
         {
             nodes_editor.Update();
-            opendaq_editor.RenderNestedNodePopup(&nodes_editor);
+            opendaq_editor.RenderNestedNodePopup();
         }
         ImGui::End();
         ImGui::PopStyleVar(1);
