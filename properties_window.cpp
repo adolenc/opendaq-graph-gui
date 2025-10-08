@@ -413,9 +413,6 @@ void RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component, 
     if (!show_attributes)
         return;
 
-    if (!ImGui::CollapsingHeader(("Attributes##" + component.getName().toStdString()).c_str()))
-        return;
-
     {
         std::string value = component.getName();
         if (ImGui::InputText("Name", &value))
