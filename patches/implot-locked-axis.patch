@@ -1,34 +1,79 @@
 diff --git a/implot.cpp b/implot.cpp
-index effc52f..c5ff7c9 100644
+index effc52f..e57f893 100644
 --- a/implot.cpp
 +++ b/implot.cpp
-@@ -2703,16 +2703,82 @@ void SetupFinish() {
+@@ -2703,16 +2703,169 @@ void SetupFinish() {
              DrawList.AddText(label_pos, ax.ColorTxt, label);
          }
          if (ax.HasTickLabels()) {
 +            // Calculate edge label areas if ShowEdgeLabels is enabled
 +            bool has_edge_labels = ImHasFlag(ax.Flags, ImPlotAxisFlags_ShowEdgeLabels);
-+            float left_edge_end = 0.0f, right_edge_start = 0.0f;
++            float left_edge_end_level0 = 0.0f, right_edge_start_level0 = 0.0f;
++            float left_edge_end_level1 = 0.0f, right_edge_start_level1 = 0.0f;
 +            
 +            if (has_edge_labels) {
-+                char min_buff[IMPLOT_LABEL_MAX_SIZE];
-+                char max_buff[IMPLOT_LABEL_MAX_SIZE];
-+                
-+                // Format the min and max values using the axis formatter
-+                if (ax.Formatter != nullptr) {
-+                    ax.Formatter(ax.Range.Min, min_buff, sizeof(min_buff), ax.FormatterData);
-+                    ax.Formatter(ax.Range.Max, max_buff, sizeof(max_buff), ax.FormatterData);
++                // Format the min and max values
++                if (ax.Scale == ImPlotScale_Time) {
++                    const ImPlotTime t_min = ImPlotTime::FromDouble(ax.Range.Min);
++                    const ImPlotTime t_max = ImPlotTime::FromDouble(ax.Range.Max);
++                    const ImPlotTimeUnit unit = GetUnitForRange(ax.Range.Size() / (plot.PlotRect.GetWidth() / 100));
++                    const ImPlotTimeUnit unit1 = ImClamp(unit + 1, 0, ImPlotTimeUnit_COUNT - 1);
++                    
++                    // Format level 0 and level 1 to calculate overlap areas
++                    char min_buff0[IMPLOT_LABEL_MAX_SIZE], max_buff0[IMPLOT_LABEL_MAX_SIZE];
++                    char min_buff1[IMPLOT_LABEL_MAX_SIZE], max_buff1[IMPLOT_LABEL_MAX_SIZE];
++                    
++                    Formatter_Time_Data ftd;
++                    ftd.UserFormatter = nullptr;
++                    ftd.UserFormatterData = nullptr;
++                    
++                    // Level 0: time part (for level 0 tick overlap)
++                    ftd.Time = t_min;
++                    ftd.Spec = GetDateTimeFmt(TimeFormatLevel0, unit);
++                    Formatter_Time(ax.Range.Min, min_buff0, sizeof(min_buff0), &ftd);
++                    ftd.Time = t_max;
++                    Formatter_Time(ax.Range.Max, max_buff0, sizeof(max_buff0), &ftd);
++                    
++                    // Level 1: date part (for level 1 tick overlap)
++                    ftd.Time = t_min;
++                    ftd.Spec = GetDateTimeFmt(TimeFormatLevel1First, unit1);
++                    Formatter_Time(ax.Range.Min, min_buff1, sizeof(min_buff1), &ftd);
++                    ftd.Time = t_max;
++                    Formatter_Time(ax.Range.Max, max_buff1, sizeof(max_buff1), &ftd);
++                    
++                    // Calculate widths for each level
++                    const float min_width0 = ImGui::CalcTextSize(min_buff0).x;
++                    const float max_width0 = ImGui::CalcTextSize(max_buff0).x;
++                    const float min_width1 = ImGui::CalcTextSize(min_buff1).x;
++                    const float max_width1 = ImGui::CalcTextSize(max_buff1).x;
++                    
++                    // Level 0 overlap: only based on level 0 widths
++                    left_edge_end_level0 = plot.PlotRect.Min.x + min_width0;
++                    right_edge_start_level0 = plot.PlotRect.Max.x - max_width0;
++                    
++                    // Level 1 overlap: based on max of both levels
++                    left_edge_end_level1 = plot.PlotRect.Min.x + ImMax(min_width0, min_width1);
++                    right_edge_start_level1 = plot.PlotRect.Max.x - ImMax(max_width0, max_width1);
 +                } else {
-+                    ImFormatString(min_buff, sizeof(min_buff), ax.HasFormatSpec ? ax.FormatSpec : IMPLOT_LABEL_FORMAT, ax.Range.Min);
-+                    ImFormatString(max_buff, sizeof(max_buff), ax.HasFormatSpec ? ax.FormatSpec : IMPLOT_LABEL_FORMAT, ax.Range.Max);
++                    char min_buff[IMPLOT_LABEL_MAX_SIZE];
++                    char max_buff[IMPLOT_LABEL_MAX_SIZE];
++                    
++                    if (ax.Formatter != nullptr) {
++                        ax.Formatter(ax.Range.Min, min_buff, sizeof(min_buff), ax.FormatterData);
++                        ax.Formatter(ax.Range.Max, max_buff, sizeof(max_buff), ax.FormatterData);
++                    } else {
++                        ImFormatString(min_buff, sizeof(min_buff), ax.HasFormatSpec ? ax.FormatSpec : IMPLOT_LABEL_FORMAT, ax.Range.Min);
++                        ImFormatString(max_buff, sizeof(max_buff), ax.HasFormatSpec ? ax.FormatSpec : IMPLOT_LABEL_FORMAT, ax.Range.Max);
++                    }
++                    
++                    const ImVec2 min_label_size = ImGui::CalcTextSize(min_buff);
++                    const ImVec2 max_label_size = ImGui::CalcTextSize(max_buff);
++                    
++                    left_edge_end_level0 = plot.PlotRect.Min.x + min_label_size.x;
++                    right_edge_start_level0 = plot.PlotRect.Max.x - max_label_size.x;
++                    left_edge_end_level1 = left_edge_end_level0;
++                    right_edge_start_level1 = right_edge_start_level0;
 +                }
-+                
-+                const ImVec2 min_label_size = ImGui::CalcTextSize(min_buff);
-+                const ImVec2 max_label_size = ImGui::CalcTextSize(max_buff);
-+                
-+                // Calculate the right edge of left label and left edge of right label
-+                left_edge_end = plot.PlotRect.Min.x + min_label_size.x;
-+                right_edge_start = plot.PlotRect.Max.x - max_label_size.x;
 +            }
 +            
              for (int j = 0; j < tkr.TickCount(); ++j) {
@@ -45,7 +90,15 @@ index effc52f..c5ff7c9 100644
 +                if (has_edge_labels && in_visible_range) {
 +                    float tick_label_left = tk.PixelPos - 0.5f * tk.LabelSize.x;
 +                    float tick_label_right = tk.PixelPos + 0.5f * tk.LabelSize.x;
-+                    overlaps_edge_labels = (tick_label_left < left_edge_end) || (tick_label_right > right_edge_start);
++                    
++                    // Use different overlap areas based on tick level
++                    if (tk.Level == 0) {
++                        // Level 0 ticks: check against level 0 edge labels only
++                        overlaps_edge_labels = (tick_label_left < left_edge_end_level0) || (tick_label_right > right_edge_start_level0);
++                    } else {
++                        // Level 1+ ticks: check against full edge label area
++                        overlaps_edge_labels = (tick_label_left < left_edge_end_level1) || (tick_label_right > right_edge_start_level1);
++                    }
 +                }
 +                
 +                if (in_visible_range && !overlaps_edge_labels) {
@@ -57,36 +110,70 @@ index effc52f..c5ff7c9 100644
 +        
 +        // render edge labels if flag is set
 +        if (ImHasFlag(ax.Flags, ImPlotAxisFlags_ShowEdgeLabels)) {
-+            char min_buff[IMPLOT_LABEL_MAX_SIZE];
-+            char max_buff[IMPLOT_LABEL_MAX_SIZE];
-+            
-+            // Format the min and max values using the axis formatter
-+            if (ax.Formatter != nullptr) {
-+                ax.Formatter(ax.Range.Min, min_buff, sizeof(min_buff), ax.FormatterData);
-+                ax.Formatter(ax.Range.Max, max_buff, sizeof(max_buff), ax.FormatterData);
++            // Format the min and max values
++            if (ax.Scale == ImPlotScale_Time) {
++                const ImPlotTime t_min = ImPlotTime::FromDouble(ax.Range.Min);
++                const ImPlotTime t_max = ImPlotTime::FromDouble(ax.Range.Max);
++                const ImPlotTimeUnit unit = GetUnitForRange(ax.Range.Size() / (plot.PlotRect.GetWidth() / 100));
++                const ImPlotTimeUnit unit1 = ImClamp(unit + 1, 0, ImPlotTimeUnit_COUNT - 1);
++                
++                // Format level 0 (time) and level 1 (date) labels
++                char min_buff0[IMPLOT_LABEL_MAX_SIZE], max_buff0[IMPLOT_LABEL_MAX_SIZE];
++                char min_buff1[IMPLOT_LABEL_MAX_SIZE], max_buff1[IMPLOT_LABEL_MAX_SIZE];
++                
++                Formatter_Time_Data ftd;
++                ftd.UserFormatter = nullptr;
++                ftd.UserFormatterData = nullptr;
++                
++                // Level 0: time part
++                ftd.Time = t_min;
++                ftd.Spec = GetDateTimeFmt(TimeFormatLevel0, unit);
++                Formatter_Time(ax.Range.Min, min_buff0, sizeof(min_buff0), &ftd);
++                ftd.Time = t_max;
++                Formatter_Time(ax.Range.Max, max_buff0, sizeof(max_buff0), &ftd);
++                
++                // Level 1: date part (use TimeFormatLevel1First to always include date)
++                ftd.Time = t_min;
++                ftd.Spec = GetDateTimeFmt(TimeFormatLevel1First, unit1);
++                Formatter_Time(ax.Range.Min, min_buff1, sizeof(min_buff1), &ftd);
++                ftd.Time = t_max;
++                Formatter_Time(ax.Range.Max, max_buff1, sizeof(max_buff1), &ftd);
++                
++                // Render level 0 labels (time)
++                const float edge_datum0 = ax.Datum1 + (opp ? (-gp.Style.LabelPadding.y - txt_height) : gp.Style.LabelPadding.y);
++                DrawList.AddText(ImVec2(plot.PlotRect.Min.x, edge_datum0), ax.ColorTxt, min_buff0);
++                DrawList.AddText(ImVec2(plot.PlotRect.Max.x - ImGui::CalcTextSize(max_buff0).x, edge_datum0), ax.ColorTxt, max_buff0);
++                
++                // Render level 1 labels (date)
++                const float edge_datum1 = ax.Datum1 + (opp ? (-gp.Style.LabelPadding.y - txt_height - (txt_height + gp.Style.LabelPadding.y)) 
++                                                            : gp.Style.LabelPadding.y + (txt_height + gp.Style.LabelPadding.y));
++                DrawList.AddText(ImVec2(plot.PlotRect.Min.x, edge_datum1), ax.ColorTxt, min_buff1);
++                DrawList.AddText(ImVec2(plot.PlotRect.Max.x - ImGui::CalcTextSize(max_buff1).x, edge_datum1), ax.ColorTxt, max_buff1);
 +            } else {
-+                // Use a more reasonable default format with limited precision
-+                const char* format = ax.HasFormatSpec ? ax.FormatSpec : "%.2f";
-+                ImFormatString(min_buff, sizeof(min_buff), format, ax.Range.Min);
-+                ImFormatString(max_buff, sizeof(max_buff), format, ax.Range.Max);
++                char min_buff[IMPLOT_LABEL_MAX_SIZE];
++                char max_buff[IMPLOT_LABEL_MAX_SIZE];
++                
++                if (ax.Formatter != nullptr) {
++                    ax.Formatter(ax.Range.Min, min_buff, sizeof(min_buff), ax.FormatterData);
++                    ax.Formatter(ax.Range.Max, max_buff, sizeof(max_buff), ax.FormatterData);
++                } else {
++                    const char* format = ax.HasFormatSpec ? ax.FormatSpec : "%.2f";
++                    ImFormatString(min_buff, sizeof(min_buff), format, ax.Range.Min);
++                    ImFormatString(max_buff, sizeof(max_buff), format, ax.Range.Max);
++                }
++                
++                const ImVec2 min_label_size = ImGui::CalcTextSize(min_buff);
++                const ImVec2 max_label_size = ImGui::CalcTextSize(max_buff);
++                const float edge_datum = ax.Datum1 + (opp ? (-gp.Style.LabelPadding.y - txt_height) : gp.Style.LabelPadding.y);
++                
++                DrawList.AddText(ImVec2(plot.PlotRect.Min.x, edge_datum), ax.ColorTxt, min_buff);
++                DrawList.AddText(ImVec2(plot.PlotRect.Max.x - max_label_size.x, edge_datum), ax.ColorTxt, max_buff);
 +            }
-+            
-+            const ImVec2 min_label_size = ImGui::CalcTextSize(min_buff);
-+            const ImVec2 max_label_size = ImGui::CalcTextSize(max_buff);
-+            const float edge_datum = ax.Datum1 + (opp ? (-gp.Style.LabelPadding.y - txt_height) : gp.Style.LabelPadding.y);
-+            
-+            // Left edge (min) label - left-aligned to plot edge
-+            const ImVec2 min_start(plot.PlotRect.Min.x, edge_datum);
-+            DrawList.AddText(min_start, ax.ColorTxt, min_buff);
-+            
-+            // Right edge (max) label - right-aligned to plot edge
-+            const ImVec2 max_start(plot.PlotRect.Max.x - max_label_size.x, edge_datum);
-+            DrawList.AddText(max_start, ax.ColorTxt, max_buff);
 +        }
      }
  
      // render y axis button, label, tick labels
-@@ -2741,15 +2807,92 @@ void SetupFinish() {
+@@ -2741,15 +2894,126 @@ void SetupFinish() {
              AddTextVertical(&DrawList, label_pos, ax.ColorTxt, label);
          }
          if (ax.HasTickLabels()) {
@@ -98,8 +185,25 @@ index effc52f..c5ff7c9 100644
 +                char min_buff[IMPLOT_LABEL_MAX_SIZE];
 +                char max_buff[IMPLOT_LABEL_MAX_SIZE];
 +                
-+                // Format the min and max values using the axis formatter
-+                if (ax.Formatter != nullptr) {
++                // Format the min and max values
++                if (ax.Scale == ImPlotScale_Time) {
++                    const ImPlotTime t_min = ImPlotTime::FromDouble(ax.Range.Min);
++                    const ImPlotTime t_max = ImPlotTime::FromDouble(ax.Range.Max);
++                    const ImPlotTimeUnit unit = GetUnitForRange(ax.Range.Size() / (plot.PlotRect.GetHeight() / 100));
++                    
++                    // Use Formatter_Time with the appropriate format spec
++                    Formatter_Time_Data ftd;
++                    ftd.UserFormatter = nullptr;
++                    ftd.UserFormatterData = nullptr;
++                    
++                    // Use fmt0 (time part) for the edge labels
++                    ftd.Time = t_min;
++                    ftd.Spec = GetDateTimeFmt(TimeFormatLevel0, unit);
++                    Formatter_Time(ax.Range.Min, min_buff, sizeof(min_buff), &ftd);
++                    
++                    ftd.Time = t_max;
++                    Formatter_Time(ax.Range.Max, max_buff, sizeof(max_buff), &ftd);
++                } else if (ax.Formatter != nullptr) {
 +                    ax.Formatter(ax.Range.Min, min_buff, sizeof(min_buff), ax.FormatterData);
 +                    ax.Formatter(ax.Range.Max, max_buff, sizeof(max_buff), ax.FormatterData);
 +                } else {
@@ -148,8 +252,25 @@ index effc52f..c5ff7c9 100644
 +            char min_buff[IMPLOT_LABEL_MAX_SIZE];
 +            char max_buff[IMPLOT_LABEL_MAX_SIZE];
 +            
-+            // Format the min and max values using the axis formatter
-+            if (ax.Formatter != nullptr) {
++            // Format the min and max values
++            if (ax.Scale == ImPlotScale_Time) {
++                const ImPlotTime t_min = ImPlotTime::FromDouble(ax.Range.Min);
++                const ImPlotTime t_max = ImPlotTime::FromDouble(ax.Range.Max);
++                const ImPlotTimeUnit unit = GetUnitForRange(ax.Range.Size() / (plot.PlotRect.GetHeight() / 100));
++                
++                // Use Formatter_Time with the appropriate format spec
++                Formatter_Time_Data ftd;
++                ftd.UserFormatter = nullptr;
++                ftd.UserFormatterData = nullptr;
++                
++                // Use fmt0 (time part) for the edge labels
++                ftd.Time = t_min;
++                ftd.Spec = GetDateTimeFmt(TimeFormatLevel0, unit);
++                Formatter_Time(ax.Range.Min, min_buff, sizeof(min_buff), &ftd);
++                
++                ftd.Time = t_max;
++                Formatter_Time(ax.Range.Max, max_buff, sizeof(max_buff), &ftd);
++            } else if (ax.Formatter != nullptr) {
 +                ax.Formatter(ax.Range.Min, min_buff, sizeof(min_buff), ax.FormatterData);
 +                ax.Formatter(ax.Range.Max, max_buff, sizeof(max_buff), ax.FormatterData);
 +            } else {

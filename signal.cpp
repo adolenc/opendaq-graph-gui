@@ -59,7 +59,7 @@ void OpenDAQSignal::Update()
 
         for (size_t i = 0, read_pos = 0; i + samples_per_plot_sample_ < read_count; i += samples_per_plot_sample_)
         {
-            plot_times_seconds_[pos_in_plot_buffer_] = (read_times[read_pos] - start_time_) * tick_resolution_.getNumerator() / (double)tick_resolution_.getDenominator();
+            plot_times_seconds_[pos_in_plot_buffer_] = (read_times[read_pos]) * tick_resolution_.getNumerator() / (double)tick_resolution_.getDenominator();
             plot_values_avg_[pos_in_plot_buffer_] = 0;
             plot_values_min_[pos_in_plot_buffer_] = 1e30;
             plot_values_max_[pos_in_plot_buffer_] = -1e30;

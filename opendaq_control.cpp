@@ -153,6 +153,7 @@ void OpenDAQNodeEditor::OnOutputHover(const ImGui::ImGuiNodesUid& id)
             {
                 ImPlot::SetupAxisLimits(ImAxis_Y1, -5, 5);
                 ImPlot::SetupAxisLimits(ImAxis_X1, signal_preview.end_time_seconds_ - 2.0, signal_preview.end_time_seconds_, ImGuiCond_Always);
+                ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
                 ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.3f);
                 ImPlot::PlotShaded("Uncertain Data", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_min_.data(), signal_preview.plot_values_max_.data(), (int)signal_preview.points_in_plot_buffer_, 0, signal_preview.pos_in_plot_buffer_);
                 ImPlot::PlotLine("", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_avg_.data(), (int)signal_preview.points_in_plot_buffer_, 0, signal_preview.pos_in_plot_buffer_);
