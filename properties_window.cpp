@@ -454,6 +454,30 @@ void RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component, 
         ImGui::EndDisabled();
     }
     {
+        std::string value = "unknown";
+        try
+        {
+            if (component.supportsInterface<daq::IFunctionBlock>())
+            {
+                if (auto fb_type = component.asPtr<daq::IFunctionBlock>().getFunctionBlockType(); fb_type.assigned())
+                    value = fb_type.getId().toStdString();
+            }
+            else if (component.supportsInterface<daq::IDevice>())
+            {
+                if (auto device_info = component.asPtr<daq::IDevice>().getInfo(); device_info.assigned())
+                {
+                    if (auto device_type = device_info.getDeviceType(); device_type.assigned())
+                        value = device_type.getId().toStdString();
+                }
+            }
+        }
+        catch (...) {}
+
+        ImGui::BeginDisabled();
+        ImGui::InputText("Type ID", &value);
+        ImGui::EndDisabled();
+    }
+    {
         std::string value = component.getLocalId();
         ImGui::BeginDisabled();
         ImGui::InputText("Local ID", &value);
