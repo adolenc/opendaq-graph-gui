@@ -1,0 +1,50 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, master, ci-appimage]
+  pull_request:
+    branches: [ main, master, ci-appimage ]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build libgl1-mesa-dev
+
+    - name: Build
+      run: |
+        cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --config Release
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: opendaq-gui-linux
+        path: build/bin/
+        retention-days: 5
+
+  build-windows:
+    runs-on: windows-2022
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build
+      run: |
+        cmake -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --config Release
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: opendaq-gui-windows
+        path: build/bin/Release/
+        retention-days: 5
