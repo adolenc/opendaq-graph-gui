@@ -1,11 +1,7 @@
 name: Build
 
 on:
-  push:
-    branches: [ main, master, ci-appimage]
-  pull_request:
-    branches: [ main, master, ci-appimage ]
-  workflow_dispatch:
+  [push, pull_request, workflow_dispatch]
 
 jobs:
   build-linux:
@@ -24,12 +20,17 @@ jobs:
         cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
         cmake --build build --config Release
 
+    - name: Prepare artifact
+      run: |
+        mkdir -p artifact/opendaq-gui
+        cp build/bin/opendaq-gui build/bin/*.so artifact/opendaq-gui/
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: opendaq-gui-linux
-        path: build/bin/
-        retention-days: 5
+        path: artifact
+        retention-days: 7
 
   build-windows:
     runs-on: windows-2022
@@ -42,9 +43,15 @@ jobs:
         cmake -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release
         cmake --build build --config Release
 
+    - name: Prepare artifact
+      run: |
+        mkdir artifact\opendaq-gui
+        copy build\bin\Release\opendaq-gui.exe artifact\opendaq-gui\
+        copy build\bin\Release\*.dll artifact\opendaq-gui\
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: opendaq-gui-windows
-        path: build/bin/Release/
-        retention-days: 5
+        path: artifact
+        retention-days: 7
