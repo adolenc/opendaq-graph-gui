@@ -78,6 +78,8 @@ void RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_h
         case daq::ctObject:
             {
                 ImGui::Text("> %s", prop_name_for_display.c_str());
+                if (property.getReadOnly())
+                    ImGui::EndDisabled();
                 ImGui::Indent();
                 ImGui::PushID(prop_name.c_str());
                 daq::PropertyObjectPtr parent = property_holder.getPropertyValue(prop_name);
@@ -85,6 +87,8 @@ void RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_h
                     RenderProperty(sub_property, parent);
                 ImGui::PopID();
                 ImGui::Unindent();
+                if (property.getReadOnly())
+                    ImGui::BeginDisabled();
                 break;
             }
         default:
