@@ -32,7 +32,6 @@ int main(int argc, char** argv)
     OpenDAQNodeEditor opendaq_editor;
     ImGui::ImGuiNodes nodes_editor(&opendaq_editor);
     opendaq_editor.nodes_ = &nodes_editor;
-    PropertiesWindow properties_window;
     
     daq::DevicePtr dev = opendaq_editor.instance_.addDevice("daqref://device0");
     auto stat = opendaq_editor.instance_.addFunctionBlock("RefFBModuleStatistics");
@@ -121,7 +120,7 @@ int main(int argc, char** argv)
             initialized = true;
         }
 
-        properties_window.Render(opendaq_editor.selected_components_);
+        opendaq_editor.Render();
         if (false)
             opendaq_editor.ShowStartupPopup();
         ImGui::ShowDemoWindow();

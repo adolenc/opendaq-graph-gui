@@ -1,6 +1,7 @@
 #pragma once
 #include <opendaq/opendaq.h>
 #include "nodes.h"
+#include "properties_window.h"
 #include <vector>
 #include <optional>
 #include <string>
@@ -31,6 +32,7 @@ public:
     void RenderNestedNodePopup();
     void ShowStartupPopup();
     void RetrieveConnections();
+    void Render();
 
     void RenderFunctionBlockOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position);
     void RenderDeviceOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position);
@@ -51,6 +53,8 @@ public:
 
     ImGui::ImGuiNodes* nodes_ = nullptr;
     
+    PropertiesWindow properties_window_;
+
     int next_color_index_ = 1;
     static constexpr ImColor color_palette_[] = {
         ImColor(0.4f, 0.6f, 0.9f, 1.0f),  // Blue

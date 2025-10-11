@@ -541,3 +541,8 @@ void OpenDAQNodeEditor::OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, st
 
     ImGui::OpenPopup("AddInputMenu");
 }
+
+void OpenDAQNodeEditor::Render()
+{
+    properties_window_.Render(selected_components_);
+}
