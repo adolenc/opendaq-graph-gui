@@ -22,6 +22,8 @@ public:
 
     std::string signal_name_{""};
     std::string signal_unit_{""};
+    float value_range_min_ = -5.0f;
+    float value_range_max_ = 5.0f;
     bool has_domain_signal_;
 
 private:

@@ -19,7 +19,12 @@ OpenDAQSignal::OpenDAQSignal(daq::SignalPtr signal, float seconds_shown, int max
     float samples_per_second;
     try { samples_per_second = std::max<daq::Int>(1, daq::reader::getSampleRate(has_domain_signal_ ? signal.getDomainSignal().getDescriptor() : signal.getDescriptor())); } catch (...) { samples_per_second = 1; }
     samples_per_plot_sample_ = std::floor(std::max(1.0f, (float)samples_per_second * seconds_shown / (float)max_points));
-    
+
+    if (auto value_range = signal.getDescriptor().getValueRange(); value_range.assigned())
+    {
+        value_range_min_ = value_range.getLowValue();
+        value_range_max_ = value_range.getHighValue();
+    }
     reader_ = daq::StreamReaderBuilder()
         .setSignal(signal)
         .setValueReadType(has_domain_signal_ ? daq::SampleType::Float64 : daq::SampleType::Int64)

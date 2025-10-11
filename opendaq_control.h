@@ -2,6 +2,7 @@
 #include <opendaq/opendaq.h>
 #include "nodes.h"
 #include "properties_window.h"
+#include "signals_window.h"
 #include <vector>
 #include <optional>
 #include <string>
@@ -48,12 +49,13 @@ public:
     std::optional<ImVec2> add_button_drop_position_;
 
     daq::ComponentPtr dragged_input_port_component_;
-    
+
     daq::ListPtr<daq::IDeviceInfo> available_devices_;
 
     ImGui::ImGuiNodes* nodes_ = nullptr;
-    
+
     PropertiesWindow properties_window_;
+    SignalsWindow signals_window_;
 
     int next_color_index_ = 1;
     static constexpr ImColor color_palette_[] = {
