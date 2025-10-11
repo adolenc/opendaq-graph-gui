@@ -71,6 +71,13 @@ int main(int argc, char** argv)
     ImPlot::CreateContext();
     ImSearch::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
+    if (char *base_path = SDL_GetBasePath())
+    {
+        io.Fonts->AddFontFromFileTTF((std::string(base_path) + "Roboto-Medium.ttf").c_str(), 14.0f);
+        SDL_free(base_path);
+    }
+    else
+        io.Fonts->AddFontFromFileTTF("Roboto-Medium.ttf", 14.0f);
 
     ImGui::StyleColorsDark();
     ImPlot::GetStyle().UseISO8601 = true;

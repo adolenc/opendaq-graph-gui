@@ -82,9 +82,9 @@ target_include_directories(imsearch PUBLIC ${imsearch_SOURCE_DIR} ${imgui_SOURCE
 
 # sdl2
 FetchContent_Declare(
-    SDL2
-    GIT_REPOSITORY  https://github.com/libsdl-org/SDL
-    GIT_TAG         release-2.32.10
+  SDL2
+  GIT_REPOSITORY  https://github.com/libsdl-org/SDL
+  GIT_TAG         release-2.32.10
 )
 FetchContent_MakeAvailable(SDL2)
 
@@ -96,3 +96,9 @@ target_link_libraries(imgui PUBLIC SDL2::SDL2 SDL2::SDL2main OpenGL::GL)
 add_executable(${PROJECT_NAME} main.cpp nodes.cpp opendaq_control.cpp properties_window.cpp signal.cpp)
 target_include_directories(${PROJECT_NAME} PUBLIC ${openDAQ_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PUBLIC daq::opendaq imgui implot imsearch)
+
+add_custom_command(
+  TARGET ${PROJECT_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    ${CMAKE_SOURCE_DIR}/fonts/Roboto-Medium.ttf
+    $<TARGET_FILE_DIR:${PROJECT_NAME}>)

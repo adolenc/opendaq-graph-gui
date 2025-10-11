@@ -23,7 +23,7 @@ jobs:
     - name: Prepare artifact
       run: |
         mkdir -p artifact/opendaq-gui
-        cp build/bin/opendaq-gui build/bin/*.so artifact/opendaq-gui/
+        cp build/bin/opendaq-gui build/bin/*.so build/bin/*.ttf artifact/opendaq-gui/
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -48,6 +48,7 @@ jobs:
         mkdir artifact\opendaq-gui
         copy build\bin\Release\opendaq-gui.exe artifact\opendaq-gui\
         copy build\bin\Release\*.dll artifact\opendaq-gui\
+        copy build\bin\Release\*.ttf artifact\opendaq-gui\
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
