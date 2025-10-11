@@ -4,18 +4,17 @@
 #include "imsearch.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
-#include "properties_window.h"
 #include "opendaq_control.h"
-#include <stdio.h>
 #include "nodes.h"
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include <opendaq/version.h>
-#include <cstring>
+#include <string>
+
 
 int main(int argc, char** argv)
 {
-    if (argc > 1 && (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0))
+    if (argc > 1 && (std::string(argv[1]) == "--version" || std::string(argv[1]) == "-v"))
     {
         unsigned int major, minor, revision;
         daqOpenDaqGetVersion(&major, &minor, &revision);
