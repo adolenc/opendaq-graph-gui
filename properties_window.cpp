@@ -6,7 +6,7 @@
 #include "imgui_stdlib.h"
 
 
-void RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_holder)
+void PropertiesWindow::RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_holder)
 {
     std::string prop_name = property.getName().toStdString();
     std::string prop_name_for_display = property.getName().toStdString();
@@ -103,7 +103,7 @@ void RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_h
         ImGui::EndDisabled();
 }
 
-std::string SampleTypeToString(daq::SampleType sample_type)
+std::string PropertiesWindow::SampleTypeToString(daq::SampleType sample_type)
 {
     switch (sample_type)
     {
@@ -128,7 +128,7 @@ std::string SampleTypeToString(daq::SampleType sample_type)
     }
 }
 
-std::string CoreTypeToString(daq::CoreType core_type)
+std::string PropertiesWindow::CoreTypeToString(daq::CoreType core_type)
 {
     switch (core_type)
     {
@@ -151,7 +151,7 @@ std::string CoreTypeToString(daq::CoreType core_type)
     }
 }
 
-void RenderDescriptorAttribute(const std::string& name, const daq::BaseObjectPtr& value, int depth)
+void PropertiesWindow::RenderDescriptorAttribute(const std::string& name, const daq::BaseObjectPtr& value, int depth)
 {
     if (!value.assigned())
     {
@@ -250,7 +250,7 @@ void RenderDescriptorAttribute(const std::string& name, const daq::BaseObjectPtr
     ImGui::EndDisabled();
 }
 
-void RenderAllDescriptorAttributes(const daq::DataDescriptorPtr& descriptor, const std::string& title)
+void PropertiesWindow::RenderAllDescriptorAttributes(const daq::DataDescriptorPtr& descriptor, const std::string& title)
 {
     if (!descriptor.assigned())
     {
@@ -378,7 +378,7 @@ void RenderAllDescriptorAttributes(const daq::DataDescriptorPtr& descriptor, con
         }
 }
 
-void RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component, bool show_attributes)
+void PropertiesWindow::RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component, bool show_attributes)
 {
     daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(component);
     for (const auto& property : property_holder.getVisibleProperties())
@@ -601,7 +601,7 @@ void RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component, 
     }
 }
 
-void RenderSelectedComponent(daq::ComponentPtr component, bool show_parents, bool show_attributes)
+void PropertiesWindow::RenderSelectedComponent(daq::ComponentPtr component, bool show_parents, bool show_attributes)
 {
     if (!canCastTo<daq::IPropertyObject>(component))
         return;
@@ -621,20 +621,17 @@ void RenderSelectedComponent(daq::ComponentPtr component, bool show_parents, boo
     ImGui::PopStyleVar(2);
 }
 
-void DrawPropertiesWindow(const std::vector<daq::ComponentPtr>& selected_components)
+void PropertiesWindow::Draw(const std::vector<daq::ComponentPtr>& selected_components)
 {
     ImGui::Begin("Property editor", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
     {
-        static bool show_parents = false;
-        static bool tabbed_interface = false;
-        static bool show_attributes = false;
         if (ImGui::BeginMenuBar())
         {
             if (ImGui::BeginMenu("Settings"))
             {
-                ImGui::Checkbox("Show parents", &show_parents);
-                ImGui::Checkbox("Show attributes", &show_attributes);
-                ImGui::Checkbox("Use tabs for multiple selected components", &tabbed_interface);
+                ImGui::Checkbox("Show parents", &show_parents_);
+                ImGui::Checkbox("Show attributes", &show_attributes_);
+                ImGui::Checkbox("Use tabs for multiple selected components", &tabbed_interface_);
 
                 ImGui::EndMenu();
             }
@@ -651,9 +648,9 @@ void DrawPropertiesWindow(const std::vector<daq::ComponentPtr>& selected_compone
             if (component == nullptr || !component.assigned())
                 return;
 
-            RenderSelectedComponent(component, show_parents, show_attributes);
+            RenderSelectedComponent(component, show_parents_, show_attributes_);
         }
-        else if (tabbed_interface)
+        else if (tabbed_interface_)
         {
             if (ImGui::BeginTabBar("Selected components"))
             {
@@ -665,14 +662,14 @@ void DrawPropertiesWindow(const std::vector<daq::ComponentPtr>& selected_compone
 
                     if (ImGui::BeginTabItem((component.getName().toStdString() + "##" + std::to_string(uid++)).c_str()))
                     {
-                        RenderSelectedComponent(component, show_parents, show_attributes);
+                        RenderSelectedComponent(component, show_parents_, show_attributes_);
                         ImGui::EndTabItem();
                     }
                 }
                 ImGui::EndTabBar();
             }
         }
-        else // render side by side
+        else
         {
             int uid = 0;
             for (const auto& component : selected_components)
@@ -681,7 +678,7 @@ void DrawPropertiesWindow(const std::vector<daq::ComponentPtr>& selected_compone
                     continue;
 
                 ImGui::BeginChild((component.getName().toStdString() + "##" + std::to_string(uid++)).c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
-                RenderSelectedComponent(component, show_parents, show_attributes);
+                RenderSelectedComponent(component, show_parents_, show_attributes_);
                 ImGui::EndChild();
 
                 ImGui::SameLine();
