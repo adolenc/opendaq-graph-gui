@@ -209,6 +209,8 @@ void OpenDAQNodeEditor::OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUi
         if (auto it = signals_.find(id); it != signals_.end())
             selected_components_.push_back(it->second.component_);
     }
+
+    properties_window_.OnSelectionChanged(selected_components_);
 }
 
 void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position)
@@ -544,5 +546,5 @@ void OpenDAQNodeEditor::OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, st
 
 void OpenDAQNodeEditor::Render()
 {
-    properties_window_.Render(selected_components_);
+    properties_window_.Render();
 }

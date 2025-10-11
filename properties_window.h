@@ -3,11 +3,11 @@
 #include <vector>
 #include <string>
 
-
 class PropertiesWindow
 {
 public:
-    void Render(const std::vector<daq::ComponentPtr>& selected_components);
+    void Render();
+    void OnSelectionChanged(const std::vector<daq::ComponentPtr>& selected_components);
 
     static std::string SampleTypeToString(daq::SampleType sample_type);
     static std::string CoreTypeToString(daq::CoreType core_type);
@@ -19,6 +19,7 @@ private:
     void RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component);
     void RenderSelectedComponent(const daq::ComponentPtr& component);
     
+    std::vector<daq::ComponentPtr> selected_components_;
     bool show_parents_ = false;
     bool tabbed_interface_ = false;
     bool show_attributes_ = false;

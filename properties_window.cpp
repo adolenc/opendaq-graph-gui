@@ -622,7 +622,12 @@ void PropertiesWindow::RenderSelectedComponent(const daq::ComponentPtr& componen
     ImGui::PopStyleVar(2);
 }
 
-void PropertiesWindow::Render(const std::vector<daq::ComponentPtr>& selected_components)
+void PropertiesWindow::OnSelectionChanged(const std::vector<daq::ComponentPtr>& selected_components)
+{
+    selected_components_ = selected_components;
+}
+
+void PropertiesWindow::Render()
 {
     ImGui::Begin("Property editor", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
     {
@@ -639,13 +644,13 @@ void PropertiesWindow::Render(const std::vector<daq::ComponentPtr>& selected_com
             ImGui::EndMenuBar();
         }
 
-        if (selected_components.empty())
+        if (selected_components_.empty())
         {
             ImGui::Text("No component selected");
         }
-        else if (selected_components.size() == 1)
+        else if (selected_components_.size() == 1)
         {
-            daq::ComponentPtr component = selected_components[0];
+            daq::ComponentPtr component = selected_components_[0];
             if (component == nullptr || !component.assigned())
                 return;
 
@@ -656,7 +661,7 @@ void PropertiesWindow::Render(const std::vector<daq::ComponentPtr>& selected_com
             if (ImGui::BeginTabBar("Selected components"))
             {
                 int uid = 0;
-                for (const auto& component : selected_components)
+                for (const auto& component : selected_components_)
                 {
                     if (component == nullptr || !component.assigned())
                         continue;
@@ -673,7 +678,7 @@ void PropertiesWindow::Render(const std::vector<daq::ComponentPtr>& selected_com
         else
         {
             int uid = 0;
-            for (const auto& component : selected_components)
+            for (const auto& component : selected_components_)
             {
                 if (component == nullptr || !component.assigned())
                     continue;
