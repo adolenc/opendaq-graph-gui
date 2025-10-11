@@ -260,125 +260,125 @@ void PropertiesWindow::RenderAllDescriptorAttributes(const daq::DataDescriptorPt
 
     ImGui::BeginDisabled();
         
-        std::string text;
+    std::string text;
+    try
+    {
+        auto core_type = descriptor.getSampleType();
+        text = SampleTypeToString(core_type);
+    } catch (...)
+    {
+        text = "<unavailable>";
+    }
+    ImGui::InputText("Core Type", &text);
+
+    if (descriptor.getDimensions().assigned())
+    {
+        auto dimensions = descriptor.getDimensions();
         try
         {
-            auto core_type = descriptor.getSampleType();
-            text = SampleTypeToString(core_type);
+            text = "[";
+            for (int i = 0; i < dimensions.getCount(); i++)
+            {
+                if (i > 0) text += ", ";
+                text += std::to_string((long long)dimensions.getItemAt(i).asPtr<daq::IInteger>());
+            }
+            text += "]";
         } catch (...)
         {
-            text = "<unavailable>";
+            text = "<error>";
         }
-        ImGui::InputText("Core Type", &text);
+    }
+    else
+        text = "None";
+    ImGui::InputText("Dimensions", &text);
 
-        if (descriptor.getDimensions().assigned())
+    text = descriptor.getName().assigned() ? descriptor.getName().toStdString() : "None";
+    ImGui::InputText("Name", &text);
+
+    text = descriptor.getOrigin().assigned() ? descriptor.getOrigin().toStdString() : "None";
+    ImGui::InputText("Origin", &text);
+
+    text = "";
+    if (descriptor.getPostScaling().assigned())
+        RenderDescriptorAttribute("Post Scaling", descriptor.getPostScaling(), 0);
+    else
+        ImGui::InputText("Post Scaling", &text);
+
+    text = std::to_string(descriptor.getRawSampleSize());
+    ImGui::InputText("Raw Sample Size", &text);
+
+    text = "";
+    if (descriptor.getReferenceDomainInfo().assigned())
+        RenderDescriptorAttribute("Reference Domain Info", descriptor.getReferenceDomainInfo(), 0);
+    else
+        ImGui::InputText("Reference Domain Info", &text);
+
+    if (descriptor.getRule().assigned())
+        RenderDescriptorAttribute("Rule", descriptor.getRule(), 0);
+    else
+        ImGui::InputText("Rule", &text);
+
+    text = std::to_string(descriptor.getSampleSize());
+    ImGui::InputText("Sample Size", &text);
+
+    try {
+        text = SampleTypeToString(descriptor.getSampleType());
+    } catch (...) {
+        text = "<unavailable>";
+    }
+    ImGui::InputText("Sample Type", &text);
+
+    text = "";
+    if (descriptor.getStructFields().assigned())
+        RenderDescriptorAttribute("Struct Fields", descriptor.getStructFields(), 0);
+    else
+        ImGui::InputText("Struct Fields", &text);
+
+    if (auto tick_res = descriptor.getTickResolution(); tick_res.assigned())
+        text = std::to_string((long long)tick_res.getNumerator()) + "/" + std::to_string((long long)tick_res.getDenominator());
+    else
+        text = "None";
+    ImGui::InputText("Tick Resolution", &text);
+
+    if (auto unit = descriptor.getUnit(); unit.assigned())
+    {
+        std::string symbol = unit.getSymbol().assigned() ? unit.getSymbol().toStdString() : "None";
+        std::string quantity = unit.getQuantity().assigned() ? unit.getQuantity().toStdString() : "None";
+        text = symbol + " (" + quantity + ")";
+    }
+    else
+        text = "None";
+    ImGui::InputText("Unit", &text);
+
+    if (descriptor.getValueRange().assigned())
+        RenderDescriptorAttribute("Value Range", descriptor.getValueRange(), 0);
+    else
+    {
+        text = "None";
+        ImGui::InputText("Value Range", &text);
+    }
+
+    ImGui::EndDisabled();
+
+    auto metadata = descriptor.getMetadata();
+    if (metadata.assigned() && metadata.getCount() > 0)
+    {
+        if (ImGui::TreeNodeEx("Metadata", ImGuiTreeNodeFlags_DefaultOpen))
         {
-            auto dimensions = descriptor.getDimensions();
-            try
+            for (const auto& key : metadata.getKeyList())
             {
-                text = "[";
-                for (int i = 0; i < dimensions.getCount(); i++)
-                {
-                    if (i > 0) text += ", ";
-                    text += std::to_string((long long)dimensions.getItemAt(i).asPtr<daq::IInteger>());
-                }
-                text += "]";
-            } catch (...)
-            {
-                text = "<error>";
+                auto value = metadata.get(key);
+                std::string key_str = key.supportsInterface<daq::IString>() ? 
+                    key.asPtr<daq::IString>().toStdString() : 
+                    static_cast<std::string>(key.toString());
+                RenderDescriptorAttribute(key_str, value, 1);
             }
+            ImGui::TreePop();
         }
-        else
-            text = "None";
-        ImGui::InputText("Dimensions", &text);
-
-        text = descriptor.getName().assigned() ? descriptor.getName().toStdString() : "None";
-        ImGui::InputText("Name", &text);
-
-        text = descriptor.getOrigin().assigned() ? descriptor.getOrigin().toStdString() : "None";
-        ImGui::InputText("Origin", &text);
-
-        text = "";
-        if (descriptor.getPostScaling().assigned())
-            RenderDescriptorAttribute("Post Scaling", descriptor.getPostScaling(), 0);
-        else
-            ImGui::InputText("Post Scaling", &text);
-
-        text = std::to_string(descriptor.getRawSampleSize());
-        ImGui::InputText("Raw Sample Size", &text);
-
-        text = "";
-        if (descriptor.getReferenceDomainInfo().assigned())
-            RenderDescriptorAttribute("Reference Domain Info", descriptor.getReferenceDomainInfo(), 0);
-        else
-            ImGui::InputText("Reference Domain Info", &text);
-
-        if (descriptor.getRule().assigned())
-            RenderDescriptorAttribute("Rule", descriptor.getRule(), 0);
-        else
-            ImGui::InputText("Rule", &text);
-
-        text = std::to_string(descriptor.getSampleSize());
-        ImGui::InputText("Sample Size", &text);
-
-        try {
-            text = SampleTypeToString(descriptor.getSampleType());
-        } catch (...) {
-            text = "<unavailable>";
-        }
-        ImGui::InputText("Sample Type", &text);
-
-        text = "";
-        if (descriptor.getStructFields().assigned())
-            RenderDescriptorAttribute("Struct Fields", descriptor.getStructFields(), 0);
-        else
-            ImGui::InputText("Struct Fields", &text);
-
-        if (auto tick_res = descriptor.getTickResolution(); tick_res.assigned())
-            text = std::to_string((long long)tick_res.getNumerator()) + "/" + std::to_string((long long)tick_res.getDenominator());
-        else
-            text = "None";
-        ImGui::InputText("Tick Resolution", &text);
-
-        if (auto unit = descriptor.getUnit(); unit.assigned())
-        {
-            std::string symbol = unit.getSymbol().assigned() ? unit.getSymbol().toStdString() : "None";
-            std::string quantity = unit.getQuantity().assigned() ? unit.getQuantity().toStdString() : "None";
-            text = symbol + " (" + quantity + ")";
-        }
-        else
-            text = "None";
-        ImGui::InputText("Unit", &text);
-
-        if (descriptor.getValueRange().assigned())
-            RenderDescriptorAttribute("Value Range", descriptor.getValueRange(), 0);
-        else
-        {
-            text = "None";
-            ImGui::InputText("Value Range", &text);
-        }
-
-        ImGui::EndDisabled();
-
-        auto metadata = descriptor.getMetadata();
-        if (metadata.assigned() && metadata.getCount() > 0)
-        {
-            if (ImGui::TreeNodeEx("Metadata", ImGuiTreeNodeFlags_DefaultOpen))
-            {
-                for (const auto& key : metadata.getKeyList())
-                {
-                    auto value = metadata.get(key);
-                    std::string key_str = key.supportsInterface<daq::IString>() ? 
-                        key.asPtr<daq::IString>().toStdString() : 
-                        static_cast<std::string>(key.toString());
-                    RenderDescriptorAttribute(key_str, value, 1);
-                }
-                ImGui::TreePop();
-            }
-        }
+    }
 }
 
-void PropertiesWindow::RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component, bool show_attributes)
+void PropertiesWindow::RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component)
 {
     daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(component);
     for (const auto& property : property_holder.getVisibleProperties())
@@ -414,7 +414,7 @@ void PropertiesWindow::RenderComponentPropertiesAndAttributes(const daq::Compone
         }
     }
 
-    if (!show_attributes)
+    if (!show_attributes_)
         return;
 
     {
@@ -601,27 +601,28 @@ void PropertiesWindow::RenderComponentPropertiesAndAttributes(const daq::Compone
     }
 }
 
-void PropertiesWindow::RenderSelectedComponent(daq::ComponentPtr component, bool show_parents, bool show_attributes)
+void PropertiesWindow::RenderSelectedComponent(const daq::ComponentPtr& component)
 {
     if (!canCastTo<daq::IPropertyObject>(component))
         return;
 
     ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(5.0f, 5.0f));
-    while (component.assigned())
+    daq::ComponentPtr parent_component = component;
+    while (parent_component.assigned())
     {
         ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-        ImGui::SeparatorText(("[" + component.getName().toStdString() + "]").c_str());
+        ImGui::SeparatorText(("[" + parent_component.getName().toStdString() + "]").c_str());
         ImGui::PopStyleColor();
-        RenderComponentPropertiesAndAttributes(component, show_attributes);
-        if (!show_parents)
+        RenderComponentPropertiesAndAttributes(parent_component);
+        if (!show_parents_)
             break;
-        component = component.getParent();
+        parent_component = parent_component.getParent();
     }
     ImGui::PopStyleVar(2);
 }
 
-void PropertiesWindow::Draw(const std::vector<daq::ComponentPtr>& selected_components)
+void PropertiesWindow::Render(const std::vector<daq::ComponentPtr>& selected_components)
 {
     ImGui::Begin("Property editor", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
     {
@@ -648,7 +649,7 @@ void PropertiesWindow::Draw(const std::vector<daq::ComponentPtr>& selected_compo
             if (component == nullptr || !component.assigned())
                 return;
 
-            RenderSelectedComponent(component, show_parents_, show_attributes_);
+            RenderSelectedComponent(component);
         }
         else if (tabbed_interface_)
         {
@@ -662,7 +663,7 @@ void PropertiesWindow::Draw(const std::vector<daq::ComponentPtr>& selected_compo
 
                     if (ImGui::BeginTabItem((component.getName().toStdString() + "##" + std::to_string(uid++)).c_str()))
                     {
-                        RenderSelectedComponent(component, show_parents_, show_attributes_);
+                        RenderSelectedComponent(component);
                         ImGui::EndTabItem();
                     }
                 }
@@ -678,7 +679,7 @@ void PropertiesWindow::Draw(const std::vector<daq::ComponentPtr>& selected_compo
                     continue;
 
                 ImGui::BeginChild((component.getName().toStdString() + "##" + std::to_string(uid++)).c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
-                RenderSelectedComponent(component, show_parents_, show_attributes_);
+                RenderSelectedComponent(component);
                 ImGui::EndChild();
 
                 ImGui::SameLine();

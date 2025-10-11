@@ -121,7 +121,7 @@ int main(int argc, char** argv)
             initialized = true;
         }
 
-        properties_window.Draw(opendaq_editor.selected_components_);
+        properties_window.Render(opendaq_editor.selected_components_);
         if (false)
             opendaq_editor.ShowStartupPopup();
         ImGui::ShowDemoWindow();
