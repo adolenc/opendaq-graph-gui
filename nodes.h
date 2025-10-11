@@ -126,7 +126,7 @@ struct ImGuiNodesNode
     float body_height_;
     ImGuiNodesNodeState state_;
     std::string name_;
-    ImColor color_;
+    int color_index_;
     std::string warning_message_;
     std::string error_message_;
     std::vector<ImGuiNodesInput> inputs_;
@@ -176,12 +176,14 @@ public:
     void SetError(const ImGuiNodesUid& uid, const std::string& message);
     void SetOk(const ImGuiNodesUid& uid);
 
+    static constexpr ImColor text_color_ = ImColor(0xff000000);
+    static constexpr ImColor connection_color_ = ImColor(0xffffffff);
     static constexpr ImColor color_palette_[] = {
+        ImColor(0xff6f47ef),
+        ImColor(0xff66d1ff),
         ImColor(0xffa0d606),
         ImColor(0xffb28a11),
         ImColor(0xff4c3b07),
-        ImColor(0xff6f47ef),
-        ImColor(0xff66d1ff),
     };
     static constexpr int color_palette_size_ = sizeof(color_palette_) / sizeof(color_palette_[0]);
 

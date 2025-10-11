@@ -1079,7 +1079,7 @@ void ImGuiNodes::ProcessNodes()
                 ImColor color = IS_SET(node->state_, ImGuiNodesNodeStateFlag_Collapsed)
                     ? ImColor(0.4f, 0.4f, 0.4f, 0.1f)
                     : (!any_node_selected || IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected) || IS_SET(source_node->state_, ImGuiNodesNodeStateFlag_Selected))
-                    ? ImColor(1.0f, 1.0f, 1.0f, 1.0f)
+                    ? ImGuiNodes::connection_color_
                     : ImColor(0.4f, 0.4f, 0.4f, 0.5f);
                 RenderConnection(p1, p4, color);
             }
@@ -1137,7 +1137,7 @@ void ImGuiNodes::ProcessNodes()
         {
             RenderConnection(ImVec2(active_dragging_connection_.x, active_dragging_connection_.y), 
                             ImVec2(active_dragging_connection_.z, active_dragging_connection_.w), 
-                            ImColor(1.0f, 1.0f, 1.0f, 1.0f));
+                            ImGuiNodes::connection_color_);
         }
     }
 
@@ -1251,12 +1251,11 @@ void ImGuiNodesInput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, 
     consider_fill |= HAS_ALL_FLAGS(state_, ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget);
     consider_fill |= bool(source_node_);
     if (consider_fill)
-        draw_list->AddCircleFilled((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImColor(1.0f, 1.0f, 1.0f, 1.0f));
-    else
-        draw_list->AddCircle((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImColor(1.0f, 1.0f, 1.0f, 1.0f));
+        draw_list->AddCircleFilled((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImGuiNodes::connection_color_);
+    draw_list->AddCircle((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImGuiNodes::text_color_);
 
     ImGui::SetCursorScreenPos((area_name_.Min * scale) + offset);
-    ImGui::Text("%s", name_.c_str());
+    ImGui::TextColored(ImGuiNodes::text_color_, "%s", name_.c_str());
 }
 
 void ImGuiNodesOutput::TranslateOutput(ImVec2 delta)
@@ -1308,12 +1307,11 @@ void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale,
     consider_fill |= HAS_ALL_FLAGS(state_, ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget);
     consider_fill |= bool(connections_count_ > 0);
     if (consider_fill)
-        draw_list->AddCircleFilled((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImColor(1.0f, 1.0f, 1.0f, 1.0f));
-    else
-        draw_list->AddCircle((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImColor(1.0f, 1.0f, 1.0f, 1.0f));
+        draw_list->AddCircleFilled((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImGuiNodes::connection_color_);
+    draw_list->AddCircle((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImGuiNodes::text_color_);
 
     ImGui::SetCursorScreenPos((area_name_.Min * scale) + offset);
-    ImGui::Text("%s", name_.c_str());
+    ImGui::TextColored(ImGuiNodes::text_color_, "%s", name_.c_str());
 }
 
 void ImGuiNodesNode::TranslateNode(ImVec2 delta, bool selected_only)
@@ -1337,7 +1335,7 @@ ImGuiNodesNode::ImGuiNodesNode(const ImGuiNodesIdentifier& name, int color_index
     name_ = name.name_;
     uid_ = name.id_;
     state_ = ImGuiNodesNodeStateFlag_Default;
-    color_ = ImGuiNodes::color_palette_[color_index % ImGuiNodes::color_palette_size_];
+    color_index_ = color_index % ImGuiNodes::color_palette_size_;
 
     area_name_.Min = ImVec2(0.0f, 0.0f);
     area_name_.Max = ImGui::CalcTextSize(name_.c_str());
@@ -1390,7 +1388,8 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
     node_rect.Max *= scale;
     node_rect.Translate(offset);
 
-    ImColor head_color = ImColor(0.f, 0.f, 0.f, 0.15f), body_color = color_;
+    ImColor color = ImGuiNodes::color_palette_[color_index_];
+    ImColor head_color = ImColor(0.f, 0.f, 0.f, 0.15f), body_color = color;
     body_color.Value.w = 0.9f;		
 
     if (IS_SET(state_, ImGuiNodesNodeStateFlag_Warning))
@@ -1453,12 +1452,12 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
     }
 
     ImGui::SetCursorScreenPos((area_name_.Min * scale) + offset);
-    ImGui::Text("%s", name_.c_str());
+    ImGui::TextColored(ImGuiNodes::text_color_, "%s", name_.c_str());
 
     draw_list->AddRect(node_rect.Min - outline * 0.5f, node_rect.Max + outline * 0.5f, ImColor(0.0f, 0.0f, 0.0f, 1.0f), 0, 0, 3.0f * scale);
 
     if (HAS_ANY_FLAG(state_, ImGuiNodesNodeStateFlag_MarkedForSelection | ImGuiNodesNodeStateFlag_Selected))
-        draw_list->AddRect(node_rect.Min - outline*1.5f, node_rect.Max + outline*1.5f, color_, 0, 0, 2.0f * scale);
+        draw_list->AddRect(node_rect.Min - outline*1.5f, node_rect.Max + outline*1.5f, color, 0, 0, 2.0f * scale);
 
     if (HAS_ANY_FLAG(state_, ImGuiNodesNodeStateFlag_Hovered | ImGuiNodesNodeStateFlag_Selected))
     {
