@@ -65,8 +65,7 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
         
         if (canCastTo<daq::IDevice>(component))
         {
-            c.color_index_ = next_color_index_;
-            next_color_index_ = (next_color_index_ + 1) % color_palette_size_;
+            c.color_index_ = next_color_index_++;
         }
         else if (!parent_id.empty())
         {
@@ -74,7 +73,7 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
         }
 
         nodes_->AddNode({component.getName().toStdString(), component.getGlobalId().toStdString()}, 
-                      color_palette_[c.color_index_],
+                      c.color_index_,
                       input_ports,
                       output_signals,
                       parent_id);
@@ -290,7 +289,7 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
                 int color_index = parent_id.empty() ? 0 : folders_[parent_id].color_index_;
 
                 nodes_->AddNode({fb.getName().toStdString(), fb.getGlobalId().toStdString()},
-                              color_palette_[color_index],
+                              color_index,
                               position,
                               input_ports,
                               output_signals,
@@ -342,10 +341,9 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
             if (ImGui::MenuItem((device_connection_name + " (" + device_connection_string + ")").c_str()))
             {
                 const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
-                int color_index = next_color_index_;
-                next_color_index_ = (next_color_index_ + 1) % color_palette_size_;
+                int color_index = next_color_index_++;
                 nodes_->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
-                               color_palette_[color_index], 
+                               color_index, 
                                position,
                                {}, {},
                                parent_id);
@@ -364,10 +362,9 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
     if (ImGui::IsItemDeactivatedAfterEdit())
     {
         const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
-        int color_index = next_color_index_;
-        next_color_index_ = (next_color_index_ + 1) % color_palette_size_;
+        int color_index = next_color_index_++;
         nodes_->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
-                       color_palette_[color_index], 
+                       color_index, 
                        position,
                        {}, {},
                        parent_id);
@@ -383,10 +380,9 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
     if (ImGui::Button("Connect"))
     {
         const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
-        int color_index = next_color_index_;
-        next_color_index_ = (next_color_index_ + 1) % color_palette_size_;
+        int color_index = next_color_index_++;
         nodes_->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
-                       color_palette_[color_index], 
+                       color_index, 
                        position,
                        {}, {},
                        parent_id);

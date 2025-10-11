@@ -58,17 +58,6 @@ public:
     SignalsWindow signals_window_;
 
     int next_color_index_ = 1;
-    static constexpr ImColor color_palette_[] = {
-        ImColor(0.4f, 0.6f, 0.9f, 1.0f),  // Blue
-        ImColor(0.9f, 0.5f, 0.4f, 1.0f),  // Orange
-        ImColor(0.5f, 0.8f, 0.5f, 1.0f),  // Green
-        ImColor(0.9f, 0.6f, 0.8f, 1.0f),  // Pink
-        ImColor(0.8f, 0.8f, 0.4f, 1.0f),  // Yellow
-        ImColor(0.6f, 0.4f, 0.9f, 1.0f),  // Purple
-        ImColor(0.4f, 0.8f, 0.9f, 1.0f),  // Cyan
-        ImColor(0.9f, 0.7f, 0.4f, 1.0f),  // Amber
-    };
-    static constexpr int color_palette_size_ = sizeof(color_palette_) / sizeof(color_palette_[0]);
 };
 
 template <class Interface>

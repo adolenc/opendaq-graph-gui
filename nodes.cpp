@@ -287,7 +287,7 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
     return hovered_node;
 }
 
-void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color, 
+void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, int color_index, 
                          const std::vector<ImGuiNodesIdentifier>& inputs,
                          const std::vector<ImGuiNodesIdentifier>& outputs,
                          ImGuiNodesUid parent_uid)
@@ -304,15 +304,15 @@ void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color,
         }
         pos += ImVec2(0.0f, (float)(nodes_.size() * 20));
     }
-    AddNode(name, color, pos, inputs, outputs, parent_uid);
+    AddNode(name, color_index, pos, inputs, outputs, parent_uid);
 }
 
-void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2 pos, 
+void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, int color_index, ImVec2 pos, 
                          const std::vector<ImGuiNodesIdentifier>& inputs,
                          const std::vector<ImGuiNodesIdentifier>& outputs,
                         ImGuiNodesUid parent_uid)
 {
-    ImGuiNodesNode* node = new ImGuiNodesNode(name, color);
+    ImGuiNodesNode* node = new ImGuiNodesNode(name, color_index);
     node->parent_node_ = NULL;
     if (!parent_uid.empty())
     {
@@ -1332,12 +1332,12 @@ void ImGuiNodesNode::TranslateNode(ImVec2 delta, bool selected_only)
         outputs_[output_idx].TranslateOutput(delta);
 }
 
-ImGuiNodesNode::ImGuiNodesNode(const ImGuiNodesIdentifier& name, ImColor color)
+ImGuiNodesNode::ImGuiNodesNode(const ImGuiNodesIdentifier& name, int color_index)
 {
     name_ = name.name_;
     uid_ = name.id_;
     state_ = ImGuiNodesNodeStateFlag_Default;
-    color_ = color;
+    color_ = ImGuiNodes::color_palette_[color_index % ImGuiNodes::color_palette_size_];
 
     area_name_.Min = ImVec2(0.0f, 0.0f);
     area_name_.Max = ImGui::CalcTextSize(name_.c_str());

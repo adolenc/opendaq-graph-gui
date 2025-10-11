@@ -132,7 +132,7 @@ struct ImGuiNodesNode
     std::vector<ImGuiNodesInput> inputs_;
     std::vector<ImGuiNodesOutput> outputs_;
 
-    ImGuiNodesNode(const ImGuiNodesIdentifier& name, ImColor color);
+    ImGuiNodesNode(const ImGuiNodesIdentifier& name, int color_index);
     void TranslateNode(ImVec2 delta, bool selected_only = false);
     void BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size);
     void Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
@@ -160,11 +160,11 @@ public:
     ~ImGuiNodes();
 
     void Update();
-    void AddNode(const ImGuiNodesIdentifier& name, ImColor color,
+    void AddNode(const ImGuiNodesIdentifier& name, int color_index,
                  const std::vector<ImGuiNodesIdentifier>& inputs,
                  const std::vector<ImGuiNodesIdentifier>& outputs,
                  ImGuiNodesUid parent_uid = "");
-    void AddNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2 pos, 
+    void AddNode(const ImGuiNodesIdentifier& name, int color_index, ImVec2 pos, 
                  const std::vector<ImGuiNodesIdentifier>& inputs,
                  const std::vector<ImGuiNodesIdentifier>& outputs,
                  ImGuiNodesUid parent_uid = "");
@@ -175,6 +175,15 @@ public:
     void SetWarning(const ImGuiNodesUid& uid, const std::string& message);
     void SetError(const ImGuiNodesUid& uid, const std::string& message);
     void SetOk(const ImGuiNodesUid& uid);
+
+    static constexpr ImColor color_palette_[] = {
+        ImColor(0xffa0d606),
+        ImColor(0xffb28a11),
+        ImColor(0xff4c3b07),
+        ImColor(0xff6f47ef),
+        ImColor(0xff66d1ff),
+    };
+    static constexpr int color_palette_size_ = sizeof(color_palette_) / sizeof(color_palette_[0]);
 
 private:
     ImVec2 nodes_imgui_window_pos_;
