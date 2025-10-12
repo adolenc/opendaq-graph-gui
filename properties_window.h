@@ -19,6 +19,7 @@ private:
     void RenderAllDescriptorAttributes(const daq::DataDescriptorPtr& descriptor, const std::string& title);
     void RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component);
     void RenderSelectedComponent(const daq::ComponentPtr& component);
+    void RenderComponentStatus(const daq::ComponentPtr& component);
     
     std::vector<daq::ComponentPtr> selected_components_;
     bool show_parents_ = false;

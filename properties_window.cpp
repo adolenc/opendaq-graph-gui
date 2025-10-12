@@ -163,6 +163,57 @@ std::string PropertiesWindow::OperationModeToString(daq::OperationModeType mode)
     }
 }
 
+void PropertiesWindow::RenderComponentStatus(const daq::ComponentPtr& component)
+{
+    if (!component.assigned())
+        return;
+
+    try
+    {
+        auto status_container = component.getStatusContainer();
+        if (!status_container.assigned())
+            return;
+
+        auto statuses = status_container.getStatuses();
+        if (!statuses.assigned() || statuses.getCount() == 0)
+            return;
+
+        for (const auto& key : statuses.getKeyList())
+        {
+            std::string status_name = key.asPtr<daq::IString>().toStdString();
+            auto status_value = statuses.get(key);
+
+            if (!status_value.supportsInterface<daq::IEnumeration>())
+                continue;
+
+            auto enum_value = status_value.asPtr<daq::IEnumeration>();
+            std::string display_text = enum_value.getValue().toStdString();
+            int int_value = enum_value.getIntValue();
+            if (int_value == 0) // ok
+                continue;
+
+            ImVec4 color;
+            if (int_value >= 2)  // error
+                color = ImVec4(1.0f, 0.3f, 0.3f, 1.0f);
+            else  // warning
+                color = ImVec4(1.0f, 0.7f, 0.2f, 1.0f);
+
+            try
+            {
+                auto msg_str = status_container.getStatusMessage(key);
+                if (msg_str.assigned())
+                    display_text += ": " + msg_str.toStdString();
+            }
+            catch (...) {}
+
+            ImGui::PushStyleColor(ImGuiCol_Text, color);
+            ImGui::TextWrapped("%s", display_text.c_str());
+            ImGui::PopStyleColor();
+        }
+    }
+    catch (...) { }
+}
+
 void PropertiesWindow::RenderDescriptorAttribute(const std::string& name, const daq::BaseObjectPtr& value, int depth)
 {
     if (!value.assigned())
@@ -392,6 +443,8 @@ void PropertiesWindow::RenderAllDescriptorAttributes(const daq::DataDescriptorPt
 
 void PropertiesWindow::RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component)
 {
+    RenderComponentStatus(component);
+
     if (canCastTo<daq::IDevice>(component))
     {
         daq::DevicePtr device = castTo<daq::IDevice>(component);
