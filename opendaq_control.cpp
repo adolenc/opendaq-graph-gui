@@ -147,26 +147,23 @@ void OpenDAQNodeEditor::OnOutputHover(const ImGui::ImGuiNodesUid& id)
         if (ImPlot::BeginPlot("##SignalPreview", ImVec2(800,300), ImPlotFlags_NoLegend))
         {
             ImPlot::SetupAxes(nullptr, nullptr, flags, flags);
-            
-            if (signal_preview.has_domain_signal_)
+            ImPlot::SetupAxisLimits(ImAxis_Y1, -5, 5);
+            ImPlot::SetupAxisLimits(ImAxis_X1, signal_preview.end_time_seconds_ - 2.0, signal_preview.end_time_seconds_, ImGuiCond_Always);
+            ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
+            if (signal_preview.signal_type_ == SignalType::DomainAndValue)
             {
-                ImPlot::SetupAxisLimits(ImAxis_Y1, -5, 5);
-                ImPlot::SetupAxisLimits(ImAxis_X1, signal_preview.end_time_seconds_ - 2.0, signal_preview.end_time_seconds_, ImGuiCond_Always);
-                ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
                 ImPlot::SetNextFillStyle(ImColor(0xff66ffff), 0.3);
                 ImPlot::PlotShaded("Uncertain Data", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_min_.data(), signal_preview.plot_values_max_.data(), (int)signal_preview.points_in_plot_buffer_, 0, signal_preview.pos_in_plot_buffer_);
-                ImPlot::SetNextLineStyle(ImColor(0xff66ffff));
-                ImPlot::PlotLine("", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_avg_.data(), (int)signal_preview.points_in_plot_buffer_, 0, signal_preview.pos_in_plot_buffer_);
             }
             else
             {
                 static double dummy_ticks[] = {0};
                 static const char* dummy_labels[] = {"no value"};
-                ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
                 ImPlot::SetupAxis(ImAxis_Y1, "", ImPlotAxisFlags_AutoFit);
                 ImPlot::SetupAxisTicks(ImAxis_Y1, dummy_ticks, 1, dummy_labels, false);
-                ImPlot::PlotLine("", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_avg_.data(), (int)signal_preview.points_in_plot_buffer_);
             }
+            ImPlot::SetNextLineStyle(ImColor(0xff66ffff));
+            ImPlot::PlotLine("", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_avg_.data(), (int)signal_preview.points_in_plot_buffer_, 0, signal_preview.pos_in_plot_buffer_);
             ImPlot::EndPlot();
         }
         ImGui::EndTooltip();

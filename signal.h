@@ -5,6 +5,12 @@
 #include <string>
 
 
+enum class SignalType
+{
+    DomainOnly,
+    DomainAndValue
+};
+
 class OpenDAQSignal
 {
 public:
@@ -25,14 +31,17 @@ public:
     std::string signal_unit_{""};
     float value_range_min_ = -5.0f;
     float value_range_max_ = 5.0f;
-    bool has_domain_signal_;
+    SignalType signal_type_;
 
 private:
-    daq::StreamReaderPtr reader_;
+    void ReadDomainAndValue();
+    void ReadDomainOnly();
+
+    daq::ReaderPtr reader_;
     daq::RatioPtr tick_resolution_;
     int64_t start_time_{-1};
     int leftover_samples_{0};
-    float samples_per_plot_sample_ = 1.0f;
+    int samples_per_plot_sample_ = 1;
 
     static constexpr size_t READ_BUFFER_SIZE = 1024 * 10;
     std::vector<double> read_values;
