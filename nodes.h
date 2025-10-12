@@ -179,11 +179,11 @@ public:
     static constexpr ImColor text_color_ = ImColor(0xff000000);
     static constexpr ImColor connection_color_ = ImColor(0xffffffff);
     static constexpr ImColor color_palette_[] = {
-        ImColor(0xff6f47ef),
-        ImColor(0xff66d1ff),
-        ImColor(0xffa0d606),
-        ImColor(0xffb28a11),
-        ImColor(0xff4c3b07),
+        ImColor(0xffffd670),
+        ImColor(0xff70d6ff),
+        ImColor(0xff7097ff),
+        ImColor(0xff70ffe9),
+        ImColor(0xffa670ff),
     };
     static constexpr int color_palette_size_ = sizeof(color_palette_) / sizeof(color_palette_[0]);
 
