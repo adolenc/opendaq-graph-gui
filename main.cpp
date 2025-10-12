@@ -14,12 +14,23 @@
 
 int main(int argc, char** argv)
 {
-    if (argc > 1 && (std::string(argv[1]) == "--version" || std::string(argv[1]) == "-v"))
+    std::string connection_string;
+    
+    for (int i = 1; i < argc; i++)
     {
-        unsigned int major, minor, revision;
-        daqOpenDaqGetVersion(&major, &minor, &revision);
-        printf("openDAQ GUI - built with openDAQ v%u.%u.%u\n", major, minor, revision);
-        return 0;
+        std::string arg = argv[i];
+        if (arg == "--version" || arg == "-v")
+        {
+            unsigned int major, minor, revision;
+            daqOpenDaqGetVersion(&major, &minor, &revision);
+            printf("openDAQ GUI - built with openDAQ v%u.%u.%u\n", major, minor, revision);
+            return 0;
+        }
+        else if (arg == "--connection_string" && i + 1 < argc)
+        {
+            i += 1;
+            connection_string = argv[i];
+        }
     }
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0)
@@ -32,15 +43,22 @@ int main(int argc, char** argv)
     ImGui::ImGuiNodes nodes_editor(&opendaq_editor);
     opendaq_editor.nodes_ = &nodes_editor;
     
-    daq::DevicePtr dev = opendaq_editor.instance_.addDevice("daqref://device0");
-    auto stat = opendaq_editor.instance_.addFunctionBlock("RefFBModuleStatistics");
-    auto power = opendaq_editor.instance_.addFunctionBlock("RefFBModulePower");
-    auto a = dev.addFunctionBlock("RefFBModuleStatistics");
-    a.addFunctionBlock("RefFBModuleTrigger");
-    dev.addFunctionBlock("RefFBModulePower");
-    stat.getInputPorts()[0].connect(power.getSignals()[0]);
-    auto power2 = dev.addFunctionBlock("RefFBModulePower");
-    power2.getInputPorts()[0].connect(stat.getSignals()[0]);
+    if (connection_string == "dev")
+    {
+        daq::DevicePtr dev = opendaq_editor.instance_.addDevice("daqref://device0");
+        auto stat = opendaq_editor.instance_.addFunctionBlock("RefFBModuleStatistics");
+        auto power = opendaq_editor.instance_.addFunctionBlock("RefFBModulePower");
+        auto a = dev.addFunctionBlock("RefFBModuleStatistics");
+        a.addFunctionBlock("RefFBModuleTrigger");
+        dev.addFunctionBlock("RefFBModulePower");
+        stat.getInputPorts()[0].connect(power.getSignals()[0]);
+        auto power2 = dev.addFunctionBlock("RefFBModulePower");
+        power2.getInputPorts()[0].connect(stat.getSignals()[0]);
+    }
+    else if (!connection_string.empty())
+    {
+        opendaq_editor.instance_.addDevice(connection_string);
+    }
 
     const char* glsl_version = "#version 130";
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
@@ -115,12 +133,11 @@ int main(int argc, char** argv)
             opendaq_editor.RetrieveTopology(opendaq_editor.instance_);
             nodes_editor.EndBatchAdd();
             opendaq_editor.RetrieveConnections();
-            nodes_editor.SetWarning(power.getGlobalId().toStdString(), "This is a warning message");
             initialized = true;
         }
 
         opendaq_editor.Render();
-        if (false)
+        if (connection_string.empty())
             opendaq_editor.ShowStartupPopup();
         ImGui::ShowDemoWindow();
 
