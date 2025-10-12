@@ -720,6 +720,9 @@ void PropertiesWindow::RenderSelectedComponent(const daq::ComponentPtr& componen
 
 void PropertiesWindow::OnSelectionChanged(const std::vector<daq::ComponentPtr>& selected_components)
 {
+    if (freeze_selection_)
+        return;
+
     selected_components_ = selected_components;
 }
 
@@ -731,6 +734,7 @@ void PropertiesWindow::Render()
         {
             if (ImGui::BeginMenu("Settings"))
             {
+                ImGui::Checkbox("Freeze selection", &freeze_selection_);
                 ImGui::Checkbox("Show parents", &show_parents_);
                 ImGui::Checkbox("Show attributes", &show_attributes_);
                 ImGui::Checkbox("Use tabs for multiple selected components", &tabbed_interface_);

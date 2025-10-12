@@ -7,6 +7,9 @@
 
 void SignalsWindow::OnSelectionChanged(const std::vector<daq::ComponentPtr>& selected_components)
 {
+    if (freeze_selection_)
+        return;
+
     std::unordered_set<std::string> selected_signal_ids;
 
     total_min_ = std::numeric_limits<float>::max();
@@ -66,7 +69,16 @@ void SignalsWindow::OnSelectionChanged(const std::vector<daq::ComponentPtr>& sel
 
 void SignalsWindow::Render()
 {
-    ImGui::Begin("Signal Viewer", NULL);
+    ImGui::Begin("Signal Viewer", NULL, ImGuiWindowFlags_MenuBar);
+    if (ImGui::BeginMenuBar())
+    {
+        if (ImGui::BeginMenu("Settings"))
+        {
+            ImGui::Checkbox("Freeze selection", &freeze_selection_);
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
+    }
 
     if (signals_map_.empty())
     {
