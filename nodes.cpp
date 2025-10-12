@@ -779,9 +779,6 @@ void ImGuiNodes::ProcessInteractions()
 
         case ImGuiNodesState_Selecting:
         {
-            if (blocked_by_imgui_interaction)
-                return;
-
             active_node_ = NULL;
             active_input_ = NULL;
             active_output_ = NULL;
