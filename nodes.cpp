@@ -539,7 +539,7 @@ void ImGuiNodes::ProcessInteractions()
 
     if (ImGui::IsMouseDoubleClicked(0))
     {
-        if (OtherImGuiWindowIsBlockingInteraction() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId))
+        if (OtherImGuiWindowIsBlockingInteraction() || ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId))
             return;
 
         switch (state_)
@@ -591,7 +591,7 @@ void ImGuiNodes::ProcessInteractions()
 
     if (ImGui::IsMouseClicked(0))
     {
-        if (OtherImGuiWindowIsBlockingInteraction() && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId))
+        if (OtherImGuiWindowIsBlockingInteraction() || ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId))
         {
             blocked_by_imgui_interaction = true;
             return;
@@ -659,7 +659,7 @@ void ImGuiNodes::ProcessInteractions()
 
     if (ImGui::IsMouseDragging(0))
     {
-        if (blocked_by_imgui_interaction && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId))
+        if (blocked_by_imgui_interaction || ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId))
             return;
             
         switch (state_)
@@ -755,7 +755,10 @@ void ImGuiNodes::ProcessInteractions()
 
     if (ImGui::IsMouseReleased(0))
     {
-        blocked_by_imgui_interaction = false;
+        if (OtherImGuiWindowIsBlockingInteraction() || ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId))
+            blocked_by_imgui_interaction = true;
+        else
+            blocked_by_imgui_interaction = false;
 
         switch (state_)
         {
@@ -776,6 +779,9 @@ void ImGuiNodes::ProcessInteractions()
 
         case ImGuiNodesState_Selecting:
         {
+            if (blocked_by_imgui_interaction)
+                return;
+
             active_node_ = NULL;
             active_input_ = NULL;
             active_output_ = NULL;
