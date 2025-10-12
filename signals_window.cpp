@@ -37,6 +37,12 @@ void SignalsWindow::OnSelectionChanged(const std::vector<daq::ComponentPtr>& sel
             for (const auto& signal : device.getSignals())
                 add_signal(signal);
         }
+        else if (canCastTo<daq::IInputPort>(component))
+        {
+            daq::InputPortPtr port = castTo<daq::IInputPort>(component);
+            if (port.getSignal().assigned())
+                add_signal(port.getSignal());
+        }
         else if (canCastTo<daq::ISignal>(component))
         {
             add_signal(castTo<daq::ISignal>(component));
