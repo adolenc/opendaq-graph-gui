@@ -32,37 +32,42 @@ OpenDAQSignal::OpenDAQSignal(daq::SignalPtr signal, float seconds_shown, int max
         .setSkipEvents(true)
         .build();
 
+    read_values = std::vector<double>(READ_BUFFER_SIZE);
+    read_times = std::vector<int64_t>(READ_BUFFER_SIZE);
+
     plot_values_avg_ = std::vector<double>(max_points);
     plot_values_min_ = std::vector<double>(max_points);
     plot_values_max_ = std::vector<double>(max_points);
     plot_times_seconds_ = std::vector<double>(max_points);
+
+    leftover_samples_ = 0;
     
     start_time_ = -1;
 }
 
 void OpenDAQSignal::Update()
 {
-    static size_t READ_BUFFER_SIZE = 1024 * 10;
-    static std::vector<double> read_values(READ_BUFFER_SIZE);
-    static std::vector<int64_t> read_times(READ_BUFFER_SIZE);
-
     if (reader_ == nullptr || !reader_.assigned())
         return;
 
     while (true)
     {
-        daq::SizeT read_count = READ_BUFFER_SIZE;
+        daq::SizeT read_count = READ_BUFFER_SIZE - leftover_samples_;
         if (has_domain_signal_)
-            reader_.readWithDomain(read_values.data(), read_times.data(), &read_count);
+            reader_.readWithDomain(read_values.data() + leftover_samples_, read_times.data() + leftover_samples_, &read_count);
         else
-            reader_.read(read_values.data(), &read_count);
+            reader_.read(read_values.data() + leftover_samples_, &read_count);
+
         if (read_count == 0)
             break;
+
+        read_count += leftover_samples_;
         
         if (start_time_ == -1)
             start_time_ = read_times[0];
 
-        for (size_t i = 0, read_pos = 0; i + samples_per_plot_sample_ < read_count; i += samples_per_plot_sample_)
+        size_t read_samples_evaluated, read_pos;
+        for (read_samples_evaluated = 0, read_pos = 0; read_samples_evaluated + samples_per_plot_sample_ < read_count; read_samples_evaluated += samples_per_plot_sample_)
         {
             plot_times_seconds_[pos_in_plot_buffer_] = (read_times[read_pos]) * tick_resolution_.getNumerator() / (double)tick_resolution_.getDenominator();
             plot_values_avg_[pos_in_plot_buffer_] = 0;
@@ -80,5 +85,13 @@ void OpenDAQSignal::Update()
             pos_in_plot_buffer_ += 1; if (pos_in_plot_buffer_ >= plot_values_avg_.size()) pos_in_plot_buffer_ = 0;
             points_in_plot_buffer_ = std::min(points_in_plot_buffer_ + 1, plot_values_avg_.size());
         }
+        int new_leftover_samples = read_count - read_samples_evaluated;
+        for (int j = 0; j < new_leftover_samples; ++j, ++read_pos)
+        {
+            read_values[j] = read_values[read_pos];
+            if (has_domain_signal_)
+                read_times[j] = read_times[read_pos];
+        }
+        leftover_samples_ = new_leftover_samples;
     }
 }

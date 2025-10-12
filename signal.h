@@ -30,5 +30,10 @@ private:
     daq::StreamReaderPtr reader_;
     daq::RatioPtr tick_resolution_;
     int64_t start_time_{-1};
+    int leftover_samples_{0};
     float samples_per_plot_sample_ = 1.0f;
+
+    static constexpr size_t READ_BUFFER_SIZE = 1024 * 10;
+    std::vector<double> read_values;
+    std::vector<int64_t> read_times;
 };
