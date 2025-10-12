@@ -1021,7 +1021,7 @@ void ImGuiNodes::ProcessNodes()
             if (node->parent_node_)
             {
                 ImVec2 head_offset(0.0f, node->area_name_.GetHeight() * 0.8f);
-                RenderConnection(offset + (node->area_node_.GetTL() + head_offset) * scale_, offset + (node->parent_node_->area_node_.GetTR() + head_offset) * scale_, ImColor(0.0f, 1.0f, 0.0f, 0.05f), 10.0f);
+                RenderConnection(offset + (node->area_node_.GetTL() + head_offset) * scale_, offset + (node->parent_node_->area_node_.GetTR() + head_offset) * scale_, ImGuiNodes::parent_connection_color_, 10.0f);
             }
         }
     }
@@ -1130,8 +1130,8 @@ void ImGuiNodes::ProcessNodes()
         {
             RenderConnection(ImVec2(active_dragging_connection_.x, active_dragging_connection_.y), 
                              ImVec2(active_dragging_connection_.z, active_dragging_connection_.w), 
-                             ImColor(0.0f, 1.0f, 0.0f, 0.05f), // Green with slight transparency like existing parent connections
-                            10.0f);
+                             ImGuiNodes::parent_connection_color_,
+                             10.0f);
         }
         else
         {
