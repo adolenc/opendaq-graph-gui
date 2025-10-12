@@ -2,13 +2,23 @@
 #include "opendaq_control.h"
 #include "imgui.h"
 #include "implot.h"
+#include <unordered_set>
 
 
 void SignalsWindow::OnSelectionChanged(const std::vector<daq::ComponentPtr>& selected_components)
 {
-    signals_map_.clear();
+    std::unordered_set<std::string> selected_signal_ids;
+
     total_min_ = std::numeric_limits<float>::max();
     total_max_ = std::numeric_limits<float>::lowest();
+
+    auto add_signal = [&](const daq::SignalPtr& signal)
+    {
+        std::string signal_id = signal.getGlobalId().toStdString();
+        selected_signal_ids.insert(signal_id);
+        if (signals_map_.find(signal_id) == signals_map_.end())
+            signals_map_[signal_id] = OpenDAQSignal(signal, 5.0, 2000);
+    };
 
     for (const auto& component : selected_components)
     {
@@ -19,26 +29,26 @@ void SignalsWindow::OnSelectionChanged(const std::vector<daq::ComponentPtr>& sel
         {
             daq::FunctionBlockPtr fb = castTo<daq::IFunctionBlock>(component);
             for (const auto& signal : fb.getSignals())
-            {
-                std::string signal_id = signal.getGlobalId().toStdString();
-                signals_map_[signal_id] = OpenDAQSignal(signal, 5.0, 2000);
-            }
+                add_signal(signal);
         }
         else if (canCastTo<daq::IDevice>(component))
         {
             daq::DevicePtr device = castTo<daq::IDevice>(component);
             for (const auto& signal : device.getSignals())
-            {
-                std::string signal_id = signal.getGlobalId().toStdString();
-                signals_map_[signal_id] = OpenDAQSignal(signal, 5.0, 2000);
-            }
+                add_signal(signal);
         }
         else if (canCastTo<daq::ISignal>(component))
         {
-            daq::SignalPtr signal = castTo<daq::ISignal>(component);
-            std::string signal_id = signal.getGlobalId().toStdString();
-            signals_map_[signal_id] = OpenDAQSignal(signal, 5.0, 2000);
+            add_signal(castTo<daq::ISignal>(component));
         }
+    }
+
+    for (auto it = signals_map_.begin(); it != signals_map_.end(); )
+    {
+        if (std::find(selected_signal_ids.begin(), selected_signal_ids.end(), it->second.signal_id_) == selected_signal_ids.end())
+            it = signals_map_.erase(it);
+        else
+            ++it;
     }
 
     for (auto& [_, signal] : signals_map_)

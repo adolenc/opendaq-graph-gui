@@ -4,6 +4,7 @@
 OpenDAQSignal::OpenDAQSignal(daq::SignalPtr signal, float seconds_shown, int max_points)
 {
     signal_name_ = signal.getName().toStdString();
+    signal_id_ = signal.getGlobalId().toStdString();
     if (signal.getDescriptor().assigned() && signal.getDescriptor().getUnit().assigned() && signal.getDescriptor().getUnit().getSymbol().assigned())
         signal_unit_ = signal.getDescriptor().getUnit().getSymbol().toStdString();
     else

@@ -21,6 +21,7 @@ public:
     size_t points_in_plot_buffer_ = 0;
 
     std::string signal_name_{""};
+    std::string signal_id_{""};
     std::string signal_unit_{""};
     float value_range_min_ = -5.0f;
     float value_range_max_ = 5.0f;
