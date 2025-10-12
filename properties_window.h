@@ -11,6 +11,7 @@ public:
 
     static std::string SampleTypeToString(daq::SampleType sample_type);
     static std::string CoreTypeToString(daq::CoreType core_type);
+    static std::string OperationModeToString(daq::OperationModeType mode);
     
 private:
     void RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_holder);

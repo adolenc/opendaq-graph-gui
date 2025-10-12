@@ -151,6 +151,18 @@ std::string PropertiesWindow::CoreTypeToString(daq::CoreType core_type)
     }
 }
 
+std::string PropertiesWindow::OperationModeToString(daq::OperationModeType mode)
+{
+    switch (mode)
+    {
+        case daq::OperationModeType::Unknown: return "Unknown";
+        case daq::OperationModeType::Idle: return "Idle";
+        case daq::OperationModeType::Operation: return "Operation";
+        case daq::OperationModeType::SafeOperation: return "Safe Operation";
+        default: return "Unknown";
+    }
+}
+
 void PropertiesWindow::RenderDescriptorAttribute(const std::string& name, const daq::BaseObjectPtr& value, int depth)
 {
     if (!value.assigned())
@@ -380,6 +392,37 @@ void PropertiesWindow::RenderAllDescriptorAttributes(const daq::DataDescriptorPt
 
 void PropertiesWindow::RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component)
 {
+    if (canCastTo<daq::IDevice>(component))
+    {
+        daq::DevicePtr device = castTo<daq::IDevice>(component);
+        try
+        {
+            auto available_modes = device.getAvailableOperationModes();
+            if (!available_modes.assigned() || available_modes.getCount() == 0)
+                return;
+
+            auto current_mode = device.getOperationMode();
+            std::vector<daq::OperationModeType> mode_types;
+            int current_index = 0;
+            std::stringstream modes_str;
+            for (size_t i = 0; i < available_modes.getCount(); i++)
+            {
+                auto mode_type = static_cast<daq::OperationModeType>((int)available_modes.getItemAt(i));
+                mode_types.push_back(mode_type);
+                modes_str << OperationModeToString(mode_type) << '\0';
+                if (mode_type == current_mode)
+                    current_index = i;
+            }
+
+            if (ImGui::Combo("OperationMode", &current_index, modes_str.str().c_str(), mode_types.size()))
+                device.setOperationMode(mode_types[current_index]);
+            ImGui::Dummy(ImVec2(0.0f, 10.0f));
+        }
+        catch (...)
+        {
+        }
+    }
+
     daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(component);
     for (const auto& property : property_holder.getVisibleProperties())
     {
