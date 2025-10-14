@@ -1,10 +1,83 @@
 #include "properties_window.h"
+#include "property_cache.h"
 #include "opendaq_control.h"
 #include <string>
 #include <sstream>
 #include "imgui.h"
 #include "imgui_stdlib.h"
 
+
+void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
+{
+    std::string prop_name_for_display = cached_prop.name_;
+    if (cached_prop.property_.getUnit().assigned() && cached_prop.property_.getUnit().getSymbol().assigned())
+        prop_name_for_display += " [" + static_cast<std::string>(cached_prop.property_.getUnit().getSymbol().toString()) + ']';
+
+    if (cached_prop.read_only_)
+        ImGui::BeginDisabled();
+
+    switch (cached_prop.type_)
+    {
+        case daq::ctBool:
+            assert(std::holds_alternative<bool>(cached_prop.value_));
+            {
+                bool value = std::get<bool>(cached_prop.value_);
+                if (ImGui::Checkbox(prop_name_for_display.c_str(), &value))
+                    cached_prop.SetValue(value);
+            }
+            break;
+        case daq::ctInt:
+            assert(std::holds_alternative<int64_t>(cached_prop.value_));
+            {
+                if (cached_prop.selection_values_count_ > 0)
+                {
+                    assert(cached_prop.selection_values_);
+                    int value = std::get<int64_t>(cached_prop.value_);
+                    if (ImGui::Combo(prop_name_for_display.c_str(), &value, cached_prop.selection_values_->c_str(), cached_prop.selection_values_count_))
+                        cached_prop.SetValue((int64_t)value);
+                }
+                else
+                {
+                    int value = std::get<int64_t>(cached_prop.value_);
+                    if (ImGui::InputInt(prop_name_for_display.c_str(), &value))
+                        cached_prop.SetValue((int64_t)value);
+                }
+            }
+            break;
+        case daq::ctFloat:
+            assert(std::holds_alternative<double>(cached_prop.value_));
+            {
+                double value = std::get<double>(cached_prop.value_);
+                if (ImGui::InputDouble(prop_name_for_display.c_str(), &value))
+                    cached_prop.SetValue(value);
+            }
+            break;
+        case daq::ctString:
+            assert(std::holds_alternative<std::string>(cached_prop.value_));
+            {
+                std::string value = std::get<std::string>(cached_prop.value_);
+                if (ImGui::InputText(prop_name_for_display.c_str(), &value))
+                    cached_prop.SetValue(value);
+            }
+            break;
+        case daq::ctProc:
+            if (ImGui::Button(prop_name_for_display.c_str()))
+                cached_prop.SetValue({});
+            break;
+        case daq::ctObject:
+            ImGui::Text("!Unsupported: %s", prop_name_for_display.c_str());
+            break;
+        default:
+            {
+                std::string n = "!Unsupported prop t" + std::to_string(cached_prop.property_.getValueType()) + ": " + prop_name_for_display;
+                ImGui::Text("%s", n.c_str());
+                break;
+            }
+    }
+
+    if (cached_prop.read_only_)
+        ImGui::EndDisabled();
+}
 
 void PropertiesWindow::RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_holder)
 {
@@ -441,6 +514,18 @@ void PropertiesWindow::RenderAllDescriptorAttributes(const daq::DataDescriptorPt
     }
 }
 
+void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component)
+{
+    if (cached_component.components_.empty() || !cached_component.components_[0].assigned())
+        return;
+
+    for (auto& cached_prop : cached_component.properties_)
+        RenderCachedProperty(cached_prop);
+    
+    if (cached_component.needs_refresh_)
+        cached_component.Refresh();
+}
+
 void PropertiesWindow::RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component)
 {
     RenderComponentStatus(component);
@@ -724,6 +809,13 @@ void PropertiesWindow::OnSelectionChanged(const std::vector<daq::ComponentPtr>& 
         return;
 
     selected_components_ = selected_components;
+    
+    cached_components_.clear();
+    for (const auto& component : selected_components_)
+    {
+        if (component.assigned())
+            cached_components_.push_back(std::make_unique<CachedComponent>(component));
+    }
 }
 
 void PropertiesWindow::Render()
@@ -744,31 +836,42 @@ void PropertiesWindow::Render()
             ImGui::EndMenuBar();
         }
 
-        if (selected_components_.empty())
+        if (cached_components_.empty())
         {
             ImGui::Text("No component selected");
         }
-        else if (selected_components_.size() == 1)
+        else if (cached_components_.size() == 1)
         {
-            daq::ComponentPtr component = selected_components_[0];
-            if (component == nullptr || !component.assigned())
-                return;
-
-            RenderSelectedComponent(component);
+            ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextBorderSize, 0.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(5.0f, 5.0f));
+            
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+            ImGui::SeparatorText(("[" + cached_components_[0]->name_ + "]").c_str());
+            ImGui::PopStyleColor();
+            
+            RenderCachedComponent(*cached_components_[0]);
+            
+            ImGui::PopStyleVar(2);
         }
         else if (tabbed_interface_)
         {
             if (ImGui::BeginTabBar("Selected components"))
             {
                 int uid = 0;
-                for (const auto& component : selected_components_)
+                for (auto& cached_component : cached_components_)
                 {
-                    if (component == nullptr || !component.assigned())
-                        continue;
-
-                    if (ImGui::BeginTabItem((component.getName().toStdString() + "##" + std::to_string(uid++)).c_str()))
+                    if (ImGui::BeginTabItem((cached_component->name_ + "##" + std::to_string(uid++)).c_str()))
                     {
-                        RenderSelectedComponent(component);
+                        ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextBorderSize, 0.0f);
+                        ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(5.0f, 5.0f));
+                        
+                        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+                        ImGui::SeparatorText(("[" + cached_component->name_ + "]").c_str());
+                        ImGui::PopStyleColor();
+                        
+                        RenderCachedComponent(*cached_component);
+                        
+                        ImGui::PopStyleVar(2);
                         ImGui::EndTabItem();
                     }
                 }
@@ -778,13 +881,20 @@ void PropertiesWindow::Render()
         else
         {
             int uid = 0;
-            for (const auto& component : selected_components_)
+            for (auto& cached_component : cached_components_)
             {
-                if (component == nullptr || !component.assigned())
-                    continue;
-
-                ImGui::BeginChild((component.getName().toStdString() + "##" + std::to_string(uid++)).c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
-                RenderSelectedComponent(component);
+                ImGui::BeginChild((cached_component->name_ + "##" + std::to_string(uid++)).c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
+                
+                ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextBorderSize, 0.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(5.0f, 5.0f));
+                
+                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+                ImGui::SeparatorText(("[" + cached_component->name_ + "]").c_str());
+                ImGui::PopStyleColor();
+                
+                RenderCachedComponent(*cached_component);
+                
+                ImGui::PopStyleVar(2);
                 ImGui::EndChild();
 
                 ImGui::SameLine();

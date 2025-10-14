@@ -2,6 +2,8 @@
 #include <opendaq/opendaq.h>
 #include <vector>
 #include <string>
+#include <memory>
+#include "property_cache.h"
 
 class PropertiesWindow
 {
@@ -14,6 +16,8 @@ public:
     static std::string OperationModeToString(daq::OperationModeType mode);
     
 private:
+    void RenderCachedProperty(CachedProperty& cached_prop);
+    void RenderCachedComponent(CachedComponent& cached_component);
     void RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_holder);
     void RenderDescriptorAttribute(const std::string& name, const daq::BaseObjectPtr& value, int depth);
     void RenderAllDescriptorAttributes(const daq::DataDescriptorPtr& descriptor, const std::string& title);
@@ -22,6 +26,7 @@ private:
     void RenderComponentStatus(const daq::ComponentPtr& component);
     
     std::vector<daq::ComponentPtr> selected_components_;
+    std::vector<std::unique_ptr<CachedComponent>> cached_components_;
     bool freeze_selection_ = false;
     bool show_parents_ = false;
     bool tabbed_interface_ = false;
