@@ -43,18 +43,16 @@ void CachedComponent::Refresh()
                     cached.value_ = (bool)property_holder.getPropertyValue(cached.name_);
                     break;
                 case daq::ctInt:
-                {
                     cached.value_ = (int64_t)property_holder.getPropertyValue(cached.name_);
                     break;
-                }
                 case daq::ctFloat:
                     cached.value_ = (double)property_holder.getPropertyValue(cached.name_);
                     break;
                 case daq::ctString:
                     cached.value_ = static_cast<std::string>(property_holder.getPropertyValue(cached.name_));
                     break;
-                case daq::ctProc:
                 case daq::ctObject:
+                    // TODO: descend recursively
                     break;
                 default:
                     break;
@@ -65,7 +63,7 @@ void CachedComponent::Refresh()
         if (auto sv = prop.getSelectionValues(); sv.assigned())
         {
             std::stringstream values;
-            daq::ListPtr<daq::IString> selection_values;
+            daq::ListPtr<daq::IBaseObject> selection_values;
             if (sv.supportsInterface<daq::IList>())
                 selection_values = sv;
             else if (sv.supportsInterface<daq::IDict>())
@@ -74,7 +72,15 @@ void CachedComponent::Refresh()
             if (selection_values.assigned())
             {
                 for (int i = 0; i < selection_values.getCount(); i++)
-                    values << selection_values.getItemAt(i).toStdString() << '\0';
+                {
+                    auto val = selection_values.getItemAt(i);
+                    if (val.supportsInterface<daq::IInteger>())
+                        values << std::to_string((int64_t)val) << '\0';
+                    else if (val.supportsInterface<daq::IFloat>())
+                        values << std::to_string((double)val) << '\0';
+                    else
+                        values << static_cast<std::string>(val) << '\0';
+                }
                 cached.selection_values_ = values.str();
                 cached.selection_values_count_ = selection_values.getCount();
             }
