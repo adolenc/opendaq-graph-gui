@@ -620,47 +620,6 @@ void PropertiesWindow::RenderComponentPropertiesAndAttributes(const daq::Compone
     if (!show_attributes_)
         return;
 
-    {
-        daq::ListPtr<daq::IString> tags = component.getTags().getList();
-        std::stringstream tags_value;
-        tags_value << "[";
-        for (int i = 0; i < tags.getCount(); i++)
-        {
-            if (i != 0)
-                tags_value << ", ";
-            tags_value << tags.getItemAt(i).toStdString();
-        }
-        tags_value << "]";
-        ImGui::BeginDisabled();
-        std::string tags_str = tags_value.str();
-        ImGui::InputText("Tags", &tags_str);
-        ImGui::EndDisabled();
-    }
-    {
-        std::string value = "unknown";
-        try
-        {
-            if (component.supportsInterface<daq::IFunctionBlock>())
-            {
-                if (auto fb_type = component.asPtr<daq::IFunctionBlock>().getFunctionBlockType(); fb_type.assigned())
-                    value = fb_type.getId().toStdString();
-            }
-            else if (component.supportsInterface<daq::IDevice>())
-            {
-                if (auto device_info = component.asPtr<daq::IDevice>().getInfo(); device_info.assigned())
-                {
-                    if (auto device_type = device_info.getDeviceType(); device_type.assigned())
-                        value = device_type.getId().toStdString();
-                }
-            }
-        }
-        catch (...) {}
-
-        ImGui::BeginDisabled();
-        ImGui::InputText("Type ID", &value);
-        ImGui::EndDisabled();
-    }
-
     if (canCastTo<daq::ISignal>(component))
     {
         daq::SignalPtr signal = castTo<daq::ISignal>(component);

@@ -187,6 +187,54 @@ void CachedComponent::Refresh()
         cached.value_ = component_.getGlobalId().toStdString();
         properties_.push_back(cached);
     }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = "@Tags";
+        cached.display_name_ = "Tags";
+        cached.is_read_only_ = true;
+        cached.type_ = daq::ctString;
+        daq::ListPtr<daq::IString> tags = component_.getTags().getList();
+        std::stringstream tags_value;
+        tags_value << "[";
+        for (int i = 0; i < tags.getCount(); i++)
+        {
+            if (i != 0)
+                tags_value << ", ";
+            tags_value << tags.getItemAt(i).toStdString();
+        }
+        tags_value << "]";
+        cached.value_ = tags_value.str();
+        properties_.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = "@TypeID";
+        cached.display_name_ = "Type ID";
+        cached.is_read_only_ = true;
+        cached.type_ = daq::ctString;
+        std::string value = "unknown";
+        try
+        {
+            if (component_.supportsInterface<daq::IFunctionBlock>())
+            {
+                if (auto fb_type = component_.asPtr<daq::IFunctionBlock>().getFunctionBlockType(); fb_type.assigned())
+                    value = fb_type.getId().toStdString();
+            }
+            else if (component_.supportsInterface<daq::IDevice>())
+            {
+                if (auto device_info = component_.asPtr<daq::IDevice>().getInfo(); device_info.assigned())
+                {
+                    if (auto device_type = device_info.getDeviceType(); device_type.assigned())
+                        value = device_type.getId().toStdString();
+                }
+            }
+        }
+        catch (...) {}
+        cached.value_ = value;
+        properties_.push_back(cached);
+    }
 
     if (canCastTo<daq::IDevice>(component_))
     {
