@@ -512,6 +512,26 @@ void PropertiesWindow::RenderAllDescriptorAttributes(const daq::DataDescriptorPt
 
 void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component)
 {
+    ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(5.0f, 5.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+    ImGui::SeparatorText(("[" + cached_component.name_ + "]").c_str());
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar(2);
+
+    if (cached_component.error_message_)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+        ImGui::TextWrapped("%s", cached_component.error_message_->c_str());
+        ImGui::PopStyleColor();
+    }
+    else if (cached_component.warning_message_)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.7f, 0.2f, 1.0f));
+        ImGui::TextWrapped("%s", cached_component.warning_message_->c_str());
+        ImGui::PopStyleColor();
+    }
+
     for (auto& cached_prop : cached_component.properties_)
         RenderCachedProperty(cached_prop);
     
@@ -835,16 +855,7 @@ void PropertiesWindow::Render()
         }
         else if (cached_components_.size() == 1)
         {
-            ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextBorderSize, 0.0f);
-            ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(5.0f, 5.0f));
-            
-            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-            ImGui::SeparatorText(("[" + cached_components_[0]->name_ + "]").c_str());
-            ImGui::PopStyleColor();
-            
             RenderCachedComponent(*cached_components_[0]);
-            
-            ImGui::PopStyleVar(2);
         }
         else if (tabbed_interface_)
         {
@@ -855,16 +866,7 @@ void PropertiesWindow::Render()
                 {
                     if (ImGui::BeginTabItem((cached_component->name_ + "##" + std::to_string(uid++)).c_str()))
                     {
-                        ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextBorderSize, 0.0f);
-                        ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(5.0f, 5.0f));
-                        
-                        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-                        ImGui::SeparatorText(("[" + cached_component->name_ + "]").c_str());
-                        ImGui::PopStyleColor();
-                        
                         RenderCachedComponent(*cached_component);
-                        
-                        ImGui::PopStyleVar(2);
                         ImGui::EndTabItem();
                     }
                 }
@@ -877,19 +879,10 @@ void PropertiesWindow::Render()
             for (auto& cached_component : cached_components_)
             {
                 ImGui::BeginChild((cached_component->name_ + "##" + std::to_string(uid++)).c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
-                
-                ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextBorderSize, 0.0f);
-                ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(5.0f, 5.0f));
-                
-                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-                ImGui::SeparatorText(("[" + cached_component->name_ + "]").c_str());
-                ImGui::PopStyleColor();
-                
-                RenderCachedComponent(*cached_component);
-                
-                ImGui::PopStyleVar(2);
-                ImGui::EndChild();
 
+                RenderCachedComponent(*cached_component);
+
+                ImGui::EndChild();
                 ImGui::SameLine();
             }
         }
