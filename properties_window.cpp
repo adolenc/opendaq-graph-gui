@@ -9,7 +9,7 @@
 
 void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
 {
-    if (cached_prop.read_only_)
+    if (cached_prop.is_read_only_)
         ImGui::BeginDisabled();
 
     switch (cached_prop.type_)
@@ -71,7 +71,9 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
             }
     }
 
-    if (cached_prop.read_only_)
+    // ImGui::Unindent();
+
+    if (cached_prop.is_read_only_)
         ImGui::EndDisabled();
 }
 

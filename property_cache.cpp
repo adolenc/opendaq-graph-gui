@@ -12,11 +12,82 @@ static std::string OperationModeToString(daq::OperationModeType mode)
 {
     switch (mode)
     {
-        case daq::OperationModeType::Unknown: return "Unknown";
         case daq::OperationModeType::Idle: return "Idle";
         case daq::OperationModeType::Operation: return "Operation";
         case daq::OperationModeType::SafeOperation: return "Safe Operation";
         default: return "Unknown";
+    }
+}
+
+void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr property_holder, int depth)
+{
+    // add it first so that recursion works out nicely
+    properties_.push_back(CachedProperty());
+    CachedProperty& cached = properties_.back();
+    cached.property_ = prop;
+    cached.owner_ = this;
+    cached.depth_ = depth;
+    cached.name_ = prop.getName().toStdString();
+    cached.unit_ = (prop.getUnit().assigned() && prop.getUnit().getSymbol().assigned()) ? static_cast<std::string>(prop.getUnit().getSymbol()) : "";
+    cached.display_name_ = cached.name_ + (cached.unit_.empty() ? "" : " [" + cached.unit_ + "]");
+    cached.is_read_only_ = prop.getReadOnly();
+    if (prop.getMinValue().assigned()) cached.min_value_ = (double)prop.getMinValue();
+    if (prop.getMaxValue().assigned()) cached.max_value_ = (double)prop.getMaxValue();
+    cached.type_ = prop.getValueType();
+
+    try
+    {
+        switch (cached.type_)
+        {
+            case daq::ctBool:
+                cached.value_ = (bool)property_holder.getPropertyValue(cached.name_);
+                break;
+            case daq::ctInt:
+                cached.value_ = (int64_t)property_holder.getPropertyValue(cached.name_);
+                break;
+            case daq::ctFloat:
+                cached.value_ = (double)property_holder.getPropertyValue(cached.name_);
+                break;
+            case daq::ctString:
+                cached.value_ = static_cast<std::string>(property_holder.getPropertyValue(cached.name_));
+                break;
+            case daq::ctObject:
+                {
+                    daq::PropertyObjectPtr parent = property_holder.getPropertyValue(cached.name_);
+                    for (const auto& sub_property : parent.getVisibleProperties())
+                        AddProperty(sub_property, parent, depth + 1);
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    catch (...) {}
+
+    if (auto sv = prop.getSelectionValues(); sv.assigned())
+    {
+        std::stringstream values;
+        daq::ListPtr<daq::IBaseObject> selection_values;
+        if (sv.supportsInterface<daq::IList>())
+            selection_values = sv;
+        else if (sv.supportsInterface<daq::IDict>())
+            selection_values = daq::DictPtr<daq::IInteger, daq::IString>(sv).getValueList();
+        
+        if (selection_values.assigned())
+        {
+            for (int i = 0; i < selection_values.getCount(); i++)
+            {
+                auto val = selection_values.getItemAt(i);
+                if (val.supportsInterface<daq::IInteger>())
+                    values << std::to_string((int64_t)val) << '\0';
+                else if (val.supportsInterface<daq::IFloat>())
+                    values << std::to_string((double)val) << '\0';
+                else
+                    values << static_cast<std::string>(val) << '\0';
+            }
+            cached.selection_values_ = values.str();
+            cached.selection_values_count_ = selection_values.getCount();
+        }
     }
 }
 
@@ -65,7 +136,7 @@ void CachedComponent::Refresh()
             cached.owner_ = this;
             cached.name_ = "@OperationMode";
             cached.display_name_ = "Operation Mode";
-            cached.read_only_ = false;
+            cached.is_read_only_ = false;
             cached.type_ = daq::ctInt;
 
             auto current_mode = device.getOperationMode();
@@ -86,71 +157,7 @@ void CachedComponent::Refresh()
 
     daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(component_);
     for (const auto& prop : property_holder.getVisibleProperties())
-    {
-        CachedProperty cached;
-        cached.property_ = prop;
-        cached.owner_ = this;
-        cached.name_ = prop.getName().toStdString();
-        cached.unit_ = (prop.getUnit().assigned() && prop.getUnit().getSymbol().assigned()) ? static_cast<std::string>(prop.getUnit().getSymbol()) : "";
-        cached.display_name_ = cached.name_ + (cached.unit_.empty() ? "" : " [" + cached.unit_ + "]");
-        cached.read_only_ = prop.getReadOnly();
-        if (prop.getMinValue().assigned()) cached.min_value_ = (double)prop.getMinValue();
-        if (prop.getMaxValue().assigned()) cached.max_value_ = (double)prop.getMaxValue();
-        cached.type_ = prop.getValueType();
-
-        try
-        {
-            switch (cached.type_)
-            {
-                case daq::ctBool:
-                    cached.value_ = (bool)property_holder.getPropertyValue(cached.name_);
-                    break;
-                case daq::ctInt:
-                    cached.value_ = (int64_t)property_holder.getPropertyValue(cached.name_);
-                    break;
-                case daq::ctFloat:
-                    cached.value_ = (double)property_holder.getPropertyValue(cached.name_);
-                    break;
-                case daq::ctString:
-                    cached.value_ = static_cast<std::string>(property_holder.getPropertyValue(cached.name_));
-                    break;
-                case daq::ctObject:
-                    // TODO: descend recursively
-                    break;
-                default:
-                    break;
-            }
-        }
-        catch (...) {}
-
-        if (auto sv = prop.getSelectionValues(); sv.assigned())
-        {
-            std::stringstream values;
-            daq::ListPtr<daq::IBaseObject> selection_values;
-            if (sv.supportsInterface<daq::IList>())
-                selection_values = sv;
-            else if (sv.supportsInterface<daq::IDict>())
-                selection_values = daq::DictPtr<daq::IInteger, daq::IString>(sv).getValueList();
-            
-            if (selection_values.assigned())
-            {
-                for (int i = 0; i < selection_values.getCount(); i++)
-                {
-                    auto val = selection_values.getItemAt(i);
-                    if (val.supportsInterface<daq::IInteger>())
-                        values << std::to_string((int64_t)val) << '\0';
-                    else if (val.supportsInterface<daq::IFloat>())
-                        values << std::to_string((double)val) << '\0';
-                    else
-                        values << static_cast<std::string>(val) << '\0';
-                }
-                cached.selection_values_ = values.str();
-                cached.selection_values_count_ = selection_values.getCount();
-            }
-        }
-
-        properties_.push_back(cached);
-    }
+        AddProperty(prop, property_holder);
 }
 
 void CachedProperty::SetValue(ValueType value)
