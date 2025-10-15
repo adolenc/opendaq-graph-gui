@@ -212,40 +212,44 @@ void OpenDAQNodeEditor::OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUi
 
 void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position)
 {
-    daq::DictPtr<daq::IString, daq::IFunctionBlockType> available_fbs;
-    
-    try
+    if (!fb_options_cache_valid_)
     {
-        if (canCastTo<daq::IInstance>(parent_component))
+        try
         {
-            daq::InstancePtr instance = castTo<daq::IInstance>(parent_component);
-            available_fbs = instance.getAvailableFunctionBlockTypes();
+            if (canCastTo<daq::IInstance>(parent_component))
+            {
+                daq::InstancePtr instance = castTo<daq::IInstance>(parent_component);
+                cached_available_fbs_ = instance.getAvailableFunctionBlockTypes();
+            }
+            else if (canCastTo<daq::IDevice>(parent_component))
+            {
+                daq::DevicePtr device = castTo<daq::IDevice>(parent_component);
+                cached_available_fbs_ = device.getAvailableFunctionBlockTypes();
+            }
+            else if (canCastTo<daq::IFunctionBlock>(parent_component))
+            {
+                daq::FunctionBlockPtr function_block = castTo<daq::IFunctionBlock>(parent_component);
+                cached_available_fbs_ = function_block.getAvailableFunctionBlockTypes();
+            }
+            else
+            {
+                cached_available_fbs_ = nullptr;
+            }
         }
-        else if (canCastTo<daq::IDevice>(parent_component))
+        catch (...)
         {
-            daq::DevicePtr device = castTo<daq::IDevice>(parent_component);
-            available_fbs = device.getAvailableFunctionBlockTypes();
+            cached_available_fbs_ = nullptr;
         }
-        else if (canCastTo<daq::IFunctionBlock>(parent_component))
-        {
-            daq::FunctionBlockPtr function_block = castTo<daq::IFunctionBlock>(parent_component);
-            available_fbs = function_block.getAvailableFunctionBlockTypes();
-        }
-        else
-            return;
-    }
-    catch (...)
-    {
-        return;
+        fb_options_cache_valid_ = true;
     }
 
-    if (!available_fbs.assigned() || available_fbs.getCount() == 0)
+    if (!cached_available_fbs_.assigned() || cached_available_fbs_.getCount() == 0)
     {
         ImGui::Text("No function blocks available");
         return;
     }
 
-    for (const auto [fb_id, desc] : available_fbs)
+    for (const auto [fb_id, desc] : cached_available_fbs_)
     {
         if (ImGui::MenuItem(fb_id.toStdString().c_str()))
         {
@@ -415,54 +419,69 @@ void OpenDAQNodeEditor::OnAddButtonClick(const ImGui::ImGuiNodesUid& parent_node
 
 void OpenDAQNodeEditor::RenderNestedNodePopup()
 {
+    static bool was_context_menu_open = false;
+    static bool was_nested_menu_open = false;
+
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 
     if (ImGui::BeginPopup("NodesContextMenu", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
     {
+        if (!was_context_menu_open)
+            fb_options_cache_valid_ = false;
+        
         RenderPopupMenu(nodes_, add_button_drop_position_ ? add_button_drop_position_.value() : ImGui::GetMousePos());
         ImGui::EndPopup();
+        was_context_menu_open = true;
+        was_nested_menu_open = false;
         ImGui::PopStyleVar();
         return;
     }
+    was_context_menu_open = false;
 
     if (ImGui::BeginPopup("AddNestedNodeMenu", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
     {
+        if (!was_nested_menu_open)
+            fb_options_cache_valid_ = false;
+
         if (add_button_click_component_ == nullptr)
         {
             ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "No component selected");
-            ImGui::EndPopup();
-            ImGui::PopStyleVar();
-            return;
         }
-
-        bool supports_fbs = canCastTo<daq::IInstance>(add_button_click_component_) || 
-                            canCastTo<daq::IDevice>(add_button_click_component_) || 
-                            canCastTo<daq::IFunctionBlock>(add_button_click_component_);
-        bool supports_devices = canCastTo<daq::IDevice>(add_button_click_component_);
-
-        if (supports_fbs)
+        else
         {
-            ImGui::SeparatorText("Add function block");
-            RenderFunctionBlockOptions(add_button_click_component_, 
-                                      add_button_click_component_.getGlobalId().toStdString(),
-                                      add_button_drop_position_ ? add_button_drop_position_.value() : ImVec2(0, 0));
-        }
+            bool supports_fbs = canCastTo<daq::IInstance>(add_button_click_component_) || 
+                                canCastTo<daq::IDevice>(add_button_click_component_) || 
+                                canCastTo<daq::IFunctionBlock>(add_button_click_component_);
+            bool supports_devices = canCastTo<daq::IDevice>(add_button_click_component_);
 
-        if (supports_devices)
-        {
-            ImGui::SeparatorText("Connect to device");
-            RenderDeviceOptions(add_button_click_component_, 
-                              add_button_click_component_.getGlobalId().toStdString(),
-                              add_button_drop_position_ ? add_button_drop_position_.value() : ImVec2(0, 0));
-        }
+            if (supports_fbs)
+            {
+                ImGui::SeparatorText("Add function block");
+                RenderFunctionBlockOptions(add_button_click_component_, 
+                                          add_button_click_component_.getGlobalId().toStdString(),
+                                          add_button_drop_position_ ? add_button_drop_position_.value() : ImVec2(0, 0));
+            }
 
-        if (!supports_fbs && !supports_devices)
-        {
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "This component doesn't support nested components");
+            if (supports_devices)
+            {
+                ImGui::SeparatorText("Connect to device");
+                RenderDeviceOptions(add_button_click_component_, 
+                                  add_button_click_component_.getGlobalId().toStdString(),
+                                  add_button_drop_position_ ? add_button_drop_position_.value() : ImVec2(0, 0));
+            }
+
+            if (!supports_fbs && !supports_devices)
+            {
+                ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "This component doesn't support nested components");
+            }
         }
         
         ImGui::EndPopup();
+        was_nested_menu_open = true;
+        ImGui::PopStyleVar();
+        return;
     }
+    was_nested_menu_open = false;
 
     if (ImGui::BeginPopup("AddInputMenu", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
     {

@@ -52,6 +52,9 @@ public:
 
     daq::ListPtr<daq::IDeviceInfo> available_devices_;
 
+    bool fb_options_cache_valid_ = false;
+    daq::DictPtr<daq::IString, daq::IFunctionBlockType> cached_available_fbs_;
+
     ImGui::ImGuiNodes* nodes_ = nullptr;
 
     PropertiesWindow properties_window_;
