@@ -12,6 +12,8 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
     if (cached_prop.is_read_only_)
         ImGui::BeginDisabled();
 
+    // ImGui::Indent(cached_prop.depth_ * 10.0f);
+
     switch (cached_prop.type_)
     {
         case daq::ctBool:
@@ -54,6 +56,11 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
                 std::string value = std::get<std::string>(cached_prop.value_);
                 if (ImGui::InputText(cached_prop.display_name_.c_str(), &value))
                     cached_prop.SetValue(value);
+                if (cached_prop.name_ == "@GlobalID" && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone | ImGuiHoveredFlags_AllowWhenDisabled) && ImGui::BeginTooltip())
+                {
+                    ImGui::Text("%s", value.c_str());
+                    ImGui::EndTooltip();
+                }
             }
             break;
         case daq::ctProc:
@@ -65,7 +72,7 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
             break;
         default:
             {
-                std::string n = "!Unsupported prop t" + std::to_string(cached_prop.property_.getValueType()) + ": " + cached_prop.display_name_;
+                std::string n = "!Unsupported prop t" + std::to_string((int)cached_prop.type_) + ": " + cached_prop.display_name_;
                 ImGui::Text("%s", n.c_str());
                 break;
             }
@@ -614,27 +621,6 @@ void PropertiesWindow::RenderComponentPropertiesAndAttributes(const daq::Compone
         return;
 
     {
-        std::string value = component.getName();
-        if (ImGui::InputText("Name", &value))
-            component.setName(value);
-    }
-    {
-        std::string value = component.getDescription();
-        if (ImGui::InputText("Description", &value))
-            component.setDescription(value);
-    }
-    {
-        bool value = component.getActive();
-        if (ImGui::Checkbox("Active", &value))
-            component.setActive(value);
-    }
-    {
-        bool value = component.getVisible();
-        if (ImGui::Checkbox("Visible", &value))
-            component.setVisible(value);
-    }
-    {
-        // tags
         daq::ListPtr<daq::IString> tags = component.getTags().getList();
         std::stringstream tags_value;
         tags_value << "[";
@@ -673,23 +659,6 @@ void PropertiesWindow::RenderComponentPropertiesAndAttributes(const daq::Compone
         ImGui::BeginDisabled();
         ImGui::InputText("Type ID", &value);
         ImGui::EndDisabled();
-    }
-    {
-        std::string value = component.getLocalId();
-        ImGui::BeginDisabled();
-        ImGui::InputText("Local ID", &value);
-        ImGui::EndDisabled();
-    }
-    {
-        std::string value = component.getGlobalId();
-        ImGui::BeginDisabled();
-        ImGui::InputText("Global ID", &value);
-        ImGui::EndDisabled();
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone | ImGuiHoveredFlags_AllowWhenDisabled) && ImGui::BeginTooltip())
-        {
-            ImGui::Text("%s", value.c_str());
-            ImGui::EndTooltip();
-        }
     }
 
     if (canCastTo<daq::ISignal>(component))

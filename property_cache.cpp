@@ -127,6 +127,67 @@ void CachedComponent::Refresh()
         }
     }
 
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = "@Name";
+        cached.display_name_ = "Name";
+        cached.is_read_only_ = false;
+        cached.type_ = daq::ctString;
+        cached.value_ = component_.getName().toStdString();
+        properties_.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = "@Description";
+        cached.display_name_ = "Description";
+        cached.is_read_only_ = false;
+        cached.type_ = daq::ctString;
+        cached.value_ = component_.getDescription().toStdString();
+        properties_.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = "@Active";
+        cached.display_name_ = "Active";
+        cached.is_read_only_ = false;
+        cached.type_ = daq::ctBool;
+        cached.value_ = (bool)component_.getActive();
+        properties_.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = "@Visible";
+        cached.display_name_ = "Visible";
+        cached.is_read_only_ = false;
+        cached.type_ = daq::ctBool;
+        cached.value_ = (bool)component_.getVisible();
+        properties_.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = "@LocalID";
+        cached.display_name_ = "Local ID";
+        cached.is_read_only_ = true;
+        cached.type_ = daq::ctString;
+        cached.value_ = component_.getLocalId().toStdString();
+        properties_.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = "@GlobalID";
+        cached.display_name_ = "Global ID";
+        cached.is_read_only_ = true;
+        cached.type_ = daq::ctString;
+        cached.value_ = component_.getGlobalId().toStdString();
+        properties_.push_back(cached);
+    }
+
     if (canCastTo<daq::IDevice>(component_))
     {
         daq::DevicePtr device = castTo<daq::IDevice>(component_);
@@ -176,6 +237,22 @@ void CachedProperty::SetValue(ValueType value)
                 assert(canCastTo<daq::IDevice>(component));
                 daq::DevicePtr device = castTo<daq::IDevice>(component);
                 device.setOperationMode(device.getAvailableOperationModes().getItemAt(std::get<int64_t>(value)));
+            }
+            else if (name_ == "@Name")
+            {
+                component.setName(std::get<std::string>(value));
+            }
+            else if (name_ == "@Description")
+            {
+                component.setDescription(std::get<std::string>(value));
+            }
+            else if (name_ == "@Active")
+            {
+                component.setActive(std::get<bool>(value));
+            }
+            else if (name_ == "@Visible")
+            {
+                component.setVisible(std::get<bool>(value));
             }
             owner_->needs_refresh_ = true;
             return;
