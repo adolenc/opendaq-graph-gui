@@ -512,9 +512,6 @@ void PropertiesWindow::RenderAllDescriptorAttributes(const daq::DataDescriptorPt
 
 void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component)
 {
-    if (cached_component.components_.empty() || !cached_component.components_[0].assigned())
-        return;
-
     for (auto& cached_prop : cached_component.properties_)
         RenderCachedProperty(cached_prop);
     

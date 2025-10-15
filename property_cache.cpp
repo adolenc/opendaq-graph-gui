@@ -3,27 +3,88 @@
 
 
 CachedComponent::CachedComponent(daq::ComponentPtr component)
-    : components_({component})
+    : component_(component)
 {
     Refresh();
 }
 
-CachedComponent::CachedComponent(const std::vector<daq::ComponentPtr>& components)
-    : components_(components)
+static std::string OperationModeToString(daq::OperationModeType mode)
 {
-    Refresh();
+    switch (mode)
+    {
+        case daq::OperationModeType::Unknown: return "Unknown";
+        case daq::OperationModeType::Idle: return "Idle";
+        case daq::OperationModeType::Operation: return "Operation";
+        case daq::OperationModeType::SafeOperation: return "Safe Operation";
+        default: return "Unknown";
+    }
 }
 
 void CachedComponent::Refresh()
 {
     needs_refresh_ = false;
 
-    if (components_.empty())
-        return;
-    
+    assert(component_.assigned());
+
     properties_.clear();
-    
-    daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(components_[0]);
+
+    name_ = component_.getName().toStdString();
+    if (auto status_container = component_.getStatusContainer(); status_container.assigned())
+    {
+        if (auto statuses = status_container.getStatuses(); statuses.assigned())
+        {
+            for (const auto& key : statuses.getKeyList())
+            {
+                auto status_value = statuses.get(key);
+                if (!status_value.supportsInterface<daq::IEnumeration>())
+                    continue;
+
+                auto enum_value = status_value.asPtr<daq::IEnumeration>();
+                int severity = enum_value.getIntValue();
+                if (severity == 0) // ok
+                    continue;
+
+                std::string display_text = enum_value.getValue().toStdString();
+                if (auto msg_str = status_container.getStatusMessage(key); msg_str.assigned())
+                    display_text += ": " + msg_str.toStdString();
+
+                if (severity >= 2) 
+                    error_message_ = display_text;
+                else
+                    warning_message_ = display_text;
+            }
+        }
+    }
+
+    if (canCastTo<daq::IDevice>(component_))
+    {
+        daq::DevicePtr device = castTo<daq::IDevice>(component_);
+        if (auto available_modes = device.getAvailableOperationModes(); available_modes.assigned() && available_modes.getCount() > 0)
+        {
+            CachedProperty cached;
+            cached.owner_ = this;
+            cached.name_ = "@OperationMode";
+            cached.display_name_ = "Operation Mode";
+            cached.read_only_ = false;
+            cached.type_ = daq::ctInt;
+
+            auto current_mode = device.getOperationMode();
+            int current_index = 0;
+            std::stringstream modes_str;
+            for (size_t i = 0; i < available_modes.getCount(); i++)
+            {
+                auto mode_type = static_cast<daq::OperationModeType>((int)available_modes.getItemAt(i));
+                modes_str << OperationModeToString(mode_type) << '\0';
+                if (mode_type == current_mode)
+                    cached.value_ = (int64_t)i;
+            }
+            cached.selection_values_ = modes_str.str();
+            cached.selection_values_count_ = available_modes.getCount();
+            properties_.push_back(cached);
+        }
+    }
+
+    daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(component_);
     for (const auto& prop : property_holder.getVisibleProperties())
     {
         CachedProperty cached;
@@ -94,33 +155,47 @@ void CachedComponent::Refresh()
 
 void CachedProperty::SetValue(ValueType value)
 {
-    for (daq::ComponentPtr component : owner_->components_)
+    daq::ComponentPtr component = owner_->component_;
+    if (!component.assigned())
+        return;
+
+    try
     {
-        if (!component.assigned())
-            continue;
-
-        try
+        // attribute changes have special non-generic logic
+        if (name_.size() > 1 && name_[0] == '@')
         {
-            if (!canCastTo<daq::IPropertyObject>(component))
-                continue;
-
-            daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(component);
-
-            if (type_ == daq::ctProc)
-                property_holder.getPropertyValue(name_).asPtr<daq::IProcedure>().dispatch();
-            else if (std::holds_alternative<bool>(value))
-                property_holder.setPropertyValue(name_, std::get<bool>(value));
-            else if (std::holds_alternative<int64_t>(value))
-                property_holder.setPropertyValue(name_, std::get<int64_t>(value));
-            else if (std::holds_alternative<double>(value))
-                property_holder.setPropertyValue(name_, std::get<double>(value));
-            else if (std::holds_alternative<std::string>(value))
-                property_holder.setPropertyValue(name_, std::get<std::string>(value));
-
+            if (name_ == "@OperationMode")
+            {
+                assert(canCastTo<daq::IDevice>(component));
+                daq::DevicePtr device = castTo<daq::IDevice>(component);
+                device.setOperationMode(device.getAvailableOperationModes().getItemAt(std::get<int64_t>(value)));
+            }
             owner_->needs_refresh_ = true;
+            return;
         }
-        catch (...)
+
+        assert(canCastTo<daq::IPropertyObject>(component));
+        daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(component);
+        switch (type_)
         {
+            case daq::ctBool:
+                property_holder.setPropertyValue(name_, std::get<bool>(value)); break;
+            case daq::ctInt:
+                property_holder.setPropertyValue(name_, std::get<int64_t>(value)); break;
+            case daq::ctFloat:
+                property_holder.setPropertyValue(name_, std::get<double>(value)); break;
+            case daq::ctString:
+                property_holder.setPropertyValue(name_, std::get<std::string>(value)); break;
+            case daq::ctProc:
+                property_holder.getPropertyValue(name_).asPtr<daq::IProcedure>().dispatch(); break;
+            default:
+                assert(false && "unsupported property type");
+                return;
         }
+
+        owner_->needs_refresh_ = true;
+    }
+    catch (...)
+    {
     }
 }

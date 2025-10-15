@@ -10,14 +10,13 @@ struct CachedProperty;
 struct CachedComponent
 {
     CachedComponent(daq::ComponentPtr component);
-    CachedComponent(const std::vector<daq::ComponentPtr>& component);
 
     void Refresh();
 
     std::string name_;
     std::optional<std::string> warning_message_;
     std::optional<std::string> error_message_;
-    std::vector<daq::ComponentPtr> components_; // either one component, or multiple components with the same properties
+    daq::ComponentPtr component_;
     std::vector<CachedProperty> properties_;
     bool needs_refresh_ = false;
 };
