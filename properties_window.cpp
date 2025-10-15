@@ -9,10 +9,6 @@
 
 void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
 {
-    std::string prop_name_for_display = cached_prop.name_;
-    if (cached_prop.property_.getUnit().assigned() && cached_prop.property_.getUnit().getSymbol().assigned())
-        prop_name_for_display += " [" + static_cast<std::string>(cached_prop.property_.getUnit().getSymbol().toString()) + ']';
-
     if (cached_prop.read_only_)
         ImGui::BeginDisabled();
 
@@ -22,7 +18,7 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
             assert(std::holds_alternative<bool>(cached_prop.value_));
             {
                 bool value = std::get<bool>(cached_prop.value_);
-                if (ImGui::Checkbox(prop_name_for_display.c_str(), &value))
+                if (ImGui::Checkbox(cached_prop.display_name_.c_str(), &value))
                     cached_prop.SetValue(value);
             }
             break;
@@ -33,13 +29,13 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
                 {
                     assert(cached_prop.selection_values_);
                     int value = std::get<int64_t>(cached_prop.value_);
-                    if (ImGui::Combo(prop_name_for_display.c_str(), &value, cached_prop.selection_values_->c_str(), cached_prop.selection_values_count_))
+                    if (ImGui::Combo(cached_prop.display_name_.c_str(), &value, cached_prop.selection_values_->c_str(), cached_prop.selection_values_count_))
                         cached_prop.SetValue((int64_t)value);
                 }
                 else
                 {
                     int value = std::get<int64_t>(cached_prop.value_);
-                    if (ImGui::InputInt(prop_name_for_display.c_str(), &value))
+                    if (ImGui::InputInt(cached_prop.display_name_.c_str(), &value))
                         cached_prop.SetValue((int64_t)value);
                 }
             }
@@ -48,7 +44,7 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
             assert(std::holds_alternative<double>(cached_prop.value_));
             {
                 double value = std::get<double>(cached_prop.value_);
-                if (ImGui::InputDouble(prop_name_for_display.c_str(), &value))
+                if (ImGui::InputDouble(cached_prop.display_name_.c_str(), &value))
                     cached_prop.SetValue(value);
             }
             break;
@@ -56,20 +52,20 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
             assert(std::holds_alternative<std::string>(cached_prop.value_));
             {
                 std::string value = std::get<std::string>(cached_prop.value_);
-                if (ImGui::InputText(prop_name_for_display.c_str(), &value))
+                if (ImGui::InputText(cached_prop.display_name_.c_str(), &value))
                     cached_prop.SetValue(value);
             }
             break;
         case daq::ctProc:
-            if (ImGui::Button(prop_name_for_display.c_str()))
+            if (ImGui::Button(cached_prop.display_name_.c_str()))
                 cached_prop.SetValue({});
             break;
         case daq::ctObject:
-            ImGui::Text("!Unsupported: %s", prop_name_for_display.c_str());
+            ImGui::Text("!Unsupported: %s", cached_prop.display_name_.c_str());
             break;
         default:
             {
-                std::string n = "!Unsupported prop t" + std::to_string(cached_prop.property_.getValueType()) + ": " + prop_name_for_display;
+                std::string n = "!Unsupported prop t" + std::to_string(cached_prop.property_.getValueType()) + ": " + cached_prop.display_name_;
                 ImGui::Text("%s", n.c_str());
                 break;
             }

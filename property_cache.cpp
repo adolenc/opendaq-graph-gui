@@ -30,6 +30,8 @@ void CachedComponent::Refresh()
         cached.property_ = prop;
         cached.owner_ = this;
         cached.name_ = prop.getName().toStdString();
+        cached.unit_ = (prop.getUnit().assigned() && prop.getUnit().getSymbol().assigned()) ? static_cast<std::string>(prop.getUnit().getSymbol()) : "";
+        cached.display_name_ = cached.name_ + (cached.unit_.empty() ? "" : " [" + cached.unit_ + "]");
         cached.read_only_ = prop.getReadOnly();
         if (prop.getMinValue().assigned()) cached.min_value_ = (double)prop.getMinValue();
         if (prop.getMaxValue().assigned()) cached.max_value_ = (double)prop.getMaxValue();

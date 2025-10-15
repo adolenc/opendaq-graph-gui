@@ -34,6 +34,8 @@ struct CachedProperty
 
     daq::CoreType type_;
     std::string name_;
+    std::string unit_;
+    std::string display_name_;
     bool read_only_;
     ValueType value_; // TODO: could also be nested property, could also be structure (which is a kind-of nested property with read-only children)
     std::optional<double> min_value_;
