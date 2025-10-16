@@ -98,6 +98,7 @@ void CachedComponent::Refresh()
     assert(component_.assigned());
 
     properties_.clear();
+    attributes_.clear();
 
     name_ = component_.getName().toStdString();
     error_message_ = "";
@@ -129,6 +130,38 @@ void CachedComponent::Refresh()
         }
     }
 
+    if (canCastTo<daq::IDevice>(component_))
+    {
+        daq::DevicePtr device = castTo<daq::IDevice>(component_);
+        if (auto available_modes = device.getAvailableOperationModes(); available_modes.assigned() && available_modes.getCount() > 0)
+        {
+            CachedProperty cached;
+            cached.owner_ = this;
+            cached.name_ = "@OperationMode";
+            cached.display_name_ = "Operation Mode";
+            cached.is_read_only_ = false;
+            cached.type_ = daq::ctInt;
+
+            auto current_mode = device.getOperationMode();
+            int current_index = 0;
+            std::stringstream modes_str;
+            for (size_t i = 0; i < available_modes.getCount(); i++)
+            {
+                auto mode_type = static_cast<daq::OperationModeType>((int)available_modes.getItemAt(i));
+                modes_str << OperationModeToString(mode_type) << '\0';
+                if (mode_type == current_mode)
+                    cached.value_ = (int64_t)i;
+            }
+            cached.selection_values_ = modes_str.str();
+            cached.selection_values_count_ = available_modes.getCount();
+            attributes_.push_back(cached);
+        }
+    }
+
+    daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(component_);
+    for (const auto& prop : property_holder.getVisibleProperties())
+        AddProperty(prop, property_holder);
+
     {
         CachedProperty cached;
         cached.owner_ = this;
@@ -137,7 +170,7 @@ void CachedComponent::Refresh()
         cached.is_read_only_ = false;
         cached.type_ = daq::ctString;
         cached.value_ = component_.getName().toStdString();
-        properties_.push_back(cached);
+        attributes_.push_back(cached);
     }
     {
         CachedProperty cached;
@@ -147,7 +180,7 @@ void CachedComponent::Refresh()
         cached.is_read_only_ = false;
         cached.type_ = daq::ctString;
         cached.value_ = component_.getDescription().toStdString();
-        properties_.push_back(cached);
+        attributes_.push_back(cached);
     }
     {
         CachedProperty cached;
@@ -157,7 +190,7 @@ void CachedComponent::Refresh()
         cached.is_read_only_ = false;
         cached.type_ = daq::ctBool;
         cached.value_ = (bool)component_.getActive();
-        properties_.push_back(cached);
+        attributes_.push_back(cached);
     }
     {
         CachedProperty cached;
@@ -167,7 +200,7 @@ void CachedComponent::Refresh()
         cached.is_read_only_ = false;
         cached.type_ = daq::ctBool;
         cached.value_ = (bool)component_.getVisible();
-        properties_.push_back(cached);
+        attributes_.push_back(cached);
     }
     {
         CachedProperty cached;
@@ -177,7 +210,7 @@ void CachedComponent::Refresh()
         cached.is_read_only_ = true;
         cached.type_ = daq::ctString;
         cached.value_ = component_.getLocalId().toStdString();
-        properties_.push_back(cached);
+        attributes_.push_back(cached);
     }
     {
         CachedProperty cached;
@@ -187,7 +220,7 @@ void CachedComponent::Refresh()
         cached.is_read_only_ = true;
         cached.type_ = daq::ctString;
         cached.value_ = component_.getGlobalId().toStdString();
-        properties_.push_back(cached);
+        attributes_.push_back(cached);
     }
     {
         CachedProperty cached;
@@ -207,7 +240,7 @@ void CachedComponent::Refresh()
         }
         tags_value << "]";
         cached.value_ = tags_value.str();
-        properties_.push_back(cached);
+        attributes_.push_back(cached);
     }
     {
         CachedProperty cached;
@@ -235,40 +268,8 @@ void CachedComponent::Refresh()
         }
         catch (...) {}
         cached.value_ = value;
-        properties_.push_back(cached);
+        attributes_.push_back(cached);
     }
-
-    if (canCastTo<daq::IDevice>(component_))
-    {
-        daq::DevicePtr device = castTo<daq::IDevice>(component_);
-        if (auto available_modes = device.getAvailableOperationModes(); available_modes.assigned() && available_modes.getCount() > 0)
-        {
-            CachedProperty cached;
-            cached.owner_ = this;
-            cached.name_ = "@OperationMode";
-            cached.display_name_ = "Operation Mode";
-            cached.is_read_only_ = false;
-            cached.type_ = daq::ctInt;
-
-            auto current_mode = device.getOperationMode();
-            int current_index = 0;
-            std::stringstream modes_str;
-            for (size_t i = 0; i < available_modes.getCount(); i++)
-            {
-                auto mode_type = static_cast<daq::OperationModeType>((int)available_modes.getItemAt(i));
-                modes_str << OperationModeToString(mode_type) << '\0';
-                if (mode_type == current_mode)
-                    cached.value_ = (int64_t)i;
-            }
-            cached.selection_values_ = modes_str.str();
-            cached.selection_values_count_ = available_modes.getCount();
-            properties_.push_back(cached);
-        }
-    }
-
-    daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(component_);
-    for (const auto& prop : property_holder.getVisibleProperties())
-        AddProperty(prop, property_holder);
 }
 
 void CachedProperty::SetValue(ValueType value)

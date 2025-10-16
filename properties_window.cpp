@@ -543,6 +543,12 @@ void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component)
 
     for (auto& cached_prop : cached_component.properties_)
         RenderCachedProperty(cached_prop);
+
+    if (show_attributes_)
+    {
+        for (auto& cached_attr : cached_component.attributes_)
+            RenderCachedProperty(cached_attr);
+    }
     
     if (cached_component.needs_refresh_)
         cached_component.Refresh();

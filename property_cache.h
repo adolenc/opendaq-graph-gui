@@ -18,6 +18,7 @@ struct CachedComponent
     std::string warning_message_;
     std::string error_message_;
     daq::ComponentPtr component_;
+    std::vector<CachedProperty> attributes_;
     std::vector<CachedProperty> properties_;
     bool needs_refresh_ = false;
 };
