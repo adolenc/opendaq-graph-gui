@@ -135,6 +135,9 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
     ImRect canvas(nodes_imgui_window_pos_, nodes_imgui_window_pos_ + nodes_imgui_window_size_);
     ImGuiNodesNode* hovered_node = NULL;
 
+    if (OtherImGuiWindowIsBlockingInteraction())
+        hovered_node = NULL;
+
     for (int node_idx = nodes_.size() - 1; node_idx >= 0; --node_idx)
     {
         ImGuiNodesNode* node = nodes_[node_idx];
@@ -158,11 +161,11 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
             continue;
         }
 
-        if (!hovered_node && node_rect.Contains(mouse_))
+        if (!hovered_node && !OtherImGuiWindowIsBlockingInteraction() && node_rect.Contains(mouse_))
             hovered_node = node;
 
         // Also check if mouse is over the add button area (which extends beyond the node)
-        if (!hovered_node && IS_SET(node->state_, ImGuiNodesNodeStateFlag_Visible))
+        if (!hovered_node && !OtherImGuiWindowIsBlockingInteraction() && IS_SET(node->state_, ImGuiNodesNodeStateFlag_Visible))
         {
             ImRect add_button_rect = node->area_add_button_;
             add_button_rect.Min *= scale_;
@@ -457,7 +460,7 @@ void ImGuiNodes::ProcessInteractions()
     consider_hover |= state_ == ImGuiNodesState_HoveringOutput;
     consider_hover |= state_ == ImGuiNodesState_HoveringAddButton;
 
-    if (hovered_node && consider_hover)
+    if (hovered_node && consider_hover && !OtherImGuiWindowIsBlockingInteraction())
     {
         active_input_ = NULL;
         active_output_ = NULL;
@@ -1097,7 +1100,7 @@ void ImGuiNodes::ProcessNodes()
     }
 
     // Display tooltip for warning/error nodes when hovering over header area
-    if (state_ == ImGuiNodesState_HoveringNode && active_node_)
+    if (state_ == ImGuiNodesState_HoveringNode && active_node_ && !OtherImGuiWindowIsBlockingInteraction())
     {
         bool show_tooltip = false;
         std::string tooltip_message;
