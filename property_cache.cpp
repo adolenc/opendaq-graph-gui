@@ -123,8 +123,7 @@ void CachedComponent::Refresh()
     assert(component_.assigned());
 
     properties_.clear();
-    main_attributes_.clear();
-    detail_attributes_.clear();
+    attributes_.clear();
     signal_descriptor_properties_.clear();
     signal_domain_descriptor_properties_.clear();
 
@@ -182,7 +181,8 @@ void CachedComponent::Refresh()
             }
             cached.selection_values_ = modes_str.str();
             cached.selection_values_count_ = available_modes.getCount();
-            main_attributes_.push_back(cached);
+            cached.is_detail_ = false;
+            attributes_.push_back(cached);
         }
     }
 
@@ -194,7 +194,8 @@ void CachedComponent::Refresh()
         cached.is_read_only_ = false;
         cached.type_ = daq::ctString;
         cached.value_ = component_.getName().toStdString();
-        main_attributes_.push_back(cached);
+        cached.is_detail_ = false;
+        attributes_.push_back(cached);
     }
     {
         CachedProperty cached;
@@ -204,7 +205,8 @@ void CachedComponent::Refresh()
         cached.is_read_only_ = false;
         cached.type_ = daq::ctString;
         cached.value_ = component_.getDescription().toStdString();
-        main_attributes_.push_back(cached);
+        cached.is_detail_ = false;
+        attributes_.push_back(cached);
     }
     {
         CachedProperty cached;
@@ -214,7 +216,8 @@ void CachedComponent::Refresh()
         cached.is_read_only_ = false;
         cached.type_ = daq::ctBool;
         cached.value_ = (bool)component_.getActive();
-        detail_attributes_.push_back(cached);
+        cached.is_detail_ = true;
+        attributes_.push_back(cached);
     }
     {
         CachedProperty cached;
@@ -224,7 +227,8 @@ void CachedComponent::Refresh()
         cached.is_read_only_ = false;
         cached.type_ = daq::ctBool;
         cached.value_ = (bool)component_.getVisible();
-        detail_attributes_.push_back(cached);
+        cached.is_detail_ = true;
+        attributes_.push_back(cached);
     }
     {
         CachedProperty cached;
@@ -234,7 +238,8 @@ void CachedComponent::Refresh()
         cached.is_read_only_ = true;
         cached.type_ = daq::ctString;
         cached.value_ = component_.getLocalId().toStdString();
-        detail_attributes_.push_back(cached);
+        cached.is_detail_ = true;
+        attributes_.push_back(cached);
     }
     {
         CachedProperty cached;
@@ -244,7 +249,8 @@ void CachedComponent::Refresh()
         cached.is_read_only_ = true;
         cached.type_ = daq::ctString;
         cached.value_ = component_.getGlobalId().toStdString();
-        detail_attributes_.push_back(cached);
+        cached.is_detail_ = true;
+        attributes_.push_back(cached);
     }
     {
         CachedProperty cached;
@@ -264,7 +270,8 @@ void CachedComponent::Refresh()
         }
         tags_value << "]";
         cached.value_ = tags_value.str();
-        detail_attributes_.push_back(cached);
+        cached.is_detail_ = true;
+        attributes_.push_back(cached);
     }
     {
         CachedProperty cached;
@@ -292,7 +299,8 @@ void CachedComponent::Refresh()
         }
         catch (...) {}
         cached.value_ = value;
-        detail_attributes_.push_back(cached);
+        cached.is_detail_ = true;
+        attributes_.push_back(cached);
     }
 
     daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(component_);
@@ -311,7 +319,8 @@ void CachedComponent::Refresh()
             cached.is_read_only_ = false;
             cached.type_ = daq::ctBool;
             cached.value_ = (bool)signal.getPublic();
-            detail_attributes_.push_back(cached);
+            cached.is_detail_ = true;
+            attributes_.push_back(cached);
         }
         {
             CachedProperty cached;
@@ -323,7 +332,8 @@ void CachedComponent::Refresh()
             cached.value_ = signal.getDomainSignal().assigned()
                           ? signal.getDomainSignal().getGlobalId().toStdString()
                           : std::string("");
-            detail_attributes_.push_back(cached);
+            cached.is_detail_ = true;
+            attributes_.push_back(cached);
         }
         {
             CachedProperty cached;
@@ -333,7 +343,8 @@ void CachedComponent::Refresh()
             cached.is_read_only_ = true;
             cached.type_ = daq::ctBool;
             cached.value_ = (bool)signal.getStreamed();
-            detail_attributes_.push_back(cached);
+            cached.is_detail_ = true;
+            attributes_.push_back(cached);
         }
         {
             CachedProperty cached;
@@ -342,24 +353,22 @@ void CachedComponent::Refresh()
             cached.display_name_ = "Last Value";
             cached.is_read_only_ = true;
             cached.type_ = daq::ctString;
-            std::string last_value_str = "N/A";
             try
             {
                 if (signal.getLastValue().assigned())
                 {
                     auto last_val = signal.getLastValue();
                     if (last_val.supportsInterface<daq::IString>())
-                        last_value_str = last_val.asPtr<daq::IString>().toStdString();
+                        cached.value_ = last_val.asPtr<daq::IString>().toStdString();
                     else if (last_val.supportsInterface<daq::IInteger>())
-                        last_value_str = std::to_string((long long)last_val.asPtr<daq::IInteger>());
+                        cached.value_ = std::to_string((long long)last_val.asPtr<daq::IInteger>());
                     else if (last_val.supportsInterface<daq::IFloat>())
-                        last_value_str = std::to_string((double)last_val.asPtr<daq::IFloat>());
+                        cached.value_ = std::to_string((double)last_val.asPtr<daq::IFloat>());
                     else
-                        last_value_str = static_cast<std::string>(last_val.toString());
+                        cached.value_ = "N/A";
                 }
             } catch (...) { }
-            cached.value_ = last_value_str;
-            detail_attributes_.push_back(cached);
+            attributes_.push_back(cached);
         }
         {
             CachedProperty cached;
@@ -368,7 +377,7 @@ void CachedComponent::Refresh()
             cached.display_name_ = "Status";
             cached.is_read_only_ = true;
             cached.type_ = daq::ctString;
-            std::string status_str = "OK";
+            cached.value_ = "OK";
             try
             {
                 auto status_container = signal.getStatusContainer();
@@ -376,14 +385,14 @@ void CachedComponent::Refresh()
                 {
                     auto statuses = status_container.getStatuses();
                     if (statuses.assigned() && statuses.getCount() > 0)
-                        status_str = "Multiple statuses available";
+                        cached.value_ = "Multiple statuses available";
                 }
             } catch (...)
             {
-                status_str = "<unavailable>";
+                cached.value_ = "<unavailable>";
             }
-            cached.value_ = status_str;
-            detail_attributes_.push_back(cached);
+            cached.is_detail_ = true;
+            attributes_.push_back(cached);
         }
         
         if (auto descriptor = signal.getDescriptor(); descriptor.assigned())
@@ -398,7 +407,8 @@ void CachedComponent::Refresh()
                 try
                 {
                     cached.value_ = SampleTypeToString(descriptor.getSampleType());
-                } catch (...)
+                }
+                catch (...)
                 {
                     cached.value_ = std::string("<unavailable>");
                 }
@@ -434,7 +444,8 @@ void CachedComponent::Refresh()
                         }
                         text += "]";
                         cached.value_ = text;
-                    } catch (...) {
+                    } catch (...)
+                    {
                         cached.value_ = std::string("<error>");
                     }
                 }
@@ -518,7 +529,8 @@ void CachedComponent::Refresh()
                     try
                     {
                         cached.value_ = SampleTypeToString(descriptor.getSampleType());
-                    } catch (...)
+                    }
+                    catch (...)
                     {
                         cached.value_ = std::string("<unavailable>");
                     }
@@ -554,7 +566,8 @@ void CachedComponent::Refresh()
                             }
                             text += "]";
                             cached.value_ = text;
-                        } catch (...)
+                        }
+                        catch (...)
                         {
                             cached.value_ = std::string("<error>");
                         }

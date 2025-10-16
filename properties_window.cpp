@@ -9,6 +9,9 @@
 
 void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
 {
+    if (!(show_detail_properties_ || !cached_prop.is_detail_))
+        return;
+
     if (cached_prop.is_read_only_)
         ImGui::BeginDisabled();
 
@@ -541,13 +544,7 @@ void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component)
         ImGui::PopStyleColor();
     }
 
-    if (show_attributes_)
-    {
-        for (auto& cached_attr : cached_component.detail_attributes_)
-            RenderCachedProperty(cached_attr);
-    }
-
-    for (auto& cached_attr : cached_component.main_attributes_)
+    for (auto& cached_attr : cached_component.attributes_)
         RenderCachedProperty(cached_attr);
 
     for (auto& cached_prop : cached_component.properties_)
@@ -653,7 +650,7 @@ void PropertiesWindow::RenderComponentPropertiesAndAttributes(const daq::Compone
         }
     }
 
-    if (!show_attributes_)
+    if (!show_detail_properties_)
         return;
 
     if (canCastTo<daq::ISignal>(component))
@@ -807,7 +804,7 @@ void PropertiesWindow::Render()
             {
                 ImGui::Checkbox("Freeze selection", &freeze_selection_);
                 ImGui::Checkbox("Show parents", &show_parents_);
-                ImGui::Checkbox("Show attributes", &show_attributes_);
+                ImGui::Checkbox("Show debug properties", &show_detail_properties_);
                 ImGui::Checkbox("Use tabs for multiple selected components", &tabbed_interface_);
 
                 ImGui::EndMenu();

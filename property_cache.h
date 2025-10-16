@@ -18,8 +18,7 @@ struct CachedComponent
     std::string warning_message_;
     std::string error_message_;
     daq::ComponentPtr component_;
-    std::vector<CachedProperty> main_attributes_; // attributes that should always be shown
-    std::vector<CachedProperty> detail_attributes_; // other attributes that are only shown when requested
+    std::vector<CachedProperty> attributes_;
     std::vector<CachedProperty> properties_;
     std::vector<CachedProperty> signal_descriptor_properties_;
     std::vector<CachedProperty> signal_domain_descriptor_properties_;
@@ -40,9 +39,10 @@ struct CachedProperty
     std::string name_;
     std::string unit_;
     std::string display_name_;
-    int depth_;
-    bool is_read_only_;
-    ValueType value_; // TODO: could also be nested property, could also be structure (which is a kind-of nested property with read-only children)
+    int depth_{0};
+    bool is_read_only_{false};
+    bool is_detail_{false};
+    ValueType value_;
     std::optional<double> min_value_;
     std::optional<double> max_value_;
     std::optional<std::string> selection_values_;

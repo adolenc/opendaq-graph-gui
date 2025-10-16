@@ -30,5 +30,5 @@ private:
     bool freeze_selection_ = false;
     bool show_parents_ = false;
     bool tabbed_interface_ = false;
-    bool show_attributes_ = false;
+    bool show_detail_properties_ = false;
 };
