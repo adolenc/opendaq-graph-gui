@@ -639,6 +639,61 @@ void CachedComponent::Refresh()
             }
         }
     }
+
+    if (canCastTo<daq::IInputPort>(component_))
+    {
+        daq::InputPortPtr input_port = castTo<daq::IInputPort>(component_);
+        
+        {
+            CachedProperty cached;
+            cached.owner_ = this;
+            cached.name_ = "@SignalID";
+            cached.display_name_ = "Signal ID";
+            cached.is_read_only_ = true;
+            cached.type_ = daq::ctString;
+            cached.value_ = input_port.getSignal().assigned()
+                          ? input_port.getSignal().getGlobalId().toStdString()
+                          : std::string("");
+            cached.is_detail_ = true;
+            attributes_.push_back(cached);
+        }
+        {
+            CachedProperty cached;
+            cached.owner_ = this;
+            cached.name_ = "@RequiresSignal";
+            cached.display_name_ = "Requires Signal";
+            cached.is_read_only_ = true;
+            cached.type_ = daq::ctBool;
+            cached.value_ = (bool)input_port.getRequiresSignal();
+            cached.is_detail_ = true;
+            attributes_.push_back(cached);
+        }
+        {
+            CachedProperty cached;
+            cached.owner_ = this;
+            cached.name_ = "@Status";
+            cached.display_name_ = "Status";
+            cached.is_read_only_ = true;
+            cached.type_ = daq::ctString;
+            cached.value_ = "OK";
+            try
+            {
+                auto status_container = input_port.getStatusContainer();
+                if (status_container.assigned())
+                {
+                    auto statuses = status_container.getStatuses();
+                    if (statuses.assigned() && statuses.getCount() > 0)
+                        cached.value_ = "Multiple statuses available";
+                }
+            }
+            catch (...)
+            {
+                cached.value_ = "<unavailable>";
+            }
+            cached.is_detail_ = true;
+            attributes_.push_back(cached);
+        }
+    }
 }
 
 void CachedProperty::SetValue(ValueType value)
