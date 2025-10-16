@@ -21,6 +21,8 @@ struct CachedComponent
     std::vector<CachedProperty> main_attributes_; // attributes that should always be shown
     std::vector<CachedProperty> detail_attributes_; // other attributes that are only shown when requested
     std::vector<CachedProperty> properties_;
+    std::vector<CachedProperty> signal_descriptor_properties_;
+    std::vector<CachedProperty> signal_domain_descriptor_properties_;
     bool needs_refresh_ = false;
 };
 

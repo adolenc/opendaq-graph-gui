@@ -552,6 +552,33 @@ void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component)
 
     for (auto& cached_prop : cached_component.properties_)
         RenderCachedProperty(cached_prop);
+
+    if (!cached_component.signal_descriptor_properties_.empty() || !cached_component.signal_domain_descriptor_properties_.empty())
+    {
+        if (ImGui::BeginTabBar("CachedSignalDescriptors"))
+        {
+            if (!cached_component.signal_descriptor_properties_.empty())
+            {
+                if (ImGui::BeginTabItem("Signal Descriptor"))
+                {
+                    for (auto& cached_prop : cached_component.signal_descriptor_properties_)
+                        RenderCachedProperty(cached_prop);
+                    ImGui::EndTabItem();
+                }
+            }
+            
+            if (!cached_component.signal_domain_descriptor_properties_.empty())
+            {
+                if (ImGui::BeginTabItem("Domain Signal Descriptor"))
+                {
+                    for (auto& cached_prop : cached_component.signal_domain_descriptor_properties_)
+                        RenderCachedProperty(cached_prop);
+                    ImGui::EndTabItem();
+                }
+            }
+            ImGui::EndTabBar();
+        }
+    }
     
     if (cached_component.needs_refresh_)
         cached_component.Refresh();
