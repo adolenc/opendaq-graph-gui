@@ -528,16 +528,16 @@ void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component)
     ImGui::PopStyleColor();
     ImGui::PopStyleVar(2);
 
-    if (cached_component.error_message_)
+    if (!cached_component.error_message_.empty())
     {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
-        ImGui::TextWrapped("%s", cached_component.error_message_->c_str());
+        ImGui::TextWrapped("%s", cached_component.error_message_.c_str());
         ImGui::PopStyleColor();
     }
-    else if (cached_component.warning_message_)
+    else if (!cached_component.warning_message_.empty())
     {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.7f, 0.2f, 1.0f));
-        ImGui::TextWrapped("%s", cached_component.warning_message_->c_str());
+        ImGui::TextWrapped("%s", cached_component.warning_message_.c_str());
         ImGui::PopStyleColor();
     }
 

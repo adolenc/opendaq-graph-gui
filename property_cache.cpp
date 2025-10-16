@@ -100,6 +100,8 @@ void CachedComponent::Refresh()
     properties_.clear();
 
     name_ = component_.getName().toStdString();
+    error_message_ = "";
+    warning_message_ = "";
     if (auto status_container = component_.getStatusContainer(); status_container.assigned())
     {
         if (auto statuses = status_container.getStatuses(); statuses.assigned())

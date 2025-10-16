@@ -15,8 +15,8 @@ struct CachedComponent
     void AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr property_holder, int depth = 0);
 
     std::string name_;
-    std::optional<std::string> warning_message_;
-    std::optional<std::string> error_message_;
+    std::string warning_message_;
+    std::string error_message_;
     daq::ComponentPtr component_;
     std::vector<CachedProperty> properties_;
     bool needs_refresh_ = false;
