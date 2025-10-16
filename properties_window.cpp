@@ -541,14 +541,17 @@ void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component)
         ImGui::PopStyleColor();
     }
 
-    for (auto& cached_prop : cached_component.properties_)
-        RenderCachedProperty(cached_prop);
-
     if (show_attributes_)
     {
-        for (auto& cached_attr : cached_component.attributes_)
+        for (auto& cached_attr : cached_component.detail_attributes_)
             RenderCachedProperty(cached_attr);
     }
+
+    for (auto& cached_attr : cached_component.main_attributes_)
+        RenderCachedProperty(cached_attr);
+
+    for (auto& cached_prop : cached_component.properties_)
+        RenderCachedProperty(cached_prop);
     
     if (cached_component.needs_refresh_)
         cached_component.Refresh();

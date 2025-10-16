@@ -18,7 +18,8 @@ struct CachedComponent
     std::string warning_message_;
     std::string error_message_;
     daq::ComponentPtr component_;
-    std::vector<CachedProperty> attributes_;
+    std::vector<CachedProperty> main_attributes_; // attributes that should always be shown
+    std::vector<CachedProperty> detail_attributes_; // other attributes that are only shown when requested
     std::vector<CachedProperty> properties_;
     bool needs_refresh_ = false;
 };
