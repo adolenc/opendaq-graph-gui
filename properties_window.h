@@ -10,20 +10,10 @@ class PropertiesWindow
 public:
     void Render();
     void OnSelectionChanged(const std::vector<daq::ComponentPtr>& selected_components);
-
-    static std::string SampleTypeToString(daq::SampleType sample_type);
-    static std::string CoreTypeToString(daq::CoreType core_type);
-    static std::string OperationModeToString(daq::OperationModeType mode);
     
 private:
     void RenderCachedProperty(CachedProperty& cached_prop);
     void RenderCachedComponent(CachedComponent& cached_component);
-    void RenderProperty(daq::PropertyPtr property, daq::PropertyObjectPtr property_holder);
-    void RenderDescriptorAttribute(const std::string& name, const daq::BaseObjectPtr& value, int depth);
-    void RenderAllDescriptorAttributes(const daq::DataDescriptorPtr& descriptor, const std::string& title);
-    void RenderComponentPropertiesAndAttributes(const daq::ComponentPtr& component);
-    void RenderSelectedComponent(const daq::ComponentPtr& component);
-    void RenderComponentStatus(const daq::ComponentPtr& component);
     
     std::vector<daq::ComponentPtr> selected_components_;
     std::vector<std::unique_ptr<CachedComponent>> cached_components_;

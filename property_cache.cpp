@@ -303,10 +303,6 @@ void CachedComponent::Refresh()
         attributes_.push_back(cached);
     }
 
-    daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(component_);
-    for (const auto& prop : property_holder.getVisibleProperties())
-        AddProperty(prop, property_holder);
-
     if (canCastTo<daq::ISignal>(component_))
     {
         daq::SignalPtr signal = castTo<daq::ISignal>(component_);
@@ -694,6 +690,10 @@ void CachedComponent::Refresh()
             attributes_.push_back(cached);
         }
     }
+
+    daq::PropertyObjectPtr property_holder = castTo<daq::IPropertyObject>(component_);
+    for (const auto& prop : property_holder.getVisibleProperties())
+        AddProperty(prop, property_holder);
 }
 
 void CachedProperty::SetValue(ValueType value)
