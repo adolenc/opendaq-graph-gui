@@ -55,7 +55,7 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
                 std::string value = std::get<std::string>(cached_prop.value_);
                 if (ImGui::InputText(cached_prop.display_name_.c_str(), &value))
                     cached_prop.SetValue(value);
-                if (cached_prop.name_ == "@GlobalID" && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone | ImGuiHoveredFlags_AllowWhenDisabled) && ImGui::BeginTooltip())
+                if (cached_prop.is_read_only_ && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone | ImGuiHoveredFlags_AllowWhenDisabled) && ImGui::BeginTooltip())
                 {
                     ImGui::Text("%s", value.c_str());
                     ImGui::EndTooltip();
