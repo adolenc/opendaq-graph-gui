@@ -27,8 +27,7 @@ struct CachedComponent
 
 struct CachedProperty
 {
-    struct DifferingValueType {};
-    using ValueType = std::variant<std::string, int64_t, double, bool, struct DifferingValueType>;
+    using ValueType = std::variant<std::string, int64_t, double, bool>;
 
     void SetValue(ValueType value);
 

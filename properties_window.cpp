@@ -13,6 +13,9 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
     if (cached_prop.is_read_only_)
         ImGui::BeginDisabled();
 
+    if (cached_prop.depth_ > 0)
+        ImGui::Indent(cached_prop.depth_ * 10.0f);
+
     switch (cached_prop.type_)
     {
         case daq::ctBool:
@@ -67,7 +70,7 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
                 cached_prop.SetValue({});
             break;
         case daq::ctObject:
-            ImGui::Text("!Unsupported: %s", cached_prop.display_name_.c_str());
+            ImGui::Text("%s", cached_prop.display_name_.c_str());
             break;
         default:
             {
@@ -76,6 +79,9 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
                 break;
             }
     }
+
+    if (cached_prop.depth_ > 0)
+        ImGui::Unindent(cached_prop.depth_ * 10.0f);
 
     if (cached_prop.is_read_only_)
         ImGui::EndDisabled();
