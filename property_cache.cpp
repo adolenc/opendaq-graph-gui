@@ -147,7 +147,7 @@ static std::string DictToString(daq::DictPtr<daq::IString, daq::IBaseObject> dic
     }
 }
 
-void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr property_holder, int depth)
+void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr property_holder, int depth, const std::string& parent_uid)
 {
     // add it first so that recursion works out nicely
     properties_.push_back(CachedProperty());
@@ -156,6 +156,7 @@ void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr 
     cached.owner_ = this;
     cached.depth_ = depth;
     cached.name_ = prop.getName().toStdString();
+    cached.uid_ = parent_uid + cached.name_;
     cached.unit_ = (prop.getUnit().assigned() && prop.getUnit().getSymbol().assigned()) ? static_cast<std::string>(prop.getUnit().getSymbol()) : "";
     cached.display_name_ = cached.name_ + (cached.unit_.empty() ? "" : " [" + cached.unit_ + "]");
     cached.is_read_only_ = prop.getReadOnly();
@@ -183,7 +184,7 @@ void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr 
                 {
                     daq::PropertyObjectPtr parent = property_holder.getPropertyValue(cached.name_);
                     for (const auto& sub_property : parent.getVisibleProperties())
-                        AddProperty(sub_property, parent, depth + 1);
+                        AddProperty(sub_property, parent, depth + 1, cached.uid_ + ".");
                 }
                 break;
             case daq::ctStruct:
@@ -197,6 +198,7 @@ void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr 
                         struct_field.owner_ = this;
                         struct_field.depth_ = depth + 1;
                         struct_field.name_ = field_names.getItemAt(i).toStdString();
+                        struct_field.uid_ = cached.uid_ + struct_field.name_;
                         struct_field.display_name_ = struct_field.name_;
                         struct_field.is_read_only_ = true;
                         struct_field.property_ = prop;
@@ -308,6 +310,7 @@ void CachedComponent::Refresh()
             CachedProperty cached;
             cached.owner_ = this;
             cached.name_ = "@OperationMode";
+            cached.uid_ = "@OperationMode";
             cached.display_name_ = "Operation Mode";
             cached.is_read_only_ = false;
             cached.type_ = daq::ctInt;
@@ -333,6 +336,7 @@ void CachedComponent::Refresh()
         CachedProperty cached;
         cached.owner_ = this;
         cached.name_ = "@Name";
+        cached.uid_ = "@Name";
         cached.display_name_ = "Name";
         cached.is_read_only_ = false;
         cached.type_ = daq::ctString;
@@ -344,6 +348,7 @@ void CachedComponent::Refresh()
         CachedProperty cached;
         cached.owner_ = this;
         cached.name_ = "@Description";
+        cached.uid_ = "@Description";
         cached.display_name_ = "Description";
         cached.is_read_only_ = false;
         cached.type_ = daq::ctString;
@@ -355,6 +360,7 @@ void CachedComponent::Refresh()
         CachedProperty cached;
         cached.owner_ = this;
         cached.name_ = "@Active";
+        cached.uid_ = "@Active";
         cached.display_name_ = "Active";
         cached.is_read_only_ = false;
         cached.type_ = daq::ctBool;
@@ -366,6 +372,7 @@ void CachedComponent::Refresh()
         CachedProperty cached;
         cached.owner_ = this;
         cached.name_ = "@Visible";
+        cached.uid_ = "@Visible";
         cached.display_name_ = "Visible";
         cached.is_read_only_ = false;
         cached.type_ = daq::ctBool;
@@ -377,6 +384,7 @@ void CachedComponent::Refresh()
         CachedProperty cached;
         cached.owner_ = this;
         cached.name_ = "@LocalID";
+        cached.uid_ = "@LocalID";
         cached.display_name_ = "Local ID";
         cached.is_read_only_ = true;
         cached.type_ = daq::ctString;
@@ -388,6 +396,7 @@ void CachedComponent::Refresh()
         CachedProperty cached;
         cached.owner_ = this;
         cached.name_ = "@GlobalID";
+        cached.uid_ = "@GlobalID";
         cached.display_name_ = "Global ID";
         cached.is_read_only_ = true;
         cached.type_ = daq::ctString;
@@ -399,6 +408,7 @@ void CachedComponent::Refresh()
         CachedProperty cached;
         cached.owner_ = this;
         cached.name_ = "@Tags";
+        cached.uid_ = "@Tags";
         cached.display_name_ = "Tags";
         cached.is_read_only_ = true;
         cached.type_ = daq::ctString;
@@ -420,6 +430,7 @@ void CachedComponent::Refresh()
         CachedProperty cached;
         cached.owner_ = this;
         cached.name_ = "@TypeID";
+        cached.uid_ = "@TypeID";
         cached.display_name_ = "Type ID";
         cached.is_read_only_ = true;
         cached.type_ = daq::ctString;
@@ -454,6 +465,7 @@ void CachedComponent::Refresh()
             CachedProperty cached;
             cached.owner_ = this;
             cached.name_ = "@Public";
+            cached.uid_ = "@Public";
             cached.display_name_ = "Public";
             cached.is_read_only_ = false;
             cached.type_ = daq::ctBool;
@@ -465,6 +477,7 @@ void CachedComponent::Refresh()
             CachedProperty cached;
             cached.owner_ = this;
             cached.name_ = "@DomainSignalID";
+            cached.uid_ = "@DomainSignalID";
             cached.display_name_ = "Domain Signal ID";
             cached.is_read_only_ = true;
             cached.type_ = daq::ctString;
@@ -478,6 +491,7 @@ void CachedComponent::Refresh()
             CachedProperty cached;
             cached.owner_ = this;
             cached.name_ = "@Streamed";
+            cached.uid_ = "@Streamed";
             cached.display_name_ = "Streamed";
             cached.is_read_only_ = true;
             cached.type_ = daq::ctBool;
@@ -489,6 +503,7 @@ void CachedComponent::Refresh()
             CachedProperty cached;
             cached.owner_ = this;
             cached.name_ = "@LastValue";
+            cached.uid_ = "@LastValue";
             cached.display_name_ = "Last Value";
             cached.is_read_only_ = true;
             cached.type_ = daq::ctString;
@@ -513,6 +528,7 @@ void CachedComponent::Refresh()
             CachedProperty cached;
             cached.owner_ = this;
             cached.name_ = "@Status";
+            cached.uid_ = "@Status";
             cached.display_name_ = "Status";
             cached.is_read_only_ = true;
             cached.type_ = daq::ctString;
@@ -540,6 +556,7 @@ void CachedComponent::Refresh()
                 CachedProperty cached;
                 cached.owner_ = this;
                 cached.name_ = "@SD_SampleType";
+                cached.uid_ = "@SD_SampleType";
                 cached.display_name_ = "Sample Type";
                 cached.is_read_only_ = true;
                 cached.type_ = daq::ctString;
@@ -557,6 +574,7 @@ void CachedComponent::Refresh()
                 CachedProperty cached;
                 cached.owner_ = this;
                 cached.name_ = "@SD_Name";
+                cached.uid_ = "@SD_Name";
                 cached.display_name_ = "Name";
                 cached.is_read_only_ = true;
                 cached.type_ = daq::ctString;
@@ -567,6 +585,7 @@ void CachedComponent::Refresh()
                 CachedProperty cached;
                 cached.owner_ = this;
                 cached.name_ = "@SD_Dimensions";
+                cached.uid_ = "@SD_Dimensions";
                 cached.display_name_ = "Dimensions";
                 cached.is_read_only_ = true;
                 cached.type_ = daq::ctString;
@@ -596,6 +615,7 @@ void CachedComponent::Refresh()
                 CachedProperty cached;
                 cached.owner_ = this;
                 cached.name_ = "@SD_Origin";
+                cached.uid_ = "@SD_Origin";
                 cached.display_name_ = "Origin";
                 cached.is_read_only_ = true;
                 cached.type_ = daq::ctString;
@@ -606,6 +626,7 @@ void CachedComponent::Refresh()
                 CachedProperty cached;
                 cached.owner_ = this;
                 cached.name_ = "@SD_RawSampleSize";
+                cached.uid_ = "@SD_RawSampleSize";
                 cached.display_name_ = "Raw Sample Size";
                 cached.is_read_only_ = true;
                 cached.type_ = daq::ctString;
@@ -616,6 +637,7 @@ void CachedComponent::Refresh()
                 CachedProperty cached;
                 cached.owner_ = this;
                 cached.name_ = "@SD_SampleSize";
+                cached.uid_ = "@SD_SampleSize";
                 cached.display_name_ = "Sample Size";
                 cached.is_read_only_ = true;
                 cached.type_ = daq::ctString;
@@ -626,6 +648,7 @@ void CachedComponent::Refresh()
                 CachedProperty cached;
                 cached.owner_ = this;
                 cached.name_ = "@SD_TickResolution";
+                cached.uid_ = "@SD_TickResolution";
                 cached.display_name_ = "Tick Resolution";
                 cached.is_read_only_ = true;
                 cached.type_ = daq::ctString;
@@ -639,6 +662,7 @@ void CachedComponent::Refresh()
                 CachedProperty cached;
                 cached.owner_ = this;
                 cached.name_ = "@SD_Unit";
+                cached.uid_ = "@SD_Unit";
                 cached.display_name_ = "Unit";
                 cached.is_read_only_ = true;
                 cached.type_ = daq::ctString;
@@ -656,6 +680,7 @@ void CachedComponent::Refresh()
                 CachedProperty cached;
                 cached.owner_ = this;
                 cached.name_ = "@SD_Rule";
+                cached.uid_ = "@SD_Rule";
                 cached.display_name_ = "Rule";
                 cached.is_read_only_ = true;
                 cached.type_ = daq::ctString;
@@ -676,6 +701,7 @@ void CachedComponent::Refresh()
                 CachedProperty cached;
                 cached.owner_ = this;
                 cached.name_ = "@SD_ValueRange";
+                cached.uid_ = "@SD_ValueRange";
                 cached.display_name_ = "Value Range";
                 cached.is_read_only_ = true;
                 cached.type_ = daq::ctString;
@@ -702,6 +728,7 @@ void CachedComponent::Refresh()
                 CachedProperty cached;
                 cached.owner_ = this;
                 cached.name_ = "@SD_PostScaling";
+                cached.uid_ = "@SD_PostScaling";
                 cached.display_name_ = "Post Scaling";
                 cached.is_read_only_ = true;
                 cached.type_ = daq::ctString;
@@ -722,6 +749,7 @@ void CachedComponent::Refresh()
                 CachedProperty cached;
                 cached.owner_ = this;
                 cached.name_ = "@SD_StructFields";
+                cached.uid_ = "@SD_StructFields";
                 cached.display_name_ = "Struct Fields";
                 cached.is_read_only_ = true;
                 cached.type_ = daq::ctString;
@@ -751,6 +779,7 @@ void CachedComponent::Refresh()
                 CachedProperty cached;
                 cached.owner_ = this;
                 cached.name_ = "@SD_Metadata";
+                cached.uid_ = "@SD_Metadata";
                 cached.display_name_ = "Metadata";
                 cached.is_read_only_ = true;
                 cached.type_ = daq::ctString;
@@ -777,6 +806,7 @@ void CachedComponent::Refresh()
                     CachedProperty cached;
                     cached.owner_ = this;
                     cached.name_ = "@DSD_SampleType";
+                    cached.uid_ = "@DSD_SampleType";
                     cached.display_name_ = "Sample Type";
                     cached.is_read_only_ = true;
                     cached.type_ = daq::ctString;
@@ -794,6 +824,7 @@ void CachedComponent::Refresh()
                     CachedProperty cached;
                     cached.owner_ = this;
                     cached.name_ = "@DSD_Name";
+                    cached.uid_ = "@DSD_Name";
                     cached.display_name_ = "Name";
                     cached.is_read_only_ = true;
                     cached.type_ = daq::ctString;
@@ -804,6 +835,7 @@ void CachedComponent::Refresh()
                     CachedProperty cached;
                     cached.owner_ = this;
                     cached.name_ = "@DSD_Dimensions";
+                    cached.uid_ = "@DSD_Dimensions";
                     cached.display_name_ = "Dimensions";
                     cached.is_read_only_ = true;
                     cached.type_ = daq::ctString;
@@ -834,6 +866,7 @@ void CachedComponent::Refresh()
                     CachedProperty cached;
                     cached.owner_ = this;
                     cached.name_ = "@DSD_Origin";
+                    cached.uid_ = "@DSD_Origin";
                     cached.display_name_ = "Origin";
                     cached.is_read_only_ = true;
                     cached.type_ = daq::ctString;
@@ -844,6 +877,7 @@ void CachedComponent::Refresh()
                     CachedProperty cached;
                     cached.owner_ = this;
                     cached.name_ = "@DSD_RawSampleSize";
+                    cached.uid_ = "@DSD_RawSampleSize";
                     cached.display_name_ = "Raw Sample Size";
                     cached.is_read_only_ = true;
                     cached.type_ = daq::ctString;
@@ -854,6 +888,7 @@ void CachedComponent::Refresh()
                     CachedProperty cached;
                     cached.owner_ = this;
                     cached.name_ = "@DSD_SampleSize";
+                    cached.uid_ = "@DSD_SampleSize";
                     cached.display_name_ = "Sample Size";
                     cached.is_read_only_ = true;
                     cached.type_ = daq::ctString;
@@ -864,6 +899,7 @@ void CachedComponent::Refresh()
                     CachedProperty cached;
                     cached.owner_ = this;
                     cached.name_ = "@DSD_TickResolution";
+                    cached.uid_ = "@DSD_TickResolution";
                     cached.display_name_ = "Tick Resolution";
                     cached.is_read_only_ = true;
                     cached.type_ = daq::ctString;
@@ -877,6 +913,7 @@ void CachedComponent::Refresh()
                     CachedProperty cached;
                     cached.owner_ = this;
                     cached.name_ = "@DSD_Unit";
+                    cached.uid_ = "@DSD_Unit";
                     cached.display_name_ = "Unit";
                     cached.is_read_only_ = true;
                     cached.type_ = daq::ctString;
@@ -894,6 +931,7 @@ void CachedComponent::Refresh()
                     CachedProperty cached;
                     cached.owner_ = this;
                     cached.name_ = "@DSD_Rule";
+                    cached.uid_ = "@DSD_Rule";
                     cached.display_name_ = "Rule";
                     cached.is_read_only_ = true;
                     cached.type_ = daq::ctString;
@@ -914,6 +952,7 @@ void CachedComponent::Refresh()
                     CachedProperty cached;
                     cached.owner_ = this;
                     cached.name_ = "@DSD_ValueRange";
+                    cached.uid_ = "@DSD_ValueRange";
                     cached.display_name_ = "Value Range";
                     cached.is_read_only_ = true;
                     cached.type_ = daq::ctString;
@@ -940,6 +979,7 @@ void CachedComponent::Refresh()
                     CachedProperty cached;
                     cached.owner_ = this;
                     cached.name_ = "@DSD_PostScaling";
+                    cached.uid_ = "@DSD_PostScaling";
                     cached.display_name_ = "Post Scaling";
                     cached.is_read_only_ = true;
                     cached.type_ = daq::ctString;
@@ -960,6 +1000,7 @@ void CachedComponent::Refresh()
                     CachedProperty cached;
                     cached.owner_ = this;
                     cached.name_ = "@DSD_StructFields";
+                    cached.uid_ = "@DSD_StructFields";
                     cached.display_name_ = "Struct Fields";
                     cached.is_read_only_ = true;
                     cached.type_ = daq::ctString;
@@ -989,6 +1030,7 @@ void CachedComponent::Refresh()
                     CachedProperty cached;
                     cached.owner_ = this;
                     cached.name_ = "@DSD_Metadata";
+                    cached.uid_ = "@DSD_Metadata";
                     cached.display_name_ = "Metadata";
                     cached.is_read_only_ = true;
                     cached.type_ = daq::ctString;
@@ -1017,6 +1059,7 @@ void CachedComponent::Refresh()
             CachedProperty cached;
             cached.owner_ = this;
             cached.name_ = "@SignalID";
+            cached.uid_ = "@SignalID";
             cached.display_name_ = "Signal ID";
             cached.is_read_only_ = true;
             cached.type_ = daq::ctString;
@@ -1030,6 +1073,7 @@ void CachedComponent::Refresh()
             CachedProperty cached;
             cached.owner_ = this;
             cached.name_ = "@RequiresSignal";
+            cached.uid_ = "@RequiresSignal";
             cached.display_name_ = "Requires Signal";
             cached.is_read_only_ = true;
             cached.type_ = daq::ctBool;
@@ -1041,6 +1085,7 @@ void CachedComponent::Refresh()
             CachedProperty cached;
             cached.owner_ = this;
             cached.name_ = "@Status";
+            cached.uid_ = "@Status";
             cached.display_name_ = "Status";
             cached.is_read_only_ = true;
             cached.type_ = daq::ctString;

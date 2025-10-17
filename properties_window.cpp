@@ -10,6 +10,8 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
     if (!(show_detail_properties_ || !cached_prop.is_detail_))
         return;
 
+    ImGui::PushID(cached_prop.uid_.c_str());
+
     if (cached_prop.is_read_only_)
         ImGui::BeginDisabled();
 
@@ -88,6 +90,8 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
 
     if (cached_prop.is_read_only_)
         ImGui::EndDisabled();
+
+    ImGui::PopID();
 }
 
 void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component)
