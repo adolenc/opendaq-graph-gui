@@ -1171,6 +1171,8 @@ void CachedProperty::SetValue(ValueType value)
                 property_holder.setPropertyValue(name_, std::get<std::string>(value)); break;
             case daq::ctProc:
                 property_holder.getPropertyValue(name_).asPtr<daq::IProcedure>().dispatch(); break;
+            case daq::ctFunc:
+                property_holder.getPropertyValue(name_).asPtr<daq::IFunction>().dispatch(); break;
             default:
                 assert(false && "unsupported property type");
                 return;
