@@ -186,6 +186,46 @@ void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr 
                         AddProperty(sub_property, parent, depth + 1);
                 }
                 break;
+            case daq::ctStruct:
+                {
+                    auto struct_value = property_holder.getPropertyValue(cached.name_).asPtr<daq::IStruct>();
+                    auto field_names = struct_value.getFieldNames();
+                    auto field_values = struct_value.getFieldValues();
+                    for (int i = 0; i < field_names.getCount(); i++)
+                    {
+                        CachedProperty struct_field;
+                        struct_field.owner_ = this;
+                        struct_field.depth_ = depth + 1;
+                        struct_field.name_ = field_names.getItemAt(i).toStdString();
+                        struct_field.display_name_ = struct_field.name_;
+                        struct_field.is_read_only_ = true;
+                        struct_field.property_ = prop;
+                        
+                        auto field_value = field_values.getItemAt(i);
+                        if (field_value.supportsInterface<daq::IBoolean>())
+                        {
+                            struct_field.type_ = daq::ctBool;
+                            struct_field.value_ = (bool)field_value.asPtr<daq::IBoolean>();
+                        }
+                        else if (field_value.supportsInterface<daq::IInteger>())
+                        {
+                            struct_field.type_ = daq::ctInt;
+                            struct_field.value_ = (int64_t)field_value.asPtr<daq::IInteger>();
+                        }
+                        else if (field_value.supportsInterface<daq::IFloat>())
+                        {
+                            struct_field.type_ = daq::ctFloat;
+                            struct_field.value_ = (double)field_value.asPtr<daq::IFloat>();
+                        }
+                        else
+                        {
+                            struct_field.type_ = daq::ctString;
+                            struct_field.value_ = ValueToString(field_value);
+                        }
+                        properties_.push_back(struct_field);
+                    }
+                }
+                break;
             default:
                 break;
         }

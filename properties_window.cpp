@@ -72,6 +72,9 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
         case daq::ctObject:
             ImGui::Text("%s", cached_prop.display_name_.c_str());
             break;
+        case daq::ctStruct:
+            ImGui::Text("%s", cached_prop.display_name_.c_str());
+            break;
         default:
             {
                 std::string n = "!Unsupported prop t" + std::to_string((int)cached_prop.type_) + ": " + cached_prop.display_name_;
@@ -117,7 +120,7 @@ void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component)
 
     if (!cached_component.signal_descriptor_properties_.empty() || !cached_component.signal_domain_descriptor_properties_.empty())
     {
-        if (ImGui::BeginTabBar("CachedSignalDescriptors"))
+        if (ImGui::BeginTabBar("SignalDescriptors"))
         {
             if (!cached_component.signal_descriptor_properties_.empty())
             {
