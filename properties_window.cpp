@@ -70,6 +70,7 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
         case daq::ctProc:
             if (ImGui::Button(cached_prop.display_name_.c_str()))
                 cached_prop.SetValue({});
+            break;
         case daq::ctFunc:
             if (ImGui::Button(cached_prop.display_name_.c_str()))
                 cached_prop.SetValue({});
