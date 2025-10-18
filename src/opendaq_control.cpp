@@ -9,6 +9,21 @@
 OpenDAQNodeEditor::OpenDAQNodeEditor()
     : instance_(daq::Instance("."))
 {
+    instance_.getContext().getOnCoreEvent() += [&](const daq::ComponentPtr& comp, const daq::CoreEventArgsPtr& args)
+    {
+        switch (static_cast<int>(args.getEventId()))
+        {
+            // case static_cast<int>(daq::CoreEventId::PropertyValueChanged):
+            // case static_cast<int>(daq::CoreEventId::PropertyAdded):
+            // case static_cast<int>(daq::CoreEventId::PropertyRemoved):
+            case static_cast<int>(daq::CoreEventId::StatusChanged):
+            case static_cast<int>(daq::CoreEventId::AttributeChanged):
+            {
+                properties_window_.RefreshComponents();
+                break;
+            }
+        }
+    };
 }
 
 void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::string parent_id)

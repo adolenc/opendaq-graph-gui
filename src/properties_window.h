@@ -8,6 +8,7 @@ class PropertiesWindow
 public:
     void Render();
     void OnSelectionChanged(const std::vector<CachedComponent*>& cached_components);
+    void RefreshComponents();
     
 private:
     void RenderCachedProperty(CachedProperty& cached_prop);

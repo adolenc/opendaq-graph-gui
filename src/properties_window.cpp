@@ -169,6 +169,12 @@ void PropertiesWindow::OnSelectionChanged(const std::vector<CachedComponent*>& c
     }
 }
 
+void PropertiesWindow::RefreshComponents()
+{
+    for (auto* cached : cached_components_)
+        cached->needs_refresh_ = true;
+}
+
 void PropertiesWindow::Render()
 {
     ImGui::Begin("Property editor", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
