@@ -20,23 +20,41 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
         return;
 
     if (component.getName() == "IP" || component.getName() == "Sig")
+        // input ports and signals are handled by checking them per component instead, so we skip them here
         return;
 
-    std::vector<ImGui::ImGuiNodesIdentifier> input_ports;
-    std::vector<ImGui::ImGuiNodesIdentifier> output_signals;
+    CachedComponent* cached = nullptr;
+    std::string component_id = component.getGlobalId().toStdString();
+    if (auto it = all_components_.find(component_id); it != all_components_.end())
+    {
+        cached = it->second.get();
+    }
+    else
+    {
+        all_components_[component_id] = std::make_unique<CachedComponent>(component);
+        cached = all_components_[component_id].get();
+    }
+    cached->RefreshStructure();
+
     if (canCastTo<daq::IFunctionBlock>(component))
     {
         daq::FunctionBlockPtr function_block = castTo<daq::IFunctionBlock>(component);
         for (const daq::InputPortPtr& input_port : function_block.getInputPorts())
         {
-            input_ports.push_back({input_port.getName().toStdString(), input_port.getGlobalId().toStdString()});
-            input_ports_[input_port.getGlobalId().toStdString()] = {input_port, component};
+            std::string input_id = input_port.getGlobalId().toStdString();
+            auto input_cached = std::make_unique<CachedComponent>(input_port);
+            input_ports_[input_id] = input_cached.get();
+            input_cached->parent_ = component;
+            all_components_[input_id] = std::move(input_cached);
         }
 
         for (const daq::SignalPtr& signal : function_block.getSignals())
         {
-            signals_[signal.getGlobalId().toStdString()] = {signal, component};
-            output_signals.push_back({signal.getName().toStdString(), signal.getGlobalId().toStdString()});
+            std::string signal_id = signal.getGlobalId().toStdString();
+            auto signal_cached = std::make_unique<CachedComponent>(signal);
+            signals_[signal_id] = signal_cached.get();
+            signal_cached->parent_ = component;
+            all_components_[signal_id] = std::move(signal_cached);
         }
     }
     if (canCastTo<daq::IDevice>(component))
@@ -44,8 +62,11 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
         daq::DevicePtr device = castTo<daq::IDevice>(component);
         for (const daq::SignalPtr& signal : device.getSignals())
         {
-            signals_[signal.getGlobalId().toStdString()] = {signal, component};
-            output_signals.push_back({signal.getName().toStdString(), signal.getGlobalId().toStdString()});
+            std::string signal_id = signal.getGlobalId().toStdString();
+            auto signal_cached = std::make_unique<CachedComponent>(signal);
+            signals_[signal_id] = signal_cached.get();
+            signal_cached->parent_ = component;
+            all_components_[signal_id] = std::move(signal_cached);
         }
     }
 
@@ -60,26 +81,20 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
     }
     else
     {
-        OpenDAQComponent c;
-        c.component_ = component;
-        c.parent_ = parent_id.empty() ? nullptr : folders_[parent_id].component_;
+        cached->parent_ = parent_id.empty() ? nullptr : folders_[parent_id]->component_;
         
         if (canCastTo<daq::IDevice>(component))
-        {
-            c.color_index_ = next_color_index_++;
-        }
+            cached->color_index_ = next_color_index_++;
         else if (!parent_id.empty())
-        {
-            c.color_index_ = folders_[parent_id].color_index_;
-        }
+            cached->color_index_ = folders_[parent_id]->color_index_;
 
-        nodes_->AddNode({component.getName().toStdString(), component.getGlobalId().toStdString()}, 
-                      c.color_index_,
-                      input_ports,
-                      output_signals,
-                      parent_id);
-        new_parent_id = component.getGlobalId().toStdString();
-        folders_[component.getGlobalId().toStdString()] = c;
+        nodes_->AddNode({component.getName().toStdString(), component_id}, 
+                        cached->color_index_,
+                        cached->input_ports_,
+                        cached->output_signals_,
+                        parent_id);
+        new_parent_id = component_id;
+        folders_[component_id] = cached;
     }
 
     if (canCastTo<daq::IFolder>(component))
@@ -92,9 +107,9 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
 
 void OpenDAQNodeEditor::RetrieveConnections()
 {
-    for (const auto& [input_uid, input_component] : input_ports_)
+    for (const auto& [input_uid, cached] : input_ports_)
     {
-        daq::InputPortPtr input_port = input_component.component_.as<daq::IInputPort>();
+        daq::InputPortPtr input_port = castTo<daq::IInputPort>(cached->component_);
         if (input_port.assigned() && input_port.getSignal().assigned())
         {
             daq::SignalPtr connected_signal = input_port.getSignal();
@@ -273,35 +288,40 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
 
             if (fb.assigned())
             {
-                std::vector<ImGui::ImGuiNodesIdentifier> input_ports;
-                std::vector<ImGui::ImGuiNodesIdentifier> output_signals;
-
+                std::string fb_id_str = fb.getGlobalId().toStdString();
+                
+                auto fb_cached = std::make_unique<CachedComponent>(fb);
+                fb_cached->parent_ = parent_component;
+                fb_cached->color_index_ = parent_id.empty() ? 0 : folders_[parent_id]->color_index_;
+                fb_cached->RefreshStructure();
+                
                 for (const daq::InputPortPtr& input_port : fb.getInputPorts())
                 {
-                    input_ports.push_back({input_port.getName().toStdString(), input_port.getGlobalId().toStdString()});
-                    input_ports_[input_port.getGlobalId().toStdString()] = {input_port, fb};
+                    std::string input_id = input_port.getGlobalId().toStdString();
+                    auto input_cached = std::make_unique<CachedComponent>(input_port);
+                    input_cached->parent_ = fb;
+                    input_ports_[input_id] = input_cached.get();
+                    all_components_[input_id] = std::move(input_cached);
                 }
 
                 for (const daq::SignalPtr& signal : fb.getSignals())
                 {
-                    signals_[signal.getGlobalId().toStdString()] = {signal, fb};
-                    output_signals.push_back({signal.getName().toStdString(), signal.getGlobalId().toStdString()});
+                    std::string signal_id = signal.getGlobalId().toStdString();
+                    auto signal_cached = std::make_unique<CachedComponent>(signal);
+                    signal_cached->parent_ = fb;
+                    signals_[signal_id] = signal_cached.get();
+                    all_components_[signal_id] = std::move(signal_cached);
                 }
 
-                int color_index = parent_id.empty() ? 0 : folders_[parent_id].color_index_;
+                nodes_->AddNode({fb.getName().toStdString(), fb_id_str},
+                                fb_cached->color_index_,
+                                position,
+                                fb_cached->input_ports_,
+                                fb_cached->output_signals_,
+                                parent_id);
 
-                nodes_->AddNode({fb.getName().toStdString(), fb.getGlobalId().toStdString()},
-                              color_index,
-                              position,
-                              input_ports,
-                              output_signals,
-                              parent_id);
-
-                OpenDAQComponent c;
-                c.component_ = fb;
-                c.parent_ = parent_component;
-                c.color_index_ = color_index;
-                folders_[fb.getGlobalId().toStdString()] = c;
+                folders_[fb_id_str] = fb_cached.get();
+                all_components_[fb_id_str] = std::move(fb_cached);
             }
         }
 
@@ -334,6 +354,27 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
         }
     }
 
+    auto add_device = [&](const std::string& device_connection_string)
+        {
+            const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
+            std::string dev_id = dev.getGlobalId().toStdString();
+
+            auto dev_cached = std::make_unique<CachedComponent>(dev);
+            dev_cached->parent_ = parent_component;
+            dev_cached->color_index_ = next_color_index_++;
+            dev_cached->RefreshStructure();
+            
+            nodes_->AddNode({dev.getName().toString(), dev_id}, 
+                            dev_cached->color_index_, 
+                            position,
+                            dev_cached->input_ports_,
+                            dev_cached->output_signals_,
+                            parent_id);
+
+            folders_[dev_id] = dev_cached.get();
+            all_components_[dev_id] = std::move(dev_cached);
+        };
+
     if (available_devices_.assigned() && available_devices_.getCount() > 0)
     {
         for (const auto& device_info : available_devices_)
@@ -342,58 +383,17 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
             std::string device_connection_string = device_info.getConnectionString();
             if (ImGui::MenuItem((device_connection_name + " (" + device_connection_string + ")").c_str()))
             {
-                const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
-                int color_index = next_color_index_++;
-                nodes_->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
-                               color_index, 
-                               position,
-                               {}, {},
-                               parent_id);
-                
-                OpenDAQComponent c;
-                c.component_ = dev;
-                c.parent_ = parent_component;
-                c.color_index_ = color_index;
-                folders_[dev.getGlobalId().toStdString()] = c;
+                add_device(device_connection_string);
+                ImGui::CloseCurrentPopup();
             }
         }
     }
 
     std::string device_connection_string = "daq.nd://";
     ImGui::InputText("##w", &device_connection_string);
-    if (ImGui::IsItemDeactivatedAfterEdit())
+    if (ImGui::IsItemDeactivatedAfterEdit() || (ImGui::SameLine(), ImGui::Button("Connect")))
     {
-        const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
-        int color_index = next_color_index_++;
-        nodes_->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
-                       color_index, 
-                       position,
-                       {}, {},
-                       parent_id);
-        
-        OpenDAQComponent c;
-        c.component_ = dev;
-        c.parent_ = parent_component;
-        c.color_index_ = color_index;
-        folders_[dev.getGlobalId().toStdString()] = c;
-        ImGui::CloseCurrentPopup();
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Connect"))
-    {
-        const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
-        int color_index = next_color_index_++;
-        nodes_->AddNode({dev.getName().toString(), dev.getGlobalId().toString()}, 
-                       color_index, 
-                       position,
-                       {}, {},
-                       parent_id);
-        
-        OpenDAQComponent c;
-        c.component_ = dev;
-        c.parent_ = parent_component;
-        c.color_index_ = color_index;
-        folders_[dev.getGlobalId().toStdString()] = c;
+        add_device(device_connection_string);
         ImGui::CloseCurrentPopup();
     }
 }
