@@ -1,5 +1,5 @@
 #include "signals_window.h"
-#include "opendaq_control.h"
+#include "utils.h"
 #include "imgui.h"
 #include "implot.h"
 #include <unordered_set>

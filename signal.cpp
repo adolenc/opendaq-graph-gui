@@ -1,5 +1,5 @@
 #include "signal.h"
-#include "opendaq_control.h"
+#include "utils.h"
 
 
 OpenDAQSignal::OpenDAQSignal(daq::SignalPtr signal, float seconds_shown, int max_points)

@@ -56,15 +56,3 @@ public:
 
     int next_color_index_ = 1;
 };
-
-template <class Interface>
-bool canCastTo(daq::IBaseObject* baseObject)
-{
-    return daq::BaseObjectPtr::Borrow(baseObject).asPtrOrNull<Interface>().assigned();
-}
-template <class Interface>
-auto castTo(daq::IBaseObject* baseObject)
-{
-    return daq::BaseObjectPtr::Borrow(baseObject).as<Interface>();
-}
-
