@@ -9,14 +9,13 @@ class PropertiesWindow
 {
 public:
     void Render();
-    void OnSelectionChanged(const std::vector<daq::ComponentPtr>& selected_components);
+    void OnSelectionChanged(const std::vector<CachedComponent*>& cached_components);
     
 private:
     void RenderCachedProperty(CachedProperty& cached_prop);
     void RenderCachedComponent(CachedComponent& cached_component);
     
-    std::vector<daq::ComponentPtr> selected_components_;
-    std::vector<std::unique_ptr<CachedComponent>> cached_components_;
+    std::vector<CachedComponent*> cached_components_;
     bool freeze_selection_ = false;
     bool show_parents_ = false;
     bool tabbed_interface_ = false;

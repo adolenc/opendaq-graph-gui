@@ -37,7 +37,7 @@ public:
     std::unordered_map<std::string, CachedComponent*> input_ports_;
     std::unordered_map<std::string, CachedComponent*> signals_;
 
-    std::vector<daq::ComponentPtr> selected_components_;
+    std::vector<std::string> selected_ids_;
     
     daq::ComponentPtr add_button_click_component_;
     std::optional<ImVec2> add_button_drop_position_;

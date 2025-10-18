@@ -5,7 +5,7 @@
 #include <unordered_set>
 
 
-void SignalsWindow::OnSelectionChanged(const std::vector<daq::ComponentPtr>& selected_components)
+void SignalsWindow::OnSelectionChanged(const std::vector<CachedComponent*>& cached_components)
 {
     if (freeze_selection_)
         return;
@@ -23,10 +23,12 @@ void SignalsWindow::OnSelectionChanged(const std::vector<daq::ComponentPtr>& sel
             signals_map_[signal_id] = OpenDAQSignal(signal, 5.0, 2000);
     };
 
-    for (const auto& component : selected_components)
+    for (const CachedComponent* cached : cached_components)
     {
-        if (!component.assigned())
+        if (!cached || !cached->component_.assigned())
             continue;
+
+        const daq::ComponentPtr component = cached->component_;
 
         if (canCastTo<daq::IFunctionBlock>(component))
         {

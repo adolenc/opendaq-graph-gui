@@ -211,19 +211,20 @@ void OpenDAQNodeEditor::OnInputHover(const ImGui::ImGuiNodesUid& id)
 
 void OpenDAQNodeEditor::OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUid>& selected_ids)
 {
-    selected_components_.clear();
+    selected_ids_ = selected_ids;
+    std::vector<CachedComponent*> selected_cached_components_;
     for (ImGui::ImGuiNodesUid id : selected_ids)
     {
         if (auto it = folders_.find(id); it != folders_.end())
-            selected_components_.push_back(it->second->component_);
+            selected_cached_components_.push_back(it->second);
         if (auto it = input_ports_.find(id); it != input_ports_.end())
-            selected_components_.push_back(it->second->component_);
+            selected_cached_components_.push_back(it->second);
         if (auto it = signals_.find(id); it != signals_.end())
-            selected_components_.push_back(it->second->component_);
+            selected_cached_components_.push_back(it->second);
     }
     
-    properties_window_.OnSelectionChanged(selected_components_);
-    signals_window_.OnSelectionChanged(selected_components_);
+    properties_window_.OnSelectionChanged(selected_cached_components_);
+    signals_window_.OnSelectionChanged(selected_cached_components_);
 }
 
 void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position)

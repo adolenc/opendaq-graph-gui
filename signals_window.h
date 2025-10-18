@@ -3,13 +3,14 @@
 #include <unordered_map>
 #include <string>
 #include "signal.h"
+#include "property_cache.h"
 
 
 class SignalsWindow
 {
 public:
     void Render();
-    void OnSelectionChanged(const std::vector<daq::ComponentPtr>& selected_components);
+    void OnSelectionChanged(const std::vector<CachedComponent*>& cached_components);
     
 private:
     bool freeze_selection_ = false;
