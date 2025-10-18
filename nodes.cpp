@@ -27,7 +27,7 @@ ImVec2 ImGuiNodes::UpdateEdgeScrolling()
         return ImVec2(0.0f, 0.0f);
 
     const float edge_zone = 80.0f;
-    const float max_scroll_speed = 20.0f;
+    const float max_scroll_speed = 50.0f;
 
     ImVec2 canvas_min = nodes_imgui_window_pos_;
     ImVec2 canvas_max = nodes_imgui_window_pos_ + nodes_imgui_window_size_;
