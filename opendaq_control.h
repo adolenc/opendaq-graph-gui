@@ -2,20 +2,13 @@
 #include <opendaq/opendaq.h>
 #include "nodes.h"
 #include "properties_window.h"
+#include "property_cache.h"
 #include "signals_window.h"
 #include <vector>
 #include <optional>
 #include <string>
+#include <memory>
 
-
-struct OpenDAQComponent
-{
-    daq::ComponentPtr component_;
-    daq::ComponentPtr parent_;
-    std::vector<ImGui::ImGuiNodesIdentifier> input_ports_;
-    std::vector<ImGui::ImGuiNodesIdentifier> output_signals_;
-    int color_index_ = 0;
-};
 
 class OpenDAQNodeEditor : public ImGui::ImGuiNodesInteractionHandler
 {
@@ -39,9 +32,10 @@ public:
     void RenderDeviceOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position);
 
     daq::InstancePtr instance_;
-    std::unordered_map<std::string, OpenDAQComponent> folders_{};
-    std::unordered_map<std::string, OpenDAQComponent> input_ports_{};
-    std::unordered_map<std::string, OpenDAQComponent> signals_{};
+    std::unordered_map<std::string, std::unique_ptr<CachedComponent>> all_components_;
+    std::unordered_map<std::string, CachedComponent*> folders_;
+    std::unordered_map<std::string, CachedComponent*> input_ports_;
+    std::unordered_map<std::string, CachedComponent*> signals_;
 
     std::vector<daq::ComponentPtr> selected_components_;
     

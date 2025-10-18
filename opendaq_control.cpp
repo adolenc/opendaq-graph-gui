@@ -1,4 +1,5 @@
 #include "opendaq_control.h"
+#include "property_cache.h"
 #include "imgui_stdlib.h"
 #include "implot.h"
 #include "imsearch.h"
@@ -53,8 +54,8 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
     if (component == instance_ || component.getName() == "IO" || component.getName() == "AI" || component.getName() == "AO" || component.getName() == "Dev" || component.getName() == "FB")
     {
         // just a dummy folder we should skip
-        assert(input_ports.empty());
-        assert(output_signals.empty());
+        assert(cached->input_ports_.empty());
+        assert(cached->output_signals_.empty());
         new_parent_id = parent_id;
     }
     else
@@ -108,9 +109,9 @@ void OpenDAQNodeEditor::OnConnectionCreated(const ImGui::ImGuiNodesUid& output_i
     daq::SignalPtr signal;
     daq::InputPortPtr input_port;
     if (auto it = signals_.find(output_id); it != signals_.end())
-        signal = it->second.component_.as<daq::ISignal>();
+        signal = castTo<daq::ISignal>(it->second->component_);
     if (auto it = input_ports_.find(input_id); it != input_ports_.end())
-        input_port = it->second.component_.as<daq::IInputPort>();
+        input_port = castTo<daq::IInputPort>(it->second->component_);
 
     if (signal.assigned() && input_port.assigned())
         input_port.connect(signal);
@@ -129,11 +130,11 @@ void OpenDAQNodeEditor::OnOutputHover(const ImGui::ImGuiNodesUid& id)
         return;
     }
 
-    if (last_id != id)
+    if (last_id != id && signals_.find(id) != signals_.end())
     {
         // reinitialization with a new signal
         last_id = id;
-        daq::SignalPtr signal = signals_[id].component_.as<daq::ISignal>();
+        daq::SignalPtr signal = castTo<daq::ISignal>(signals_[id]->component_);
         signal_preview = OpenDAQSignal(signal, 2.0, 1000);
     }
 
@@ -182,7 +183,7 @@ void OpenDAQNodeEditor::OnInputHover(const ImGui::ImGuiNodesUid& id)
     if (it == input_ports_.end())
         return;
 
-    daq::InputPortPtr input_port = it->second.component_.as<daq::IInputPort>();
+    daq::InputPortPtr input_port = it->second->component_.as<daq::IInputPort>();
     if (!input_port.assigned())
         return;
 
@@ -199,11 +200,11 @@ void OpenDAQNodeEditor::OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUi
     for (ImGui::ImGuiNodesUid id : selected_ids)
     {
         if (auto it = folders_.find(id); it != folders_.end())
-            selected_components_.push_back(it->second.component_);
+            selected_components_.push_back(it->second->component_);
         if (auto it = input_ports_.find(id); it != input_ports_.end())
-            selected_components_.push_back(it->second.component_);
+            selected_components_.push_back(it->second->component_);
         if (auto it = signals_.find(id); it != signals_.end())
-            selected_components_.push_back(it->second.component_);
+            selected_components_.push_back(it->second->component_);
     }
     
     properties_window_.OnSelectionChanged(selected_components_);
@@ -410,7 +411,7 @@ void OpenDAQNodeEditor::OnAddButtonClick(const ImGui::ImGuiNodesUid& parent_node
 {
     add_button_drop_position_ = position;
     if (auto it = folders_.find(parent_node_id); it != folders_.end())
-        add_button_click_component_ = it->second.component_;
+        add_button_click_component_ = it->second->component_;
     else
         add_button_click_component_ = nullptr;
 
@@ -492,15 +493,15 @@ void OpenDAQNodeEditor::RenderNestedNodePopup()
             for (const auto& e : signals_)
             {
                 const std::string& id = e.first;
-                const OpenDAQComponent& sig = e.second;
+                CachedComponent* cached = e.second;
 
-                std::string entry_name = sig.component_.getName().toStdString() + " (" + id + ")";
+                std::string entry_name = cached->component_.getName().toStdString() + " (" + id + ")";
                 ImSearch::SearchableItem(entry_name.c_str(), [=](const char*)
                     {
                         if (ImGui::Selectable(entry_name.c_str()))
                         {
                             daq::InputPortPtr input_port = castTo<daq::IInputPort>(dragged_input_port_component_);
-                            daq::SignalPtr signal = castTo<daq::ISignal>(sig.component_);
+                            daq::SignalPtr signal = castTo<daq::ISignal>(cached->component_);
 
                             if (signal.assigned() && input_port.assigned())
                                 input_port.connect(signal);
@@ -550,7 +551,7 @@ void OpenDAQNodeEditor::OnEmptySpaceClick(ImVec2 position)
 void OpenDAQNodeEditor::OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, std::optional<ImVec2> /*position*/)
 {
     if (auto it = input_ports_.find(input_uid); it != input_ports_.end())
-        dragged_input_port_component_ = it->second.component_;
+        dragged_input_port_component_ = it->second->component_;
     else
         dragged_input_port_component_ = nullptr;
 

@@ -5,7 +5,6 @@
 CachedComponent::CachedComponent(daq::ComponentPtr component)
     : component_(component)
 {
-    Refresh();
 }
 
 static std::string OperationModeToString(daq::OperationModeType mode)
@@ -261,7 +260,32 @@ void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr 
     }
 }
 
-void CachedComponent::Refresh()
+void CachedComponent::RefreshStructure()
+{
+    input_ports_.clear();
+    output_signals_.clear();
+
+    if (!component_.assigned())
+        return;
+
+    if (canCastTo<daq::IFunctionBlock>(component_))
+    {
+        daq::FunctionBlockPtr function_block = castTo<daq::IFunctionBlock>(component_);
+        for (const daq::InputPortPtr& input_port : function_block.getInputPorts())
+            input_ports_.push_back({input_port.getName().toStdString(), input_port.getGlobalId().toStdString()});
+
+        for (const daq::SignalPtr& signal : function_block.getSignals())
+            output_signals_.push_back({signal.getName().toStdString(), signal.getGlobalId().toStdString()});
+    }
+    else if (canCastTo<daq::IDevice>(component_))
+    {
+        daq::DevicePtr device = castTo<daq::IDevice>(component_);
+        for (const daq::SignalPtr& signal : device.getSignals())
+            output_signals_.push_back({signal.getName().toStdString(), signal.getGlobalId().toStdString()});
+    }
+}
+
+void CachedComponent::RefreshProperties()
 {
     needs_refresh_ = false;
 

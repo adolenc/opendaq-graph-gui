@@ -153,7 +153,7 @@ void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component)
     }
     
     if (cached_component.needs_refresh_)
-        cached_component.Refresh();
+        cached_component.RefreshProperties();
 }
 
 void PropertiesWindow::OnSelectionChanged(const std::vector<daq::ComponentPtr>& selected_components)
@@ -167,7 +167,11 @@ void PropertiesWindow::OnSelectionChanged(const std::vector<daq::ComponentPtr>& 
     for (const auto& component : selected_components_)
     {
         if (component.assigned())
-            cached_components_.push_back(std::make_unique<CachedComponent>(component));
+        {
+            auto cached = std::make_unique<CachedComponent>(component);
+            cached->RefreshProperties();
+            cached_components_.push_back(std::move(cached));
+        }
     }
 }
 

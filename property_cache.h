@@ -1,8 +1,10 @@
 #pragma once
 #include <opendaq/opendaq.h>
+#include "nodes.h"
 #include <variant>
 #include <string>
 #include <optional>
+#include <vector>
 
 
 struct CachedProperty;
@@ -11,17 +13,26 @@ struct CachedComponent
 {
     CachedComponent(daq::ComponentPtr component);
 
-    void Refresh();
+    void RefreshProperties();
+    void RefreshStructure();
     void AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr property_holder, int depth = 0, const std::string& parent_uid = "");
+
+    daq::ComponentPtr component_;
+    daq::ComponentPtr parent_;
 
     std::string name_;
     std::string warning_message_;
     std::string error_message_;
-    daq::ComponentPtr component_;
     std::vector<CachedProperty> attributes_;
     std::vector<CachedProperty> properties_;
     std::vector<CachedProperty> signal_descriptor_properties_;
     std::vector<CachedProperty> signal_domain_descriptor_properties_;
+
+    std::vector<ImGui::ImGuiNodesIdentifier> input_ports_;
+    std::vector<ImGui::ImGuiNodesIdentifier> output_signals_;
+
+    int color_index_ = 0;
+
     bool needs_refresh_ = false;
 };
 
