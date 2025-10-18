@@ -148,7 +148,6 @@ static std::string DictToString(daq::DictPtr<daq::IString, daq::IBaseObject> dic
 
 void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr property_holder, int depth, const std::string& parent_uid)
 {
-    // add it first so that recursion works out nicely
     properties_.push_back(CachedProperty());
     CachedProperty& cached = properties_.back();
     cached.property_ = prop;
@@ -162,6 +161,32 @@ void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr 
     if (prop.getMinValue().assigned()) cached.min_value_ = (double)prop.getMinValue();
     if (prop.getMaxValue().assigned()) cached.max_value_ = (double)prop.getMaxValue();
     cached.type_ = prop.getValueType();
+
+    if (auto sv = prop.getSelectionValues(); sv.assigned())
+    {
+        std::stringstream values;
+        daq::ListPtr<daq::IBaseObject> selection_values;
+        if (sv.supportsInterface<daq::IList>())
+            selection_values = sv;
+        else if (sv.supportsInterface<daq::IDict>())
+            selection_values = daq::DictPtr<daq::IInteger, daq::IString>(sv).getValueList();
+        
+        if (selection_values.assigned())
+        {
+            for (int i = 0; i < selection_values.getCount(); i++)
+            {
+                auto val = selection_values.getItemAt(i);
+                if (val.supportsInterface<daq::IInteger>())
+                    values << std::to_string((int64_t)val) << '\0';
+                else if (val.supportsInterface<daq::IFloat>())
+                    values << std::to_string((double)val) << '\0';
+                else
+                    values << static_cast<std::string>(val) << '\0';
+            }
+            cached.selection_values_ = values.str();
+            cached.selection_values_count_ = selection_values.getCount();
+        }
+    }
 
     try
     {
@@ -181,9 +206,10 @@ void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr 
                 break;
             case daq::ctObject:
                 {
+                    std::string new_parent_uid = cached.uid_ + ".";
                     daq::PropertyObjectPtr parent = property_holder.getPropertyValue(cached.name_);
                     for (const auto& sub_property : parent.getVisibleProperties())
-                        AddProperty(sub_property, parent, depth + 1, cached.uid_ + ".");
+                        AddProperty(sub_property, parent, depth + 1, new_parent_uid);
                 }
                 break;
             case daq::ctStruct:
@@ -197,7 +223,7 @@ void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr 
                         struct_field.owner_ = this;
                         struct_field.depth_ = depth + 1;
                         struct_field.name_ = field_names.getItemAt(i).toStdString();
-                        struct_field.uid_ = cached.uid_ + struct_field.name_;
+                        struct_field.uid_ = cached.uid_ + "." + struct_field.name_;
                         struct_field.display_name_ = struct_field.name_;
                         struct_field.is_read_only_ = true;
                         struct_field.property_ = prop;
@@ -232,32 +258,6 @@ void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr 
         }
     }
     catch (...) {}
-
-    if (auto sv = prop.getSelectionValues(); sv.assigned())
-    {
-        std::stringstream values;
-        daq::ListPtr<daq::IBaseObject> selection_values;
-        if (sv.supportsInterface<daq::IList>())
-            selection_values = sv;
-        else if (sv.supportsInterface<daq::IDict>())
-            selection_values = daq::DictPtr<daq::IInteger, daq::IString>(sv).getValueList();
-        
-        if (selection_values.assigned())
-        {
-            for (int i = 0; i < selection_values.getCount(); i++)
-            {
-                auto val = selection_values.getItemAt(i);
-                if (val.supportsInterface<daq::IInteger>())
-                    values << std::to_string((int64_t)val) << '\0';
-                else if (val.supportsInterface<daq::IFloat>())
-                    values << std::to_string((double)val) << '\0';
-                else
-                    values << static_cast<std::string>(val) << '\0';
-            }
-            cached.selection_values_ = values.str();
-            cached.selection_values_count_ = selection_values.getCount();
-        }
-    }
 }
 
 void CachedComponent::RefreshStructure()
@@ -1186,17 +1186,17 @@ void CachedProperty::SetValue(ValueType value)
         switch (type_)
         {
             case daq::ctBool:
-                property_holder.setPropertyValue(name_, std::get<bool>(value)); break;
+                property_holder.setPropertyValue(uid_, std::get<bool>(value)); break;
             case daq::ctInt:
-                property_holder.setPropertyValue(name_, std::get<int64_t>(value)); break;
+                property_holder.setPropertyValue(uid_, std::get<int64_t>(value)); break;
             case daq::ctFloat:
-                property_holder.setPropertyValue(name_, std::get<double>(value)); break;
+                property_holder.setPropertyValue(uid_, std::get<double>(value)); break;
             case daq::ctString:
-                property_holder.setPropertyValue(name_, std::get<std::string>(value)); break;
+                property_holder.setPropertyValue(uid_, std::get<std::string>(value)); break;
             case daq::ctProc:
-                property_holder.getPropertyValue(name_).asPtr<daq::IProcedure>().dispatch(); break;
+                property_holder.getPropertyValue(uid_).asPtr<daq::IProcedure>().dispatch(); break;
             case daq::ctFunc:
-                property_holder.getPropertyValue(name_).asPtr<daq::IFunction>().dispatch(); break;
+                property_holder.getPropertyValue(uid_).asPtr<daq::IFunction>().dispatch(); break;
             default:
                 assert(false && "unsupported property type");
                 return;
