@@ -2,7 +2,7 @@
 #include <opendaq/opendaq.h>
 #include "nodes.h"
 #include "properties_window.h"
-#include "property_cache.h"
+#include "component_cache.h"
 #include "signals_window.h"
 #include <vector>
 #include <optional>

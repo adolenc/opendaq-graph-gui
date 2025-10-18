@@ -1,5 +1,4 @@
 #include "opendaq_control.h"
-#include "property_cache.h"
 #include "imgui_stdlib.h"
 #include "implot.h"
 #include "imsearch.h"

@@ -1,9 +1,7 @@
 #pragma once
 #include <opendaq/opendaq.h>
 #include <vector>
-#include <string>
-#include <memory>
-#include "property_cache.h"
+#include "component_cache.h"
 
 class PropertiesWindow
 {

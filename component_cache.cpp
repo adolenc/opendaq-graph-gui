@@ -1,4 +1,4 @@
-#include "property_cache.h"
+#include "component_cache.h"
 #include "opendaq_control.h"
 
 

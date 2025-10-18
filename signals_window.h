@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <string>
 #include "signal.h"
-#include "property_cache.h"
+#include "component_cache.h"
 
 
 class SignalsWindow

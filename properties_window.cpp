@@ -1,5 +1,4 @@
 #include "properties_window.h"
-#include "property_cache.h"
 #include <string>
 #include "imgui.h"
 #include "imgui_stdlib.h"
