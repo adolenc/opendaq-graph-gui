@@ -17,6 +17,9 @@ public:
     OpenDAQSignal() {};
     OpenDAQSignal(daq::SignalPtr signal, float seconds_shown, int max_points);
     void Update();
+    void RebuildIfInvalid(daq::SignalPtr signal, float seconds_shown, int max_points);
+    void RebuildIfInvalid(daq::SignalPtr signal);
+    void RebuildIfInvalid();
 
     std::vector<double> plot_values_avg_;
     std::vector<double> plot_values_min_;
@@ -38,6 +41,7 @@ private:
     void ReadDomainOnly();
 
     daq::ReaderPtr reader_;
+    daq::SignalPtr signal_;
     daq::RatioPtr tick_resolution_;
     int64_t start_time_{-1};
     int leftover_samples_{0};

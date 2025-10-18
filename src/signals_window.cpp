@@ -125,3 +125,9 @@ void SignalsWindow::Render()
 
     ImGui::End();
 }
+
+void SignalsWindow::RebuildInvalidSignals()
+{
+    for (auto& [id, sig] : signals_map_)
+        sig.RebuildIfInvalid();
+}

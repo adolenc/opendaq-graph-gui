@@ -11,6 +11,7 @@ class SignalsWindow
 public:
     void Render();
     void OnSelectionChanged(const std::vector<CachedComponent*>& cached_components);
+    void RebuildInvalidSignals();
     
 private:
     bool freeze_selection_ = false;

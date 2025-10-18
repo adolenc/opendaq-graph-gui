@@ -4,6 +4,18 @@
 
 OpenDAQSignal::OpenDAQSignal(daq::SignalPtr signal, float seconds_shown, int max_points)
 {
+    RebuildIfInvalid(signal, seconds_shown, max_points);
+}
+
+void OpenDAQSignal::RebuildIfInvalid(daq::SignalPtr signal, float seconds_shown, int max_points)
+{
+    signal_ = signal;
+    reader_ = nullptr;
+    pos_in_plot_buffer_ = 0;
+    int64_t start_time_ = -1;
+    points_in_plot_buffer_ = 0;
+    end_time_seconds_ = 0;
+
     signal_name_ = signal.getName().toStdString();
     signal_id_ = signal.getGlobalId().toStdString();
     if (signal.getDescriptor().assigned() && signal.getDescriptor().getUnit().assigned() && signal.getDescriptor().getUnit().getSymbol().assigned())
@@ -62,6 +74,21 @@ OpenDAQSignal::OpenDAQSignal(daq::SignalPtr signal, float seconds_shown, int max
     leftover_samples_ = 0;
     
     start_time_ = -1;
+}
+
+void OpenDAQSignal::RebuildIfInvalid()
+{
+    RebuildIfInvalid(signal_);
+}
+
+void OpenDAQSignal::RebuildIfInvalid(daq::SignalPtr signal)
+{
+    if (reader_ != nullptr && reader_.assigned())
+        return;
+
+    float seconds_shown = 5.0;
+    int max_points = 2000;
+    RebuildIfInvalid(signal, seconds_shown, max_points);
 }
 
 void OpenDAQSignal::Update()

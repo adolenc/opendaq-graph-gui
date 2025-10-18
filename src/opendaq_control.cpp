@@ -22,6 +22,11 @@ OpenDAQNodeEditor::OpenDAQNodeEditor()
                 properties_window_.RefreshComponents();
                 break;
             }
+            case static_cast<int>(daq::CoreEventId::DataDescriptorChanged):
+            {
+                signals_window_.RebuildInvalidSignals();
+                break;
+            }
         }
     };
 }
