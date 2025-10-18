@@ -116,11 +116,9 @@ int main(int argc, char** argv)
             if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
                 done = true;
         }
+
         if (!(SDL_GetWindowFlags(window) & SDL_WINDOW_INPUT_FOCUS)) // don't waste CPU if not focused
-        {
-            SDL_Delay(10);
-            continue;
-        }
+            SDL_Delay(100);
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
