@@ -147,6 +147,7 @@ public:
     virtual void OnInputHover(const ImGuiNodesUid& id) {};
     virtual void OnSelectionChanged(const std::vector<ImGuiNodesUid>& selected_ids) {}
     virtual void OnConnectionCreated(const ImGuiNodesUid& output_id, const ImGuiNodesUid& input_id) {}
+    virtual void OnConnectionRemoved(const ImGuiNodesUid& input_id) {}
     virtual void RenderPopupMenu(ImGuiNodes* nodes, ImVec2 position) {}
     virtual void OnAddButtonClick(const ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position) {}
     virtual void OnInputDropped(const ImGuiNodesUid& input_uid, std::optional<ImVec2> position) {}

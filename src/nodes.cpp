@@ -560,6 +560,8 @@ void ImGuiNodes::ProcessInteractions()
                 if (active_input_->source_node_)
                 {
                     RemoveConnection(active_input_->uid_);
+                    if (interaction_handler_)
+                        interaction_handler_->OnConnectionRemoved(active_input_->uid_);
                     state_ = ImGuiNodesState_DraggingInput;
                 }
 
@@ -703,6 +705,8 @@ void ImGuiNodes::ProcessInteractions()
                     active_output_ = active_input_->source_output_;
 
                     RemoveConnection(active_input_->uid_);
+                    if (interaction_handler_)
+                        interaction_handler_->OnConnectionRemoved(active_input_->uid_);
 
                     state_ = ImGuiNodesState_DraggingOutput;
                     return;
@@ -939,7 +943,11 @@ void ImGuiNodes::ProcessInteractions()
             {
                 ImGuiNodesInput& input = node->inputs_[input_idx];
                 if (IS_SET(input.state_, ImGuiNodesConnectorStateFlag_Selected))
+                {
                     RemoveConnection(input.uid_);
+                    if (interaction_handler_)
+                        interaction_handler_->OnConnectionRemoved(input.uid_);
+                }
                 CLEAR_FLAG(input.state_, ImGuiNodesConnectorStateFlag_Selected);
             }
             
@@ -973,7 +981,11 @@ void ImGuiNodes::ProcessInteractions()
                         ImGuiNodesInput& input = sweep->inputs_[input_idx];
 
                         if (node == input.source_node_)
+                        {
                             RemoveConnection(input.uid_);
+                            if (interaction_handler_)
+                                interaction_handler_->OnConnectionRemoved(input.uid_);
+                        }
                     }
                 }
 
@@ -981,6 +993,8 @@ void ImGuiNodes::ProcessInteractions()
                 {
                     ImGuiNodesInput& input = node->inputs_[input_idx];
                     RemoveConnection(input.uid_);
+                    if (interaction_handler_)
+                        interaction_handler_->OnConnectionRemoved(input.uid_);
                     input.name_.clear();
                 }
 

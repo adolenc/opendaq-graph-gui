@@ -165,6 +165,16 @@ void OpenDAQNodeEditor::OnConnectionCreated(const ImGui::ImGuiNodesUid& output_i
         input_port.connect(signal);
 }
 
+void OpenDAQNodeEditor::OnConnectionRemoved(const ImGui::ImGuiNodesUid& input_id)
+{
+    daq::InputPortPtr input_port;
+    if (auto it = input_ports_.find(input_id); it != input_ports_.end())
+        input_port = castTo<daq::IInputPort>(it->second->component_);
+
+    if (input_port.assigned())
+        input_port.disconnect();
+}
+
 void OpenDAQNodeEditor::OnOutputHover(const ImGui::ImGuiNodesUid& id)
 {
     static std::string last_id{""};

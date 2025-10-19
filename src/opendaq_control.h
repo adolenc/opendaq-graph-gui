@@ -17,6 +17,7 @@ public:
     void Init();
     void RetrieveTopology(daq::ComponentPtr component, std::string parent_id = "");
     void OnConnectionCreated(const ImGui::ImGuiNodesUid& output_id, const ImGui::ImGuiNodesUid& input_id) override;
+    void OnConnectionRemoved(const ImGui::ImGuiNodesUid& input_id) override;
     void OnOutputHover(const ImGui::ImGuiNodesUid& id) override;
     void OnInputHover(const ImGui::ImGuiNodesUid& id) override;
     void OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUid>& selected_ids) override;
