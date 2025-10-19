@@ -1572,6 +1572,21 @@ void ImGuiNodes::SetOk(const ImGuiNodesUid& uid)
     }
 }
 
+void ImGuiNodes::Clear()
+{
+    active_node_ = NULL;
+    active_input_ = NULL;
+    active_output_ = NULL;
+
+    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+        delete nodes_[node_idx];
+    
+    nodes_.clear();
+    nodes_by_uid_.clear();
+    inputs_by_uid_.clear();
+    outputs_by_uid_.clear();
+}
+
 void ImGuiNodes::AddConnection(const ImGuiNodesUid& output_uid, const ImGuiNodesUid& input_uid)
 {
     auto input_it = inputs_by_uid_.find(input_uid);

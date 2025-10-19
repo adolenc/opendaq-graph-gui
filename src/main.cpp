@@ -127,6 +127,7 @@ int main(int argc, char** argv)
         static bool initialized = false;
         if (!initialized)
         {
+            opendaq_editor.Init();
             nodes_editor.BeginBatchAdd();
             opendaq_editor.RetrieveTopology(opendaq_editor.instance_);
             nodes_editor.EndBatchAdd();

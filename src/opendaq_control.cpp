@@ -9,25 +9,14 @@
 OpenDAQNodeEditor::OpenDAQNodeEditor()
     : instance_(daq::Instance("."))
 {
+}
+
+void OpenDAQNodeEditor::Init()
+{
     instance_.getContext().getOnCoreEvent() += [&](const daq::ComponentPtr& comp, const daq::CoreEventArgsPtr& args)
     {
-        switch (static_cast<int>(args.getEventId()))
-        {
-            // case static_cast<int>(daq::CoreEventId::PropertyValueChanged):
-            // case static_cast<int>(daq::CoreEventId::PropertyAdded):
-            // case static_cast<int>(daq::CoreEventId::PropertyRemoved):
-            case static_cast<int>(daq::CoreEventId::StatusChanged):
-            case static_cast<int>(daq::CoreEventId::AttributeChanged):
-            {
-                properties_window_.RefreshComponents();
-                break;
-            }
-            case static_cast<int>(daq::CoreEventId::DataDescriptorChanged):
-            {
-                signals_window_.RebuildInvalidSignals();
-                break;
-            }
-        }
+        std::lock_guard<std::mutex> lock(event_mutex_);
+        event_id_queue_.push_back(args.getEventId());
     };
 }
 
@@ -137,6 +126,23 @@ void OpenDAQNodeEditor::RetrieveConnections()
             nodes_->AddConnection(signal_uid, input_uid);
         }
     }
+}
+
+void OpenDAQNodeEditor::RebuildStructure()
+{
+    properties_window_.OnSelectionChanged({});
+    signals_window_.OnSelectionChanged({});
+    nodes_->Clear();
+    all_components_.clear();
+    folders_.clear();
+    input_ports_.clear();
+    signals_.clear();
+    next_color_index_ = 1;
+
+    nodes_->BeginBatchAdd();
+    RetrieveTopology(instance_);
+    nodes_->EndBatchAdd();
+    RetrieveConnections();
 }
 
 void OpenDAQNodeEditor::OnConnectionCreated(const ImGui::ImGuiNodesUid& output_id, const ImGui::ImGuiNodesUid& input_id)
@@ -581,6 +587,37 @@ void OpenDAQNodeEditor::OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, st
 
 void OpenDAQNodeEditor::Render()
 {
+    {
+        std::lock_guard<std::mutex> lock(event_mutex_);
+
+        for (daq::Int event_id : event_id_queue_)
+        {
+            switch (event_id)
+            {
+                case static_cast<int>(daq::CoreEventId::PropertyValueChanged):
+                case static_cast<int>(daq::CoreEventId::PropertyAdded):
+                case static_cast<int>(daq::CoreEventId::PropertyRemoved):
+                case static_cast<int>(daq::CoreEventId::StatusChanged):
+                {
+                    properties_window_.RefreshComponents();
+                    break;
+                }
+                case static_cast<int>(daq::CoreEventId::DataDescriptorChanged):
+                {
+                    signals_window_.RebuildInvalidSignals();
+                    break;
+                }
+                case static_cast<int>(daq::CoreEventId::ComponentAdded):
+                case static_cast<int>(daq::CoreEventId::ComponentRemoved):
+                case static_cast<int>(daq::CoreEventId::ComponentUpdateEnd):
+                {
+                    RebuildStructure();
+                    break;
+                }
+            }
+        }
+        event_id_queue_.clear();
+    }
     properties_window_.Render();
     signals_window_.Render();
 }

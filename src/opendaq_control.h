@@ -14,6 +14,7 @@ class OpenDAQNodeEditor : public ImGui::ImGuiNodesInteractionHandler
 {
 public:
     OpenDAQNodeEditor();
+    void Init();
     void RetrieveTopology(daq::ComponentPtr component, std::string parent_id = "");
     void OnConnectionCreated(const ImGui::ImGuiNodesUid& output_id, const ImGui::ImGuiNodesUid& input_id) override;
     void OnOutputHover(const ImGui::ImGuiNodesUid& id) override;
@@ -26,6 +27,7 @@ public:
     void RenderNestedNodePopup();
     void ShowStartupPopup();
     void RetrieveConnections();
+    void RebuildStructure();
     void Render();
 
     void RenderFunctionBlockOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position);
@@ -55,4 +57,7 @@ public:
     SignalsWindow signals_window_;
 
     int next_color_index_ = 1;
+
+    std::mutex event_mutex_;
+    std::vector<daq::Int> event_id_queue_;
 };
