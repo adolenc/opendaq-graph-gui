@@ -18,4 +18,5 @@ private:
     std::unordered_map<std::string, OpenDAQSignal> signals_map_;
     float total_min_ = 0.0f;
     float total_max_ = 0.0f;
+    int plot_unique_id_ = 0; // id used to reset plot (especially min/max axis) whenever inputs change
 };

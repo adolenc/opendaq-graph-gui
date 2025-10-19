@@ -12,9 +12,6 @@ void SignalsWindow::OnSelectionChanged(const std::vector<CachedComponent*>& cach
 
     std::unordered_set<std::string> selected_signal_ids;
 
-    total_min_ = std::numeric_limits<float>::max();
-    total_max_ = std::numeric_limits<float>::lowest();
-
     auto add_signal = [&](const daq::SignalPtr& signal)
     {
         std::string signal_id = signal.getGlobalId().toStdString();
@@ -62,11 +59,14 @@ void SignalsWindow::OnSelectionChanged(const std::vector<CachedComponent*>& cach
             ++it;
     }
 
+    total_min_ = std::numeric_limits<float>::max();
+    total_max_ = std::numeric_limits<float>::lowest();
     for (auto& [_, signal] : signals_map_)
     {
         total_min_ = std::min(total_min_, signal.value_range_min_);
         total_max_ = std::max(total_max_, signal.value_range_max_);
     }
+    plot_unique_id_ += 1;
 }
 
 void SignalsWindow::Render()
@@ -96,7 +96,7 @@ void SignalsWindow::Render()
     plot_size.y = ImMax(plot_size.y, 400.0f);
 
     static ImPlotAxisFlags flags = ImPlotAxisFlags_ShowEdgeLabels;
-    if (ImPlot::BeginPlot("##Signals", plot_size))
+    if (ImPlot::BeginPlot(("##SignalsWindow" + std::to_string(plot_unique_id_)).c_str(), plot_size))
     {
         ImPlot::SetupAxes("Time", nullptr, flags, flags);
 
@@ -130,4 +130,13 @@ void SignalsWindow::RebuildInvalidSignals()
 {
     for (auto& [id, sig] : signals_map_)
         sig.RebuildIfInvalid();
+
+    total_min_ = std::numeric_limits<float>::max();
+    total_max_ = std::numeric_limits<float>::lowest();
+    for (auto& [_, signal] : signals_map_)
+    {
+        total_min_ = std::min(total_min_, signal.value_range_min_);
+        total_max_ = std::max(total_max_, signal.value_range_max_);
+    }
+    plot_unique_id_ += 1;
 }
