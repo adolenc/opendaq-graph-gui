@@ -59,5 +59,5 @@ public:
     int next_color_index_ = 1;
 
     std::mutex event_mutex_;
-    std::vector<daq::Int> event_id_queue_;
+    std::vector<std::pair<daq::ComponentPtr, daq::CoreEventArgsPtr>> event_id_queue_;
 };

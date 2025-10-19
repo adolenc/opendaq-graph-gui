@@ -16,7 +16,7 @@ void OpenDAQNodeEditor::Init()
     instance_.getContext().getOnCoreEvent() += [&](const daq::ComponentPtr& comp, const daq::CoreEventArgsPtr& args)
     {
         std::lock_guard<std::mutex> lock(event_mutex_);
-        event_id_queue_.push_back(args.getEventId());
+        event_id_queue_.push_back({comp, args});
     };
 }
 
@@ -102,6 +102,13 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
                         cached->input_ports_,
                         cached->output_signals_,
                         parent_id);
+
+        cached->RefreshStatus();
+        if (!cached->error_message_.empty())
+            nodes_->SetError(component_id, cached->error_message_);
+        else if (!cached->warning_message_.empty())
+            nodes_->SetWarning(component_id, cached->warning_message_);
+
         new_parent_id = component_id;
         folders_[component_id] = cached;
     }
@@ -590,14 +597,33 @@ void OpenDAQNodeEditor::Render()
     {
         std::lock_guard<std::mutex> lock(event_mutex_);
 
-        for (daq::Int event_id : event_id_queue_)
+        for (auto& [comp, args] : event_id_queue_)
         {
-            switch (event_id)
+            switch (static_cast<int>(args.getEventId()))
             {
+                case static_cast<int>(daq::CoreEventId::StatusChanged):
+                {
+                    std::string component_id = comp.getGlobalId().toStdString();
+                    if (folders_.find(component_id) == folders_.end())
+                    {
+                        assert(false && "Received status change for unknown component");
+                        break;
+                    }
+
+                    CachedComponent* cached = folders_[component_id];
+                    cached->RefreshStatus();
+                    if (!cached->error_message_.empty())
+                        nodes_->SetError(component_id, cached->error_message_);
+                    else if (!cached->warning_message_.empty())
+                        nodes_->SetWarning(component_id, cached->warning_message_);
+                    else
+                        nodes_->SetOk(component_id);
+
+                    break;
+                }
                 case static_cast<int>(daq::CoreEventId::PropertyValueChanged):
                 case static_cast<int>(daq::CoreEventId::PropertyAdded):
                 case static_cast<int>(daq::CoreEventId::PropertyRemoved):
-                case static_cast<int>(daq::CoreEventId::StatusChanged):
                 {
                     properties_window_.RefreshComponents();
                     break;

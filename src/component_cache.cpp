@@ -146,18 +146,8 @@ void CachedComponent::RefreshStructure()
     }
 }
 
-void CachedComponent::RefreshProperties()
+void CachedComponent::RefreshStatus()
 {
-    needs_refresh_ = false;
-
-    assert(component_.assigned());
-
-    properties_.clear();
-    attributes_.clear();
-    signal_descriptor_properties_.clear();
-    signal_domain_descriptor_properties_.clear();
-
-    name_ = component_.getName().toStdString();
     error_message_ = "";
     warning_message_ = "";
     if (auto status_container = component_.getStatusContainer(); status_container.assigned())
@@ -186,6 +176,21 @@ void CachedComponent::RefreshProperties()
             }
         }
     }
+}
+
+void CachedComponent::RefreshProperties()
+{
+    needs_refresh_ = false;
+
+    assert(component_.assigned());
+
+    properties_.clear();
+    attributes_.clear();
+    signal_descriptor_properties_.clear();
+    signal_domain_descriptor_properties_.clear();
+
+    name_ = component_.getName().toStdString();
+    RefreshStatus();
 
     if (canCastTo<daq::IDevice>(component_))
     {

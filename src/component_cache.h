@@ -13,6 +13,7 @@ struct CachedComponent
 {
     CachedComponent(daq::ComponentPtr component);
 
+    void RefreshStatus();
     void RefreshProperties();
     void RefreshStructure();
     void AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr property_holder, int depth = 0, const std::string& parent_uid = "");
