@@ -17,7 +17,7 @@ void SignalsWindow::OnSelectionChanged(const std::vector<CachedComponent*>& cach
         std::string signal_id = signal.getGlobalId().toStdString();
         selected_signal_ids.insert(signal_id);
         if (signals_map_.find(signal_id) == signals_map_.end())
-            signals_map_[signal_id] = OpenDAQSignal(signal, 5.0, 2000);
+            signals_map_[signal_id] = OpenDAQSignal(signal, 5.0, 5000);
     };
 
     for (const CachedComponent* cached : cached_components)
@@ -71,6 +71,8 @@ void SignalsWindow::OnSelectionChanged(const std::vector<CachedComponent*>& cach
 
 void SignalsWindow::Render()
 {
+    ImGui::SetNextWindowPos(ImVec2(500.f, 20.f), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(800.f, 500.f), ImGuiCond_FirstUseEver);
     ImGui::Begin("Signal Viewer", NULL, ImGuiWindowFlags_MenuBar);
     if (ImGui::BeginMenuBar())
     {

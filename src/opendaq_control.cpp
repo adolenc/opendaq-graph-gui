@@ -573,8 +573,7 @@ void OpenDAQNodeEditor::ShowStartupPopup()
     ImGui::SetNextWindowPos(ImGui::GetIO().DisplaySize * 0.5f, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
     if (ImGui::BeginPopupModal("Startup", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
     {
-        ImGui::Text("Welcome to openDAQ GUI!");
-        ImGui::Text("Connect to a device or add function blocks to get started.");
+        ImGui::Text("Connect to a device or add a function block to get started.");
         ImGui::Separator();
 
         RenderPopupMenu(nodes_, ImVec2(0,0));

@@ -87,7 +87,7 @@ void OpenDAQSignal::RebuildIfInvalid(daq::SignalPtr signal)
         return;
 
     float seconds_shown = 5.0;
-    int max_points = 2000;
+    int max_points = 5000; // TODO: should be removed
     RebuildIfInvalid(signal, seconds_shown, max_points);
 }
 

@@ -178,6 +178,8 @@ void PropertiesWindow::RefreshComponents()
 
 void PropertiesWindow::Render()
 {
+    ImGui::SetNextWindowPos(ImVec2(300.f, 20.f), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(100.f, 100.f), ImGuiCond_FirstUseEver);
     ImGui::Begin("Property editor", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
     {
         if (ImGui::BeginMenuBar())

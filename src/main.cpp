@@ -15,7 +15,6 @@
 int main(int argc, char** argv)
 {
     std::string connection_string;
-    
     for (int i = 1; i < argc; i++)
     {
         std::string arg = argv[i];
@@ -23,13 +22,22 @@ int main(int argc, char** argv)
         {
             unsigned int major, minor, revision;
             daqOpenDaqGetVersion(&major, &minor, &revision);
-            printf("openDAQ GUI - built with openDAQ v%u.%u.%u\n", major, minor, revision);
+            printf("openDAQ Node GUI - built with openDAQ v%u.%u.%u\n", major, minor, revision);
             return 0;
         }
-        else if (arg == "--connection_string" && i + 1 < argc)
+        else if ((arg == "--connection_string" || arg == "--connection-string" || arg == "-c") && i + 1 < argc)
         {
             i += 1;
             connection_string = argv[i];
+        }
+        else if (arg == "--help" || arg == "-h")
+        {
+            printf("Usage: %s [options]\n", argv[0]);
+            printf("Options:\n");
+            printf("  --connection-string, -c <string>   Connect directly to a device (usually daq.nd://<ip>).\n");
+            printf("  --version, -v                      Show used openDAQ version.\n");
+            printf("  --help, -h                         Show this help message.\n");
+            return 0;
         }
     }
 
@@ -42,8 +50,9 @@ int main(int argc, char** argv)
     OpenDAQNodeEditor opendaq_editor;
     ImGui::ImGuiNodes nodes_editor(&opendaq_editor);
     opendaq_editor.nodes_ = &nodes_editor;
+    opendaq_editor.Init();
     
-    if (connection_string == "dev")
+    if (connection_string == "demo")
     {
         daq::DevicePtr dev = opendaq_editor.instance_.addDevice("daqref://device0");
         auto stat = opendaq_editor.instance_.addFunctionBlock("RefFBModuleStatistics");
@@ -71,7 +80,11 @@ int main(int argc, char** argv)
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    SDL_Window* window = SDL_CreateWindow("floating opendaq gui demo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 2000, 1200, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+#ifndef NDEBUG
+    SDL_Window* window = SDL_CreateWindow("floating openDAQ Node GUI", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 2200, 1600, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+#else
+    SDL_Window* window = SDL_CreateWindow("openDAQ Node GUI", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 800, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+#endif
     if (!window)
     {
         printf("Error: SDL_CreateWindow(): %s\n", SDL_GetError());
@@ -111,10 +124,12 @@ int main(int argc, char** argv)
             ImGui_ImplSDL2_ProcessEvent(&event);
             if (event.type == SDL_QUIT)
                 done = true;
-            if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)
-                done = true;
             if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
                 done = true;
+#ifndef NDEBUG
+            if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)
+                done = true;
+#endif
         }
 
         if (!(SDL_GetWindowFlags(window) & SDL_WINDOW_INPUT_FOCUS)) // don't waste CPU if not focused
@@ -124,21 +139,13 @@ int main(int argc, char** argv)
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        static bool initialized = false;
-        if (!initialized)
-        {
-            opendaq_editor.Init();
-            nodes_editor.BeginBatchAdd();
-            opendaq_editor.RetrieveTopology(opendaq_editor.instance_);
-            nodes_editor.EndBatchAdd();
-            opendaq_editor.RetrieveConnections();
-            initialized = true;
-        }
-
         opendaq_editor.Render();
         if (connection_string.empty())
             opendaq_editor.ShowStartupPopup();
+
+#ifndef NDEBUG
         ImGui::ShowDemoWindow();
+#endif
 
 #ifdef IMGUI_HAS_VIEWPORT
         ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -158,17 +165,14 @@ int main(int argc, char** argv)
         ImGui::End();
         ImGui::PopStyleVar(1);
 
-        // Rendering
         ImGui::Render();
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
-        ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-        glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+        glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(window);
     }
 
-    // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImSearch::DestroyContext();

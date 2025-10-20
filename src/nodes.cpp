@@ -1170,13 +1170,12 @@ void ImGuiNodes::ProcessNodes()
     }
 
     ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
-    ImGui::NewLine();
 
     ImGuiIO& io = ImGui::GetIO();
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-
+    ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
     ImGui::NewLine();
 
+#ifndef NDEBUG
     ImGui::Text("ImGui::IsAnyItemActive: %s", ImGui::IsAnyItemActive() ? "true" : "false");
     ImGui::Text("ImGui::IsAnyItemFocused: %s", ImGui::IsAnyItemFocused() ? "true" : "false");
     ImGui::Text("ImGui::IsAnyItemHovered: %s", ImGui::IsAnyItemHovered() ? "true" : "false");
@@ -1216,6 +1215,7 @@ void ImGuiNodes::ProcessNodes()
         ImGui::Text("Active_input: %s", active_input_->name_.c_str());
     if (active_output_)
         ImGui::Text("Active_output: %s", active_output_->name_.c_str());
+#endif
 }
 
 void ImGuiNodesInput::TranslateInput(ImVec2 delta)
