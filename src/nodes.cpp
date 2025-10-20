@@ -1413,10 +1413,10 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
     body_color.Value.w = 0.9f;		
 
     if (IS_SET(state_, ImGuiNodesNodeStateFlag_Warning))
-        head_color = ImColor(0.8f, 0.4f, 0.1f, 1.0f);  // Darker orange warning color
+        head_color = ImColor(0xff0060ff);  // Darker orange warning color
     
     if (IS_SET(state_, ImGuiNodesNodeStateFlag_Error))
-        head_color = ImColor(0.8f, 0.1f, 0.1f, 1.0f);  // Red error color
+        head_color = ImColor(0xff0719eb);  // Red error color
 
     const ImVec2 outline(3.0f * scale, 3.0f * scale);
 
