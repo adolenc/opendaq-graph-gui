@@ -152,29 +152,21 @@ void CachedComponent::RefreshStatus()
     warning_message_ = "";
     if (auto status_container = component_.getStatusContainer(); status_container.assigned())
     {
-        if (auto statuses = status_container.getStatuses(); statuses.assigned())
-        {
-            for (const auto& key : statuses.getKeyList())
-            {
-                auto status_value = statuses.get(key);
-                if (!status_value.supportsInterface<daq::IEnumeration>())
-                    continue;
+        if (!status_container.getStatuses().hasKey("ComponentStatus"))
+            return;
 
-                auto enum_value = status_value.asPtr<daq::IEnumeration>();
-                int severity = enum_value.getIntValue();
-                if (severity == 0) // ok
-                    continue;
+        std::string severity = status_container.getStatuses().get("ComponentStatus").getValue().toStdString();
+        if (severity == "Ok")
+            return;
 
-                std::string display_text = enum_value.getValue().toStdString();
-                if (auto msg_str = status_container.getStatusMessage(key); msg_str.assigned())
-                    display_text += ": " + msg_str.toStdString();
+        std::string display_text = severity;
+        if (auto status_message = status_container.getStatusMessage("ComponentStatus"); status_message.assigned())
+            display_text += ": " + status_message.toStdString();
 
-                if (severity >= 2) 
-                    error_message_ = display_text;
-                else
-                    warning_message_ = display_text;
-            }
-        }
+        if (severity == "Error") 
+            error_message_ = display_text;
+        else // Warning
+            warning_message_ = display_text;
     }
 }
 
