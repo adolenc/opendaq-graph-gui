@@ -11,7 +11,8 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
 
     ImGui::PushID(cached_prop.uid_.c_str());
 
-    if (cached_prop.is_read_only_)
+    bool is_disabled = cached_prop.is_read_only_ && cached_prop.type_ != daq::ctProc && cached_prop.type_ != daq::ctFunc;
+    if (is_disabled)
         ImGui::BeginDisabled();
 
     if (cached_prop.depth_ > 0)
@@ -59,7 +60,7 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
                 std::string value = std::get<std::string>(cached_prop.value_);
                 if (ImGui::InputText(cached_prop.display_name_.c_str(), &value))
                     cached_prop.SetValue(value);
-                if (cached_prop.is_read_only_ && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone | ImGuiHoveredFlags_AllowWhenDisabled) && ImGui::BeginTooltip())
+                if (is_disabled && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone | ImGuiHoveredFlags_AllowWhenDisabled) && ImGui::BeginTooltip())
                 {
                     ImGui::Text("%s", value.c_str());
                     ImGui::EndTooltip();
@@ -91,7 +92,7 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
     if (cached_prop.depth_ > 0)
         ImGui::Unindent(cached_prop.depth_ * 10.0f);
 
-    if (cached_prop.is_read_only_)
+    if (is_disabled)
         ImGui::EndDisabled();
 
     ImGui::PopID();
