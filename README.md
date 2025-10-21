@@ -7,14 +7,15 @@ A graph-based user interface for [openDAQ](https://opendaq.com).
 
 ## Features
 
- - Nice visualizations for complex dataflows
- - Responsive user interface
+ - Great for overviews of complex dataflows
+ - Responsive user interface with immediate feedback
  - Edit properties of multiple components at once
  - Automatic signal plotting for selected components
  - Quick signal previews on hover
  - Simple connecting and disconnecting of signals
- - Trivial adding of nested components
- - Color-coded components based parent device
+ - Trivial adding of nested function blocks or devices
+ - Color-coded components based on their parent device
+ - Errors and warnings discoverable at glance
 
 ## Getting Started
 
@@ -23,16 +24,14 @@ platforms you will need to build the project from source. The prebuilt
 binaries come with reference function blocks and devices from openDAQ.
 
 ### Linux (amd64)
-Download the latest artifacts from CI
-[here](https://github.com/adolenc/opendaq-node-gui/actions) (click on the
+Download the latest artifacts from [CI](https://github.com/adolenc/opendaq-node-gui/actions) (click on the
 latest successful build and then download the opendaq-gui-linux.zip
 artifact).
 
 Unzip the downloaded archive and run `LD_LIBRARY_PATH=. ./opendaq-gui`.
 
 ### Windows (x64)
-Download the latest artifacts from CI
-[here](https://github.com/adolenc/opendaq-node-gui/actions) (click on the
+Download the latest artifacts from [CI](https://github.com/adolenc/opendaq-node-gui/actions) (click on the
 latest successful build and then download the opendaq-gui-windows.zip
 artifact).
 
@@ -47,7 +46,8 @@ Unzip the downloaded archive and run `opendaq-gui.exe`.
 
 OpenGL dev library is required to build this project.
 Other dependencies are fetched and built automatically using CMake.
-Clone the repository and run the following commands from the project directory:
+
+E.g. to build on Linux, clone the repository and run the following commands from the project directory:
 
 ```sh
 mkdir build

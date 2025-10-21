@@ -125,17 +125,16 @@ void OpenDAQSignal::ReadDomainAndValue()
         for (read_samples_evaluated = 0, read_pos = 0; read_samples_evaluated + samples_per_plot_sample_ < read_count; read_samples_evaluated += samples_per_plot_sample_)
         {
             plot_times_seconds_[pos_in_plot_buffer_] = read_times[read_pos] * tick_resolution_.getNumerator() / (double)tick_resolution_.getDenominator();
-                plot_values_avg_[pos_in_plot_buffer_] = 0;
-                plot_values_min_[pos_in_plot_buffer_] = 1e30;
-                plot_values_max_[pos_in_plot_buffer_] = -1e30;
-                for (size_t j = 0; j < samples_per_plot_sample_; ++j, ++read_pos)
-                {
-                    plot_values_avg_[pos_in_plot_buffer_] += read_values[read_pos];
-                    plot_values_min_[pos_in_plot_buffer_] = std::min(read_values[read_pos], plot_values_min_[pos_in_plot_buffer_]);
-                    plot_values_max_[pos_in_plot_buffer_] = std::max(read_values[read_pos], plot_values_max_[pos_in_plot_buffer_]);
-                }
-                plot_values_avg_[pos_in_plot_buffer_] = plot_values_avg_[pos_in_plot_buffer_] / samples_per_plot_sample_;
-
+            plot_values_avg_[pos_in_plot_buffer_] = 0;
+            plot_values_min_[pos_in_plot_buffer_] = 1e30;
+            plot_values_max_[pos_in_plot_buffer_] = -1e30;
+            for (size_t j = 0; j < samples_per_plot_sample_; ++j, ++read_pos)
+            {
+                plot_values_avg_[pos_in_plot_buffer_] += read_values[read_pos];
+                plot_values_min_[pos_in_plot_buffer_] = std::min(read_values[read_pos], plot_values_min_[pos_in_plot_buffer_]);
+                plot_values_max_[pos_in_plot_buffer_] = std::max(read_values[read_pos], plot_values_max_[pos_in_plot_buffer_]);
+            }
+            plot_values_avg_[pos_in_plot_buffer_] = plot_values_avg_[pos_in_plot_buffer_] / samples_per_plot_sample_;
             end_time_seconds_ = plot_times_seconds_[pos_in_plot_buffer_];
             pos_in_plot_buffer_ += 1; if (pos_in_plot_buffer_ >= plot_values_avg_.size()) pos_in_plot_buffer_ = 0;
             points_in_plot_buffer_ = std::min(points_in_plot_buffer_ + 1, plot_values_avg_.size());
