@@ -7,9 +7,9 @@
   "configurePresets": [
     {
       "name": "base",
-      "displayName": "Base (Ninja, local compilers)",
+      "displayName": "Base (Make, local compilers)",
       "description": "Common settings all other presets inherit",
-      "generator": "Ninja",
+      "generator": "Unix Makefiles",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
         "OPENDAQ_ENABLE_TESTS": false,
@@ -19,7 +19,10 @@
         "DAQMODULES_OPENDAQ_CLIENT_MODULE": true,
         "DAQMODULES_REF_DEVICE_MODULE": true,
         "DAQMODULES_REF_FB_MODULE": true,
-        "DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER": false
+        "DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER": false,
+        "OPENDAQ_GENERATE_PYTHON_BINDINGS": false,
+        "OPENDAQ_GENERATE_CSHARP_BINDINGS": false,
+        "BOOST_LOCALE_ENABLE_ICU": false
       },
       "environment": {
         "CC": "cc",
