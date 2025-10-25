@@ -52,8 +52,7 @@ E.g. to build on Linux, clone the repository and run the following commands from
 ```sh
 mkdir build
 cd build
-cmake .. --preset base
-cd base
+cmake ..
 make
 ./bin/opendaq-gui
 ```
