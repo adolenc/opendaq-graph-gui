@@ -56,3 +56,50 @@ jobs:
         name: opendaq-gui-windows
         path: artifact
         retention-days: 7
+
+  nightly-release:
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+    - name: Download Linux artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: opendaq-gui-linux
+        path: opendaq-gui-linux
+
+    - name: Download Windows artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: opendaq-gui-windows
+        path: opendaq-gui-windows
+
+    - name: Zip artifacts
+      run: |
+        chmod +x opendaq-gui-linux/opendaq-gui/opendaq-gui
+        cd opendaq-gui-linux && zip -r ../opendaq-gui-linux.zip . && cd ..
+        cd opendaq-gui-windows && zip -r ../opendaq-gui-windows.zip . && cd ..
+
+    - name: Update Nightly Release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "opendaq-gui-linux.zip,opendaq-gui-windows.zip"
+        tag: nightly
+        name: Nightly Build
+        body: |
+          Nightly binaries are available for 64 bit Windows and Linux.
+
+          ### Linux (amd64)
+          Unzip [opendaq-gui-linux.zip](https://github.com/adolenc/opendaq-graph-gui/releases/download/nightly/opendaq-gui-linux.zip) and run `LD_LIBRARY_PATH=. ./opendaq-gui`.
+
+          ### Windows (x64)
+          Unzip [opendaq-gui-windows.zip](https://github.com/adolenc/opendaq-graph-gui/releases/download/nightly/opendaq-gui-windows.zip) and run `opendaq-gui.exe`.
+
+          > [!NOTE]
+          > If you are having trouble running the application, make sure you have the latest [Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist) installed.
+        allowUpdates: true
+        removeArtifacts: true
+        replacesArtifacts: true
+        token: ${{ secrets.GITHUB_TOKEN }}

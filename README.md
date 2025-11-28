@@ -19,35 +19,20 @@ A graph-based user interface for [openDAQ](https://opendaq.com).
 
 ## Getting Started
 
-Prebuilt binaries are available for 64 bit Windows and Linux, on other
-platforms you will need to build the project from source. The prebuilt
+### Prebuilt Binaries
+
+Nightly prebuilt binaries are available for 64 bit Windows and Linux on the
+[releases page](https://github.com/adolenc/opendaq-graph-gui/releases), on
+other platforms you will need to build the project from source. The prebuilt
 binaries come with reference function blocks and devices from openDAQ.
-
-### Linux (amd64)
-Download the latest artifacts from [CI](https://github.com/adolenc/opendaq-node-gui/actions) (click on the
-latest successful build and then download the opendaq-gui-linux.zip
-artifact).
-
-Unzip the downloaded archive and run `LD_LIBRARY_PATH=. ./opendaq-gui`.
-
-### Windows (x64)
-Download the latest artifacts from [CI](https://github.com/adolenc/opendaq-node-gui/actions) (click on the
-latest successful build and then download the opendaq-gui-windows.zip
-artifact).
-
-Unzip the downloaded archive and run `opendaq-gui.exe`.
-
-> [!NOTE]
-> If you are having trouble running the application, make sure you have the latest
-> [Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)
-> installed.
 
 ### Building From Source
 
 OpenGL dev library is required to build this project.
 Other dependencies are fetched and built automatically using CMake.
 
-E.g. to build on Linux, clone the repository and run the following commands from the project directory:
+E.g. to build on Linux, clone the repository and run the following commands
+from the project directory:
 
 ```sh
 mkdir build
