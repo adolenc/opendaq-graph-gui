@@ -5,7 +5,9 @@
 
 void TreeViewWindow::OnSelectionChanged(const std::vector<CachedComponent*>& selected_components)
 {
-    // return;
+    selected_component_guids_.clear();
+    for (CachedComponent* comp : selected_components)
+        selected_component_guids_.insert(comp->component_.getGlobalId().toStdString());
 }
 
 void TreeViewWindow::Render(const CachedComponent* root, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
@@ -22,6 +24,8 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
     std::string globalId = component->component_.getGlobalId().toStdString();
     
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DrawLinesToNodes;
+    if (selected_component_guids_.find(globalId) != selected_component_guids_.end())
+        flags |= ImGuiTreeNodeFlags_Selected;
     
     if (!component->children_.empty())
     {

@@ -10,4 +10,6 @@ public:
 
 private:
     void RenderTreeNode(const CachedComponent* component, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components);
+
+    std::unordered_set<std::string> selected_component_guids_;
 };

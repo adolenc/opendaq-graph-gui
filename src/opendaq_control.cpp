@@ -275,6 +275,7 @@ void OpenDAQNodeEditor::OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUi
     
     properties_window_.OnSelectionChanged(selected_cached_components_);
     signals_window_.OnSelectionChanged(selected_cached_components_);
+    tree_view_window_.OnSelectionChanged(selected_cached_components_);
 }
 
 void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position)
