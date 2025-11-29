@@ -655,4 +655,5 @@ void OpenDAQNodeEditor::Render()
     }
     properties_window_.Render();
     signals_window_.Render();
+    tree_view_window_.Render(instance_);
 }

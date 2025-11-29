@@ -4,6 +4,7 @@
 #include "properties_window.h"
 #include "component_cache.h"
 #include "signals_window.h"
+#include "tree_view_window.h"
 #include <vector>
 #include <optional>
 #include <string>
@@ -56,6 +57,7 @@ public:
 
     PropertiesWindow properties_window_;
     SignalsWindow signals_window_;
+    TreeViewWindow tree_view_window_;
 
     int next_color_index_ = 1;
 
