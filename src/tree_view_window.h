@@ -5,12 +5,9 @@
 class TreeViewWindow
 {
 public:
-    void ResetRoot(CachedComponent* root) { root_ = root; }
-    void Render();
+    void Render(const CachedComponent* root, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components);
     void OnSelectionChanged(const std::vector<CachedComponent*>& selected_components);
 
 private:
-    void RenderTreeNode(CachedComponent* component);
-
-    CachedComponent* root_;
+    void RenderTreeNode(const CachedComponent* component, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components);
 };

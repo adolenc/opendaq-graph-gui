@@ -31,7 +31,7 @@ struct CachedComponent
 
     std::vector<ImGui::ImGuiNodesIdentifier> input_ports_;
     std::vector<ImGui::ImGuiNodesIdentifier> output_signals_;
-    std::vector<CachedComponent*> children_;
+    std::vector<ImGui::ImGuiNodesIdentifier> children_;
 
     int color_index_ = 0;
 
