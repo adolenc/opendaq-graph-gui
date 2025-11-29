@@ -3,45 +3,39 @@
 #include "utils.h"
 #include <string>
 
-void TreeViewWindow::Render(const daq::ComponentPtr& component)
+
+void TreeViewWindow::OnSelectionChanged(const std::vector<CachedComponent*>& selected_components)
+{
+    // return;
+}
+
+void TreeViewWindow::Render()
 {
     ImGui::Begin("Tree View", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-    if (component.assigned())
-    {
-        RenderTreeNode(component);
-    }
+    if (root_)
+        RenderTreeNode(root_);
     ImGui::End();
 }
 
-void TreeViewWindow::RenderTreeNode(const daq::ComponentPtr& component)
+void TreeViewWindow::RenderTreeNode(CachedComponent* component)
 {
-    bool is_folder = canCastTo<daq::IFolder>(component);
-    daq::FolderPtr folder;
-    
-    if (is_folder)
-    {
-        folder = castTo<daq::IFolder>(component);
-        if (folder.isEmpty())
-            return;
-    }
+    bool is_folder = canCastTo<daq::IFolder>(component->component_);
 
-    std::string name = component.getName().toStdString();
-    std::string globalId = component.getGlobalId().toStdString();
+    std::string name = component->component_.getName().toStdString();
+    std::string globalId = component->component_.getGlobalId().toStdString();
     
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DrawLinesToNodes;
     
-    if (is_folder)
+    if (is_folder && !component->children_.empty())
     {
-        flags |= ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
-        if (name != "Sig" && name != "IP")
-            flags |= ImGuiTreeNodeFlags_DefaultOpen;
-            
+        if (name == "Sig" || name == "IP")
+            return;
+
+        flags |= ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_DefaultOpen;
         if (ImGui::TreeNodeEx(globalId.c_str(), flags, "%s", name.c_str()))
         {
-            for (const auto& item : folder.getItems())
-            {
-                RenderTreeNode(item);
-            }
+            for (auto* child : component->children_)
+                RenderTreeNode(child);
             ImGui::TreePop();
         }
     }

@@ -44,6 +44,7 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
         cached = all_components_[component_id].get();
     }
     cached->RefreshStructure();
+    cached->children_.clear();
 
     if (canCastTo<daq::IFunctionBlock>(component))
     {
@@ -117,7 +118,14 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
     {
         daq::FolderPtr folder = castTo<daq::IFolder>(component);
         for (const auto& item : folder.getItems())
+        {
             RetrieveTopology(item, new_parent_id);
+            std::string item_id = item.getGlobalId().toStdString();
+            if (all_components_.find(item_id) != all_components_.end())
+            {
+                cached->children_.push_back(all_components_[item_id].get());
+            }
+        }
     }
 }
 
@@ -139,6 +147,8 @@ void OpenDAQNodeEditor::RebuildStructure()
 {
     properties_window_.OnSelectionChanged({});
     signals_window_.OnSelectionChanged({});
+    tree_view_window_.OnSelectionChanged({});
+    tree_view_window_.ResetRoot(nullptr);
     nodes_->Clear();
     all_components_.clear();
     folders_.clear();
@@ -150,6 +160,7 @@ void OpenDAQNodeEditor::RebuildStructure()
     RetrieveTopology(instance_);
     nodes_->EndBatchAdd();
     RetrieveConnections();
+    tree_view_window_.ResetRoot(all_components_[instance_.getGlobalId().toStdString()].get());
 }
 
 void OpenDAQNodeEditor::OnConnectionCreated(const ImGui::ImGuiNodesUid& output_id, const ImGui::ImGuiNodesUid& input_id)
@@ -655,5 +666,5 @@ void OpenDAQNodeEditor::Render()
     }
     properties_window_.Render();
     signals_window_.Render();
-    tree_view_window_.Render(instance_);
+    tree_view_window_.Render();
 }
