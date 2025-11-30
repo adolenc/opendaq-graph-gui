@@ -82,6 +82,14 @@ jobs:
         cd opendaq-gui-linux && zip -r ../opendaq-gui-linux.zip . && cd ..
         cd opendaq-gui-windows && zip -r ../opendaq-gui-windows.zip . && cd ..
 
+    - name: Delete existing Nightly Release # delete existing release so date and commit hash are updated
+      uses: ClementTsang/delete-tag-and-release@v0.3.1
+      with:
+        delete_release: true
+        tag_name: nightly
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Update Nightly Release
       uses: ncipollo/release-action@v1
       with:
@@ -97,6 +105,7 @@ jobs:
           ### Windows (x64)
           Unzip [opendaq-gui-windows.zip](https://github.com/adolenc/opendaq-graph-gui/releases/download/nightly/opendaq-gui-windows.zip) and run `opendaq-gui.exe`.
           If you are having trouble running the application, make sure you have the latest [Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist) installed.
+        makeLatest: true
         allowUpdates: true
         removeArtifacts: true
         replacesArtifacts: true
