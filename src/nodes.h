@@ -176,6 +176,7 @@ public:
     void SetWarning(const ImGuiNodesUid& uid, const std::string& message);
     void SetError(const ImGuiNodesUid& uid, const std::string& message);
     void SetOk(const ImGuiNodesUid& uid);
+    void SetSelectedNodes(const std::vector<ImGuiNodesUid>& selected_ids);
     void Clear();
 
     static constexpr ImColor text_color_ = ImColor(0xff000000);

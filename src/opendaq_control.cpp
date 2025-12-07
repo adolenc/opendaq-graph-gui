@@ -18,6 +18,13 @@ void OpenDAQNodeEditor::Init()
         std::lock_guard<std::mutex> lock(event_mutex_);
         event_id_queue_.push_back({comp, args});
     };
+
+    tree_view_window_.on_selection_changed_callback_ =
+        [this](const std::vector<std::string>& selected_ids)
+        {
+            nodes_->SetSelectedNodes(selected_ids);
+            OnSelectionChanged(selected_ids);
+        };
 }
 
 void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::string parent_id)

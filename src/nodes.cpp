@@ -12,6 +12,28 @@ using namespace ImGui;
 #define HAS_ANY_FLAG(state, flags)  ((state) & (flags))
 #define CLEAR_FLAGS(state, flags)   ((state) &= ~(flags))
 
+void ImGuiNodes::SetSelectedNodes(const std::vector<ImGuiNodesUid>& selected_ids)
+{
+    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+    {
+        CLEAR_FLAG(nodes_[node_idx]->state_, ImGuiNodesNodeStateFlag_Selected);
+        CLEAR_FLAG(nodes_[node_idx]->state_, ImGuiNodesNodeStateFlag_MarkedForSelection);
+    }
+    ClearAllConnectorSelections();
+
+    for (const auto& id : selected_ids)
+    {
+        if (auto it = nodes_by_uid_.find(id); it != nodes_by_uid_.end())
+            SET_FLAG(it->second->state_, ImGuiNodesNodeStateFlag_Selected);
+        else if (auto it = inputs_by_uid_.find(id); it != inputs_by_uid_.end())
+            SET_FLAG(it->second->state_, ImGuiNodesConnectorStateFlag_Selected);
+        else if (auto it = outputs_by_uid_.find(id); it != outputs_by_uid_.end())
+            SET_FLAG(it->second.output->state_, ImGuiNodesConnectorStateFlag_Selected);
+    }
+
+    SortSelectedNodesOrder();
+}
+
 static bool OtherImGuiWindowIsBlockingInteraction()
 {
     return ImGui::GetIO().WantCaptureMouse && !ImGui::IsWindowHovered();

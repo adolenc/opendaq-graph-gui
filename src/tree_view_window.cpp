@@ -22,10 +22,10 @@ void TreeViewWindow::Render(const CachedComponent* root, const std::unordered_ma
 void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components, const CachedComponent* parent)
 {
     std::string name = component->component_.getName().toStdString();
-    std::string globalId = component->component_.getGlobalId().toStdString();
+    std::string component_guid = component->component_.getGlobalId().toStdString();
     
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DrawLinesToNodes;
-    if (selected_component_guids_.find(globalId) != selected_component_guids_.end())
+    if (selected_component_guids_.find(component_guid) != selected_component_guids_.end())
         flags |= ImGuiTreeNodeFlags_Selected;
     
     if (!component->children_.empty())
@@ -45,7 +45,11 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
         }
         else
         {
-            if (ImGui::TreeNodeEx(globalId.c_str(), flags, "%s", name.c_str()))
+            bool node_open = ImGui::TreeNodeEx(component_guid.c_str(), flags, "%s", name.c_str());
+            if (!ImGui::IsItemToggledOpen())
+                CheckTreeNodeClicked(component_guid);
+
+            if (node_open)
             {
                 for (const auto& child_id : component->children_)
                 {
@@ -59,6 +63,32 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
     else
     {
         flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-        ImGui::TreeNodeEx(globalId.c_str(), flags, "%s", name.c_str());
+        ImGui::TreeNodeEx(component_guid.c_str(), flags, "%s", name.c_str());
+        CheckTreeNodeClicked(component_guid);
+    }
+}
+
+void TreeViewWindow::CheckTreeNodeClicked(const std::string& component_guid)
+{
+    if (!ImGui::IsItemClicked())
+        return;
+
+    if (ImGui::GetIO().KeyCtrl)
+    {
+        if (selected_component_guids_.count(component_guid))
+            selected_component_guids_.erase(component_guid);
+        else
+            selected_component_guids_.insert(component_guid);
+    }
+    else
+    {
+        selected_component_guids_.clear();
+        selected_component_guids_.insert(component_guid);
+    }
+
+    if (on_selection_changed_callback_)
+    {
+        std::vector<std::string> selected(selected_component_guids_.begin(), selected_component_guids_.end());
+        on_selection_changed_callback_(selected);
     }
 }
