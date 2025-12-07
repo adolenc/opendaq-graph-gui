@@ -12,6 +12,54 @@ using namespace ImGui;
 #define HAS_ANY_FLAG(state, flags)  ((state) & (flags))
 #define CLEAR_FLAGS(state, flags)   ((state) &= ~(flags))
 
+void ImGuiNodes::MoveSelectedNodesIntoView()
+{
+    std::vector<ImGuiNodesNode*> selected_nodes;
+    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+    {
+        if (IS_SET(nodes_[node_idx]->state_, ImGuiNodesNodeStateFlag_Selected))
+            selected_nodes.push_back(nodes_[node_idx]);
+    }
+
+    if (selected_nodes.empty() || nodes_imgui_window_size_.x <= 0 || nodes_imgui_window_size_.y <= 0)
+        return;
+
+    ImRect union_rect = selected_nodes[0]->area_node_;
+    for (size_t i = 1; i < selected_nodes.size(); ++i)
+    {
+        union_rect.Min = ImMin(union_rect.Min, selected_nodes[i]->area_node_.Min);
+        union_rect.Max = ImMax(union_rect.Max, selected_nodes[i]->area_node_.Max);
+    }
+
+    ImRect visible_rect;
+    visible_rect.Min = -scroll_ / scale_;
+    visible_rect.Max = (-scroll_ + nodes_imgui_window_size_) / scale_;
+
+    if (visible_rect.Contains(union_rect))
+        return;
+
+    const float padding = 50.0f;
+    ImVec2 available_size = nodes_imgui_window_size_ - ImVec2(padding * 2, padding * 2);
+    available_size.x = ImMax(available_size.x, 100.0f);
+    available_size.y = ImMax(available_size.y, 100.0f);
+
+    ImVec2 required_size = union_rect.Max - union_rect.Min;
+
+    if (required_size.x * scale_ > available_size.x || required_size.y * scale_ > available_size.y)
+    {
+        float scale_x = available_size.x / required_size.x;
+        float scale_y = available_size.y / required_size.y;
+        scale_ = ImMin(scale_x, scale_y);
+        scale_ = std::clamp(scale_, 0.3f, 3.0f);
+    }
+
+    ImVec2 center_node_space = union_rect.GetCenter();
+    ImVec2 center_screen_space = center_node_space * scale_;
+    ImVec2 window_center = nodes_imgui_window_size_ * 0.5f;
+
+    scroll_ = window_center - center_screen_space;
+}
+
 void ImGuiNodes::SetSelectedNodes(const std::vector<ImGuiNodesUid>& selected_ids)
 {
     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
@@ -32,6 +80,7 @@ void ImGuiNodes::SetSelectedNodes(const std::vector<ImGuiNodesUid>& selected_ids
     }
 
     SortSelectedNodesOrder();
+    MoveSelectedNodesIntoView();
 }
 
 static bool OtherImGuiWindowIsBlockingInteraction()
