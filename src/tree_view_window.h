@@ -9,7 +9,9 @@ public:
     void OnSelectionChanged(const std::vector<CachedComponent*>& selected_components);
 
 private:
-    void RenderTreeNode(const CachedComponent* component, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components);
+    void RenderTreeNode(const CachedComponent* component,
+                        const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components,
+                        const CachedComponent* parent = nullptr);
 
     std::unordered_set<std::string> selected_component_guids_;
 };

@@ -1,5 +1,6 @@
 #include "tree_view_window.h"
 #include "imgui.h"
+#include "utils.h"
 #include <string>
 
 
@@ -18,7 +19,7 @@ void TreeViewWindow::Render(const CachedComponent* root, const std::unordered_ma
     ImGui::End();
 }
 
-void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
+void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components, const CachedComponent* parent)
 {
     std::string name = component->component_.getName().toStdString();
     std::string globalId = component->component_.getGlobalId().toStdString();
@@ -33,14 +34,26 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
             return;
 
         flags |= ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_DefaultOpen;
-        if (ImGui::TreeNodeEx(globalId.c_str(), flags, "%s", name.c_str()))
+        if (parent && name == "FB" && canCastTo<daq::IFunctionBlock>(parent->component_))
         {
+            // skip the nested "FB" folder for function blocks
             for (const auto& child_id : component->children_)
             {
                 if (auto it = all_components.find(child_id.id_); it != all_components.end())
-                    RenderTreeNode(it->second.get(), all_components);
+                    RenderTreeNode(it->second.get(), all_components, component);
             }
-            ImGui::TreePop();
+        }
+        else
+        {
+            if (ImGui::TreeNodeEx(globalId.c_str(), flags, "%s", name.c_str()))
+            {
+                for (const auto& child_id : component->children_)
+                {
+                    if (auto it = all_components.find(child_id.id_); it != all_components.end())
+                        RenderTreeNode(it->second.get(), all_components, component);
+                }
+                ImGui::TreePop();
+            }
         }
     }
     else
