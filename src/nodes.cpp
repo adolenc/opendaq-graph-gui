@@ -146,19 +146,26 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
 
     ImRect canvas(nodes_imgui_window_pos_, nodes_imgui_window_pos_ + nodes_imgui_window_size_);
 
+    float minimap_width = 250.0f;
+    float aspect_ratio = (nodes_imgui_window_size_.x > 0.0f) ? (nodes_imgui_window_size_.y / nodes_imgui_window_size_.x) : 1.0f;
+    ImVec2 minimap_size(minimap_width, minimap_width * aspect_ratio);
+    ImVec2 padding(20.0f, 20.0f);
+    minimap_rect_.Max = nodes_imgui_window_pos_ + nodes_imgui_window_size_ - padding;
+    minimap_rect_.Min = minimap_rect_.Max - minimap_size;
+
     if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_0))
     {
         scroll_ = {};
         scale_ = 1.0f;
     }
-        
+
     if (!ImGui::IsMouseDown(0) && canvas.Contains(mouse_))
     {
         static bool blocked_by_imgui_interaction = false;
 
         if (ImGui::IsMouseClicked(1))
             blocked_by_imgui_interaction = OtherImGuiWindowIsBlockingInteraction();
-        
+
         if (ImGui::IsMouseDragging(1) && !blocked_by_imgui_interaction)
             scroll_ += io.MouseDelta;
 
@@ -209,6 +216,8 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
     if (OtherImGuiWindowIsBlockingInteraction())
         hovered_node = NULL;
 
+    bool mouse_in_minimap = minimap_rect_.Contains(mouse_);
+
     for (int node_idx = nodes_.size() - 1; node_idx >= 0; --node_idx)
     {
         ImGuiNodesNode* node = nodes_[node_idx];
@@ -232,11 +241,11 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
             continue;
         }
 
-        if (!hovered_node && !OtherImGuiWindowIsBlockingInteraction() && node_rect.Contains(mouse_))
+        if (!hovered_node && !OtherImGuiWindowIsBlockingInteraction() && !mouse_in_minimap && node_rect.Contains(mouse_))
             hovered_node = node;
 
         // Also check if mouse is over the add button area (which extends beyond the node)
-        if (!hovered_node && !OtherImGuiWindowIsBlockingInteraction() && IS_SET(node->state_, ImGuiNodesNodeStateFlag_Visible))
+        if (!hovered_node && !OtherImGuiWindowIsBlockingInteraction() && !mouse_in_minimap && IS_SET(node->state_, ImGuiNodesNodeStateFlag_Visible))
         {
             ImRect add_button_rect = node->area_add_button_;
             add_button_rect.Min *= scale_;
@@ -1232,6 +1241,8 @@ void ImGuiNodes::ProcessNodes()
         }
     }
 
+    RenderMinimap(draw_list);
+
     ImGui::SetWindowFontScale(1.0f);
 
     if (state_ == ImGuiNodesState_Selecting)
@@ -1794,3 +1805,55 @@ void ImGuiNodes::EndBatchAdd()
 #undef HAS_ALL_FLAGS
 #undef HAS_ANY_FLAG
 #undef CLEAR_FLAGS
+
+void ImGuiNodes::RenderMinimap(ImDrawList* draw_list)
+{
+    draw_list->AddRectFilled(minimap_rect_.Min, minimap_rect_.Max, ImColor(0.1f, 0.1f, 0.1f, 0.5f));
+    draw_list->AddRect(minimap_rect_.Min, minimap_rect_.Max, ImColor(1.0f, 1.0f, 1.0f, 0.3f));
+
+    if (nodes_.empty()) return;
+
+    ImRect world_bounds = nodes_[0]->area_node_;
+    for (auto* node : nodes_)
+        world_bounds.Add(node->area_node_);
+
+    ImRect view_rect;
+    view_rect.Min = -scroll_ / scale_;
+    view_rect.Max = (-scroll_ + nodes_imgui_window_size_) / scale_;
+    world_bounds.Add(view_rect);
+
+    ImVec2 world_size = world_bounds.GetSize();
+    ImVec2 minimap_size = minimap_rect_.GetSize();
+
+    if (world_size.x <= 0.0f || world_size.y <= 0.0f) return;
+
+    float scale_x = minimap_size.x / world_size.x;
+    float scale_y = minimap_size.y / world_size.y;
+    float mm_scale = ImMin(scale_x, scale_y);
+
+    // Center the content in minimap
+    ImVec2 mm_content_size = world_size * mm_scale;
+    ImVec2 mm_offset = minimap_rect_.Min + (minimap_size - mm_content_size) * 0.5f;
+
+    for (auto* node : nodes_)
+    {
+        ImRect node_rect = node->area_node_;
+        ImVec2 min = (node_rect.Min - world_bounds.Min) * mm_scale + mm_offset;
+        ImVec2 max = (node_rect.Max - world_bounds.Min) * mm_scale + mm_offset;
+
+        ImColor color = ImGuiNodes::color_palette_[node->color_index_];
+        color.Value.w = 0.8f;
+        draw_list->AddRectFilled(min, max, color);
+    }
+
+    {
+        ImVec2 min = (view_rect.Min - world_bounds.Min) * mm_scale + mm_offset;
+        ImVec2 max = (view_rect.Max - world_bounds.Min) * mm_scale + mm_offset;
+
+        // Clamp to minimap rect
+        min = ImMax(min, minimap_rect_.Min);
+        max = ImMin(max, minimap_rect_.Max);
+
+        draw_list->AddRect(min, max, ImColor(1.0f, 1.0f, 1.0f, 0.8f));
+    }
+}

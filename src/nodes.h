@@ -203,6 +203,7 @@ private:
 
     ImRect active_dragging_selection_area_;
     ImVec4 active_dragging_connection_;
+    ImRect minimap_rect_;
     ImGuiNodesNode* active_node_ = NULL;
     ImGuiNodesInput* active_input_ = NULL;
     ImGuiNodesOutput* active_output_ = NULL;
@@ -227,6 +228,7 @@ private:
     void UpdateCanvasGeometry(ImDrawList* draw_list);
     ImGuiNodesNode* UpdateNodesFromCanvas();
     void RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color, float thickness = 1.5f);
+    void RenderMinimap(ImDrawList* draw_list);
     inline bool SortSelectedNodesOrder();
     void ClearAllConnectorSelections();
     ImVec2 UpdateEdgeScrolling();
