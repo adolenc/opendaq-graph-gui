@@ -328,59 +328,66 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
     {
         if (ImGui::MenuItem(fb_id.toStdString().c_str()))
         {
-            daq::FunctionBlockPtr fb;
-            if (canCastTo<daq::IInstance>(parent_component))
+            try
             {
-                daq::InstancePtr instance = castTo<daq::IInstance>(parent_component);
-                fb = instance.addFunctionBlock(fb_id);
-            }
-            else if (canCastTo<daq::IDevice>(parent_component))
-            {
-                daq::DevicePtr device = castTo<daq::IDevice>(parent_component);
-                fb = device.addFunctionBlock(fb_id);
-            }
-            else if (canCastTo<daq::IFunctionBlock>(parent_component))
-            {
-                daq::FunctionBlockPtr function_block = castTo<daq::IFunctionBlock>(parent_component);
-                fb = function_block.addFunctionBlock(fb_id);
-            }
-
-            if (fb.assigned())
-            {
-                std::string fb_id_str = fb.getGlobalId().toStdString();
-                
-                auto fb_cached = std::make_unique<CachedComponent>(fb);
-                fb_cached->parent_ = parent_component;
-                fb_cached->color_index_ = parent_id.empty() ? 0 : folders_[parent_id]->color_index_;
-                fb_cached->RefreshStructure();
-                
-                for (const daq::InputPortPtr& input_port : fb.getInputPorts())
+                daq::FunctionBlockPtr fb;
+                if (canCastTo<daq::IInstance>(parent_component))
                 {
-                    std::string input_id = input_port.getGlobalId().toStdString();
-                    auto input_cached = std::make_unique<CachedComponent>(input_port);
-                    input_cached->parent_ = fb;
-                    input_ports_[input_id] = input_cached.get();
-                    all_components_[input_id] = std::move(input_cached);
+                    daq::InstancePtr instance = castTo<daq::IInstance>(parent_component);
+                    fb = instance.addFunctionBlock(fb_id);
+                }
+                else if (canCastTo<daq::IDevice>(parent_component))
+                {
+                    daq::DevicePtr device = castTo<daq::IDevice>(parent_component);
+                    fb = device.addFunctionBlock(fb_id);
+                }
+                else if (canCastTo<daq::IFunctionBlock>(parent_component))
+                {
+                    daq::FunctionBlockPtr function_block = castTo<daq::IFunctionBlock>(parent_component);
+                    fb = function_block.addFunctionBlock(fb_id);
                 }
 
-                for (const daq::SignalPtr& signal : fb.getSignals())
+                if (fb.assigned())
                 {
-                    std::string signal_id = signal.getGlobalId().toStdString();
-                    auto signal_cached = std::make_unique<CachedComponent>(signal);
-                    signal_cached->parent_ = fb;
-                    signals_[signal_id] = signal_cached.get();
-                    all_components_[signal_id] = std::move(signal_cached);
+                    std::string fb_id_str = fb.getGlobalId().toStdString();
+
+                    auto fb_cached = std::make_unique<CachedComponent>(fb);
+                    fb_cached->parent_ = parent_component;
+                    fb_cached->color_index_ = parent_id.empty() ? 0 : folders_[parent_id]->color_index_;
+                    fb_cached->RefreshStructure();
+                    
+                    for (const daq::InputPortPtr& input_port : fb.getInputPorts())
+                    {
+                        std::string input_id = input_port.getGlobalId().toStdString();
+                        auto input_cached = std::make_unique<CachedComponent>(input_port);
+                        input_cached->parent_ = fb;
+                        input_ports_[input_id] = input_cached.get();
+                        all_components_[input_id] = std::move(input_cached);
+                    }
+
+                    for (const daq::SignalPtr& signal : fb.getSignals())
+                    {
+                        std::string signal_id = signal.getGlobalId().toStdString();
+                        auto signal_cached = std::make_unique<CachedComponent>(signal);
+                        signal_cached->parent_ = fb;
+                        signals_[signal_id] = signal_cached.get();
+                        all_components_[signal_id] = std::move(signal_cached);
+                    }
+
+                    nodes_->AddNode({fb.getName().toStdString(), fb_id_str},
+                                    fb_cached->color_index_,
+                                    position,
+                                    fb_cached->input_ports_,
+                                    fb_cached->output_signals_,
+                                    parent_id);
+
+                    folders_[fb_id_str] = fb_cached.get();
+                    all_components_[fb_id_str] = std::move(fb_cached);
                 }
-
-                nodes_->AddNode({fb.getName().toStdString(), fb_id_str},
-                                fb_cached->color_index_,
-                                position,
-                                fb_cached->input_ports_,
-                                fb_cached->output_signals_,
-                                parent_id);
-
-                folders_[fb_id_str] = fb_cached.get();
-                all_components_[fb_id_str] = std::move(fb_cached);
+            }
+            catch (...)
+            {
+                // failed to add function block
             }
         }
 
