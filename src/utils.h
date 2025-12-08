@@ -2,7 +2,11 @@
 #include <opendaq/opendaq.h>
 #include <string>
 
+// fontawesome icons, sourced from IconsFontAwesome6.h
+#define ICON_FA_LOCK "\xef\x80\xa3"	// U+f023
+#define ICON_FA_LOCK_OPEN "\xef\x8f\x81"	// U+f3c1
 
+// utility functions for working with OpenDAQ objects
 template <class Interface>
 inline bool canCastTo(daq::IBaseObject* baseObject)
 {

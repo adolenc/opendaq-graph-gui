@@ -73,15 +73,15 @@ void SignalsWindow::Render()
 {
     ImGui::SetNextWindowPos(ImVec2(500.f, 20.f), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(800.f, 500.f), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Signal Viewer", NULL, ImGuiWindowFlags_MenuBar);
-    if (ImGui::BeginMenuBar())
+    ImGui::Begin("Signal Viewer");
+
+    if (ImGui::Button(freeze_selection_ ? " " ICON_FA_LOCK " ": " " ICON_FA_LOCK_OPEN))
+        freeze_selection_ = !freeze_selection_;
+    if (ImGui::IsItemHovered())
     {
-        if (ImGui::BeginMenu("Settings"))
-        {
-            ImGui::Checkbox("Freeze selection", &freeze_selection_);
-            ImGui::EndMenu();
-        }
-        ImGui::EndMenuBar();
+        ImGui::BeginTooltip();
+        ImGui::TextUnformatted(freeze_selection_ ? "Unlock selection" : "Lock selection");
+        ImGui::EndTooltip();
     }
 
     if (signals_map_.empty())

@@ -104,10 +104,25 @@ int main(int argc, char** argv)
     if (char *base_path = SDL_GetBasePath())
     {
         io.Fonts->AddFontFromFileTTF((std::string(base_path) + "Roboto-Medium.ttf").c_str(), 14.0f);
+        
+        static const ImWchar icons_ranges[] = { 0xf000, 0xf8ff, 0 };
+        ImFontConfig icons_config;
+        icons_config.MergeMode = true;
+        icons_config.PixelSnapH = true;
+        io.Fonts->AddFontFromFileTTF((std::string(base_path) + "fa-solid-900.ttf").c_str(), 14.0f, &icons_config, icons_ranges);
+
         SDL_free(base_path);
     }
     else
+    {
         io.Fonts->AddFontFromFileTTF("Roboto-Medium.ttf", 14.0f);
+
+        static const ImWchar icons_ranges[] = { 0xf000, 0xf8ff, 0 };
+        ImFontConfig icons_config;
+        icons_config.MergeMode = true;
+        icons_config.PixelSnapH = true;
+        io.Fonts->AddFontFromFileTTF("fa-solid-900.ttf", 14.0f, &icons_config, icons_ranges);
+    }
 
     ImGui::StyleColorsDark();
     ImPlot::GetStyle().UseISO8601 = true;
