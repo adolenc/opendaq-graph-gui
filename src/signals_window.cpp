@@ -9,7 +9,7 @@ SignalsWindow::SignalsWindow(const SignalsWindow& other)
 {
     for (const auto& [id, signal] : other.signals_map_)
     {
-        signals_map_[id] = OpenDAQSignal(signal.signal_, 5.0, 5000);
+        signals_map_[id] = { OpenDAQSignal(signal.live.signal_, 5.0, 5000), PausedSignalData() };
     }
 
     is_cloned_ = true;
@@ -32,7 +32,7 @@ void SignalsWindow::OnSelectionChanged(const std::vector<CachedComponent*>& cach
         std::string signal_id = signal.getGlobalId().toStdString();
         selected_signal_ids.insert(signal_id);
         if (signals_map_.find(signal_id) == signals_map_.end())
-            signals_map_[signal_id] = OpenDAQSignal(signal, 5.0, 5000);
+            signals_map_[signal_id] = { OpenDAQSignal(signal, 5.0, 5000), PausedSignalData() };
     };
 
     for (const CachedComponent* cached : cached_components)
@@ -68,7 +68,7 @@ void SignalsWindow::OnSelectionChanged(const std::vector<CachedComponent*>& cach
 
     for (auto it = signals_map_.begin(); it != signals_map_.end(); )
     {
-        if (std::find(selected_signal_ids.begin(), selected_signal_ids.end(), it->second.signal_id_) == selected_signal_ids.end())
+        if (std::find(selected_signal_ids.begin(), selected_signal_ids.end(), it->second.live.signal_id_) == selected_signal_ids.end())
             it = signals_map_.erase(it);
         else
             ++it;
@@ -78,8 +78,8 @@ void SignalsWindow::OnSelectionChanged(const std::vector<CachedComponent*>& cach
     total_max_ = std::numeric_limits<float>::lowest();
     for (auto& [_, signal] : signals_map_)
     {
-        total_min_ = std::min(total_min_, signal.value_range_min_);
-        total_max_ = std::max(total_max_, signal.value_range_max_);
+        total_min_ = std::min(total_min_, signal.live.value_range_min_);
+        total_max_ = std::max(total_max_, signal.live.value_range_max_);
     }
     plot_unique_id_ += 1;
 }
@@ -120,7 +120,34 @@ void SignalsWindow::Render()
             ImGui::EndTooltip();
         }
         ImGui::EndDisabled();
+        ImGui::SameLine();
     }
+    ImGui::BeginDisabled(signals_map_.empty());
+    if (ImGui::Button(is_paused_ ? ICON_FA_CIRCLE_PLAY : ICON_FA_CIRCLE_PAUSE))
+    {
+        is_paused_ = !is_paused_;
+        if (is_paused_)
+        {
+            for (auto& [_, signal] : signals_map_)
+            {
+                signal.paused.values_avg = signal.live.plot_values_avg_;
+                signal.paused.values_min = signal.live.plot_values_min_;
+                signal.paused.values_max = signal.live.plot_values_max_;
+                signal.paused.times_seconds = signal.live.plot_times_seconds_;
+
+                signal.paused.points_in_buffer = signal.live.points_in_plot_buffer_;
+                signal.paused.pos_in_buffer = signal.live.pos_in_plot_buffer_;
+                signal.paused.end_time_seconds = signal.live.end_time_seconds_;
+            }
+        }
+    }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::BeginTooltip();
+        ImGui::TextUnformatted(is_paused_ ? "Resume updating signals" : "Pause updating signals");
+        ImGui::EndTooltip();
+    }
+    ImGui::EndDisabled();
 
     if (signals_map_.empty())
     {
@@ -130,7 +157,7 @@ void SignalsWindow::Render()
     }
 
     for (auto& [_, signal] : signals_map_)
-        signal.Update();
+        signal.live.Update();
 
     ImVec2 plot_size = ImGui::GetContentRegionAvail();
     plot_size.y = ImMax(plot_size.y, 400.0f);
@@ -143,21 +170,36 @@ void SignalsWindow::Render()
         ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
         double max_end_time = 0;
         for (auto& [_, signal] : signals_map_)
-            max_end_time = ImMax(max_end_time, signal.end_time_seconds_);
+        {
+            if (is_paused_)
+                max_end_time = ImMax(max_end_time, signal.paused.end_time_seconds);
+            else
+                max_end_time = ImMax(max_end_time, signal.live.end_time_seconds_);
+        }
         ImPlot::SetupAxisLimits(ImAxis_X1, max_end_time - 5.0, max_end_time, ImGuiCond_Always);
 
         ImPlot::SetupAxisLimits(ImAxis_Y1, total_min_, total_max_);
 
         for (auto& [_, signal] : signals_map_)
         {
-            std::string label = signal.signal_name_;
-            if (!signal.signal_unit_.empty())
-                label += " [" + signal.signal_unit_ + "]";
+            std::string label = signal.live.signal_name_;
+            if (!signal.live.signal_unit_.empty())
+                label += " [" + signal.live.signal_unit_ + "]";
                 
-            // ImPlot::SetNextFillStyle(ImColor(0xff66ffff), 0.3);
-            ImPlot::PlotShaded(label.c_str(), signal.plot_times_seconds_.data(), signal.plot_values_min_.data(), signal.plot_values_max_.data(), (int)signal.points_in_plot_buffer_, 0, signal.pos_in_plot_buffer_);
-            // ImPlot::SetNextLineStyle(ImColor(0xff66ffff));
-            ImPlot::PlotLine(label.c_str(), signal.plot_times_seconds_.data(), signal.plot_values_avg_.data(), (int)signal.points_in_plot_buffer_, 0, signal.pos_in_plot_buffer_);
+            if (is_paused_)
+            {
+                // ImPlot::SetNextFillStyle(ImColor(0xff66ffff), 0.3);
+                ImPlot::PlotShaded(label.c_str(), signal.paused.times_seconds.data(), signal.paused.values_min.data(), signal.paused.values_max.data(), (int)signal.paused.points_in_buffer, 0, signal.paused.pos_in_buffer);
+                // ImPlot::SetNextLineStyle(ImColor(0xff66ffff));
+                ImPlot::PlotLine(label.c_str(), signal.paused.times_seconds.data(), signal.paused.values_avg.data(), (int)signal.paused.points_in_buffer, 0, signal.paused.pos_in_buffer);
+            }
+            else
+            {
+                // ImPlot::SetNextFillStyle(ImColor(0xff66ffff), 0.3);
+                ImPlot::PlotShaded(label.c_str(), signal.live.plot_times_seconds_.data(), signal.live.plot_values_min_.data(), signal.live.plot_values_max_.data(), (int)signal.live.points_in_plot_buffer_, 0, signal.live.pos_in_plot_buffer_);
+                // ImPlot::SetNextLineStyle(ImColor(0xff66ffff));
+                ImPlot::PlotLine(label.c_str(), signal.live.plot_times_seconds_.data(), signal.live.plot_values_avg_.data(), (int)signal.live.points_in_plot_buffer_, 0, signal.live.pos_in_plot_buffer_);
+            }
         }
 
         ImPlot::EndPlot();
@@ -169,14 +211,15 @@ void SignalsWindow::Render()
 void SignalsWindow::RebuildInvalidSignals()
 {
     for (auto& [id, sig] : signals_map_)
-        sig.RebuildIfInvalid();
+        sig.live.RebuildIfInvalid();
 
     total_min_ = std::numeric_limits<float>::max();
     total_max_ = std::numeric_limits<float>::lowest();
     for (auto& [_, signal] : signals_map_)
     {
-        total_min_ = std::min(total_min_, signal.value_range_min_);
-        total_max_ = std::max(total_max_, signal.value_range_max_);
+        total_min_ = std::min(total_min_, signal.live.value_range_min_);
+        total_max_ = std::max(total_max_, signal.live.value_range_max_);
     }
     plot_unique_id_ += 1;
 }
+
