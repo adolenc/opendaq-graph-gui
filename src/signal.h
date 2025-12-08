@@ -35,13 +35,13 @@ public:
     float value_range_min_ = -5.0f;
     float value_range_max_ = 5.0f;
     SignalType signal_type_;
+    daq::SignalPtr signal_;
 
 private:
     void ReadDomainAndValue();
     void ReadDomainOnly();
 
     daq::ReaderPtr reader_;
-    daq::SignalPtr signal_;
     daq::RatioPtr tick_resolution_;
     int64_t start_time_{-1};
     int leftover_samples_{0};

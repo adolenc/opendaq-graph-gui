@@ -25,6 +25,13 @@ void OpenDAQNodeEditor::Init()
             nodes_->SetSelectedNodes(selected_ids);
             OnSelectionChanged(selected_ids);
         };
+
+    signals_window_.on_clone_click_ =
+        [this](SignalsWindow* w)
+        {
+            auto new_window = std::make_unique<SignalsWindow>(*w);
+            cloned_signals_windows_.push_back(std::move(new_window));
+        };
 }
 
 void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::string parent_id)
@@ -677,5 +684,13 @@ void OpenDAQNodeEditor::Render()
     }
     properties_window_.Render();
     signals_window_.Render();
+    for (auto it = cloned_signals_windows_.begin(); it != cloned_signals_windows_.end(); )
+    {
+        (*it)->Render();
+        if (!(*it)->is_open_)
+            it = cloned_signals_windows_.erase(it);
+        else
+            ++it;
+    }
     tree_view_window_.Render(all_components_[instance_.getGlobalId().toStdString()].get(), all_components_);
 }

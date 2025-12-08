@@ -5,6 +5,21 @@
 #include <unordered_set>
 
 
+SignalsWindow::SignalsWindow(const SignalsWindow& other)
+{
+    for (const auto& [id, signal] : other.signals_map_)
+    {
+        signals_map_[id] = OpenDAQSignal(signal.signal_, 5.0, 5000);
+    }
+
+    is_cloned_ = true;
+    freeze_selection_ = true;
+
+    total_min_ = other.total_min_;
+    total_max_ = other.total_max_;
+    plot_unique_id_ = other.plot_unique_id_;
+}
+
 void SignalsWindow::OnSelectionChanged(const std::vector<CachedComponent*>& cached_components)
 {
     if (freeze_selection_)
@@ -73,15 +88,38 @@ void SignalsWindow::Render()
 {
     ImGui::SetNextWindowPos(ImVec2(500.f, 20.f), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(800.f, 500.f), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Signal Viewer");
 
-    if (ImGui::Button(freeze_selection_ ? " " ICON_FA_LOCK " ": " " ICON_FA_LOCK_OPEN))
-        freeze_selection_ = !freeze_selection_;
-    if (ImGui::IsItemHovered())
+    std::string title = !is_cloned_ ? std::string("Signal viewer") : "Signal viewer (cloned)##" + std::to_string((uintptr_t)this);
+    if (!ImGui::Begin(title.c_str(), is_cloned_ ? &is_open_ : nullptr))
     {
-        ImGui::BeginTooltip();
-        ImGui::TextUnformatted(freeze_selection_ ? "Unlock selection" : "Lock selection");
-        ImGui::EndTooltip();
+        ImGui::End();
+        return;
+    }
+
+    if (!is_cloned_)
+    {
+        if (ImGui::Button(freeze_selection_ ? " " ICON_FA_LOCK " ": " " ICON_FA_LOCK_OPEN))
+            freeze_selection_ = !freeze_selection_;
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::BeginTooltip();
+            ImGui::TextUnformatted(freeze_selection_ ? "Unlock selection" : "Lock selection");
+            ImGui::EndTooltip();
+        }
+        ImGui::SameLine();
+        ImGui::BeginDisabled(signals_map_.empty());
+        if (ImGui::Button(ICON_FA_CLONE))
+        {
+            if (on_clone_click_)
+                on_clone_click_(this);
+        }
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::BeginTooltip();
+            ImGui::TextUnformatted("Clone into a new window");
+            ImGui::EndTooltip();
+        }
+        ImGui::EndDisabled();
     }
 
     if (signals_map_.empty())

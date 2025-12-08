@@ -5,6 +5,7 @@
 // fontawesome icons, sourced from IconsFontAwesome6.h
 #define ICON_FA_LOCK "\xef\x80\xa3"	// U+f023
 #define ICON_FA_LOCK_OPEN "\xef\x8f\x81"	// U+f3c1
+#define ICON_FA_CLONE "\xef\x89\x8d"	// U+f24d
 
 // utility functions for working with OpenDAQ objects
 template <class Interface>
