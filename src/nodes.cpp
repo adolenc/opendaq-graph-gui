@@ -1888,4 +1888,22 @@ void ImGuiNodes::RenderMinimap(ImDrawList* draw_list)
 
         draw_list->AddRect(min, max, ImColor(1.0f, 1.0f, 1.0f, 0.8f));
     }
+
+    if (minimap_rect_.Contains(mouse_))
+    {
+        ImVec2 target_world_center = (mouse_ - mm_offset) / mm_scale + world_bounds.Min;
+        ImVec2 view_size_world = nodes_imgui_window_size_ / scale_;
+        ImRect target_view_rect;
+        target_view_rect.Min = target_world_center - view_size_world * 0.5f;
+        target_view_rect.Max = target_world_center + view_size_world * 0.5f;
+
+        ImVec2 min = (target_view_rect.Min - world_bounds.Min) * mm_scale + mm_offset;
+        ImVec2 max = (target_view_rect.Max - world_bounds.Min) * mm_scale + mm_offset;
+
+        // Clamp to minimap rect
+        min = ImMax(min, minimap_rect_.Min);
+        max = ImMin(max, minimap_rect_.Max);
+
+        draw_list->AddRect(min, max, ImColor(1.0f, 1.0f, 1.0f, 0.4f));
+    }
 }
