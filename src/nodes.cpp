@@ -532,6 +532,37 @@ void ImGuiNodes::ProcessInteractions()
     
     UpdateCanvasGeometry(ImGui::GetWindowDrawList());
 
+    if (state_ == ImGuiNodesState_Default && ImGui::IsMouseClicked(0) && minimap_rect_.Contains(mouse_) && !OtherImGuiWindowIsBlockingInteraction())
+    {
+        if (!nodes_.empty())
+        {
+             ImRect world_bounds = nodes_[0]->area_node_;
+             for (auto* node : nodes_)
+                 world_bounds.Add(node->area_node_);
+
+             ImRect view_rect;
+             view_rect.Min = -scroll_ / scale_;
+             view_rect.Max = (-scroll_ + nodes_imgui_window_size_) / scale_;
+             world_bounds.Add(view_rect);
+
+             ImVec2 world_size = world_bounds.GetSize();
+             ImVec2 minimap_size = minimap_rect_.GetSize();
+
+             if (world_size.x > 0.0f && world_size.y > 0.0f)
+             {
+                 float scale_x = minimap_size.x / world_size.x;
+                 float scale_y = minimap_size.y / world_size.y;
+                 float mm_scale = ImMin(scale_x, scale_y);
+
+                 ImVec2 mm_content_size = world_size * mm_scale;
+                 ImVec2 mm_offset = minimap_rect_.Min + (minimap_size - mm_content_size) * 0.5f;
+
+                 ImVec2 target_world_center = (mouse_ - mm_offset) / mm_scale + world_bounds.Min;
+                 scroll_ = nodes_imgui_window_size_ * 0.5f - target_world_center * scale_;
+             }
+        }
+    }
+
     ImGuiNodesNode* hovered_node = UpdateNodesFromCanvas();
 
     bool consider_hover = state_ == ImGuiNodesState_Default;
@@ -752,7 +783,7 @@ void ImGuiNodes::ProcessInteractions()
             case ImGuiNodesState_Default:
             {
                 ImRect canvas(nodes_imgui_window_pos_, nodes_imgui_window_pos_ + nodes_imgui_window_size_);
-                if (!canvas.Contains(mouse_))
+                if (!canvas.Contains(mouse_) || minimap_rect_.Contains(mouse_))
                     return;
 
                 if (!io.KeyCtrl)
@@ -853,7 +884,8 @@ void ImGuiNodes::ProcessInteractions()
         {
             if (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold) &&
                 !OtherImGuiWindowIsBlockingInteraction() &&
-                !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId))
+                !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId) &&
+                !minimap_rect_.Contains(mouse_))
             {
                 if (interaction_handler_)
                 {
