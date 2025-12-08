@@ -204,6 +204,7 @@ private:
     ImRect active_dragging_selection_area_;
     ImVec4 active_dragging_connection_;
     ImRect minimap_rect_;
+    float minimap_preview_scale_ = 1.0f;
     ImGuiNodesNode* active_node_ = NULL;
     ImGuiNodesInput* active_input_ = NULL;
     ImGuiNodesOutput* active_output_ = NULL;

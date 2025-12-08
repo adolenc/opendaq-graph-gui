@@ -173,19 +173,38 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
         {
             if (!OtherImGuiWindowIsBlockingInteraction())
             {
-                ImVec2 focus = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
+                if (minimap_rect_.Contains(mouse_))
+                {
+                    if (io.MouseWheel < 0.0f)
+                        for (float zoom = io.MouseWheel; zoom < 0.0f; zoom += 1.0f)
+                            minimap_preview_scale_ = ImMax(0.3f, minimap_preview_scale_ / 1.15f);
 
-                if (io.MouseWheel < 0.0f)
-                    for (float zoom = io.MouseWheel; zoom < 0.0f; zoom += 1.0f)
-                        scale_ = ImMax(0.3f, scale_ / 1.15f);
+                    if (io.MouseWheel > 0.0f)
+                        for (float zoom = io.MouseWheel; zoom > 0.0f; zoom -= 1.0f)
+                            minimap_preview_scale_ = ImMin(3.0f, minimap_preview_scale_ * 1.15f);
+                }
+                else
+                {
+                    ImVec2 focus = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
 
-                if (io.MouseWheel > 0.0f)
-                    for (float zoom = io.MouseWheel; zoom > 0.0f; zoom -= 1.0f)
-                        scale_ = ImMin(3.0f, scale_ * 1.15f);
+                    if (io.MouseWheel < 0.0f)
+                        for (float zoom = io.MouseWheel; zoom < 0.0f; zoom += 1.0f)
+                            scale_ = ImMax(0.3f, scale_ / 1.15f);
 
-                ImVec2 shift = scroll_ + (focus * scale_);
-                scroll_ += mouse_ - shift - nodes_imgui_window_pos_;
+                    if (io.MouseWheel > 0.0f)
+                        for (float zoom = io.MouseWheel; zoom > 0.0f; zoom -= 1.0f)
+                            scale_ = ImMin(3.0f, scale_ * 1.15f);
+
+                    ImVec2 shift = scroll_ + (focus * scale_);
+                    scroll_ += mouse_ - shift - nodes_imgui_window_pos_;
+
+                    minimap_preview_scale_ = scale_;
+                }
             }
+        }
+        else if (!minimap_rect_.Contains(mouse_))
+        {
+            minimap_preview_scale_ = scale_;
         }
     }
 
@@ -557,6 +576,7 @@ void ImGuiNodes::ProcessInteractions()
                  ImVec2 mm_content_size = world_size * mm_scale;
                  ImVec2 mm_offset = minimap_rect_.Min + (minimap_size - mm_content_size) * 0.5f;
 
+                 scale_ = minimap_preview_scale_;
                  ImVec2 target_world_center = (mouse_ - mm_offset) / mm_scale + world_bounds.Min;
                  scroll_ = nodes_imgui_window_size_ * 0.5f - target_world_center * scale_;
              }
@@ -1654,6 +1674,7 @@ void ImGuiNodes::RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color, float thi
 ImGuiNodes::ImGuiNodes(ImGuiNodesInteractionHandler* interaction_handler)
 {
     scale_ = 1.0f;
+    minimap_preview_scale_ = 1.0f;
     state_ = ImGuiNodesState_Default;
     active_node_ = NULL;
     active_input_ = NULL;
@@ -1892,7 +1913,7 @@ void ImGuiNodes::RenderMinimap(ImDrawList* draw_list)
     if (minimap_rect_.Contains(mouse_))
     {
         ImVec2 target_world_center = (mouse_ - mm_offset) / mm_scale + world_bounds.Min;
-        ImVec2 view_size_world = nodes_imgui_window_size_ / scale_;
+        ImVec2 view_size_world = nodes_imgui_window_size_ / minimap_preview_scale_;
         ImRect target_view_rect;
         target_view_rect.Min = target_world_center - view_size_world * 0.5f;
         target_view_rect.Max = target_world_center + view_size_world * 0.5f;
