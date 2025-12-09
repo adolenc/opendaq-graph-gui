@@ -1469,7 +1469,8 @@ void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale,
     draw_list->AddCircle((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImGuiNodes::text_color_);
 
     ImGui::SetCursorScreenPos((area_name_.Min * scale) + offset);
-    ImGui::TextColored(ImGuiNodes::text_color_, "%s", name_.c_str());
+    ImColor text_color = IS_SET(state_, ImGuiNodesConnectorStateFlag_Inactive) ? ImColor(0.6f, 0.6f, 0.6f, 1.0f) : ImGuiNodes::text_color_;
+    ImGui::TextColored(text_color, "%s", name_.c_str());
 }
 
 void ImGuiNodesNode::TranslateNode(ImVec2 delta, bool selected_only)
@@ -1740,6 +1741,14 @@ void ImGuiNodes::SetActive(const ImGuiNodesUid& uid, bool active)
             CLEAR_FLAG(node->state_, ImGuiNodesNodeStateFlag_Inactive);
         else
             SET_FLAG(node->state_, ImGuiNodesNodeStateFlag_Inactive);
+    }
+    else if (auto it = outputs_by_uid_.find(uid); it != outputs_by_uid_.end())
+    {
+        ImGuiNodesOutput* output = it->second.output;
+        if (active)
+            CLEAR_FLAG(output->state_, ImGuiNodesConnectorStateFlag_Inactive);
+        else
+            SET_FLAG(output->state_, ImGuiNodesConnectorStateFlag_Inactive);
     }
 }
 
