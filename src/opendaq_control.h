@@ -58,6 +58,7 @@ public:
     PropertiesWindow properties_window_;
     SignalsWindow signals_window_;
     std::vector<std::unique_ptr<SignalsWindow>> cloned_signals_windows_;
+    std::vector<std::unique_ptr<PropertiesWindow>> cloned_properties_windows_;
     TreeViewWindow tree_view_window_;
 
     int next_color_index_ = 1;

@@ -5,6 +5,16 @@
 #include "imgui_stdlib.h"
 
 
+PropertiesWindow::PropertiesWindow(const PropertiesWindow& other)
+{
+    cached_components_ = other.cached_components_;
+    freeze_selection_ = true;
+    show_parents_ = other.show_parents_;
+    tabbed_interface_ = other.tabbed_interface_;
+    show_detail_properties_ = other.show_detail_properties_;
+    is_cloned_ = true;
+}
+
 void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
 {
     if (!(show_detail_properties_ || !cached_prop.is_detail_))
@@ -181,14 +191,36 @@ void PropertiesWindow::Render()
 {
     ImGui::SetNextWindowPos(ImVec2(300.f, 20.f), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(100.f, 100.f), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Property editor", NULL);
+    
+    std::string title = !is_cloned_ ? "Property editor" : "Property editor (cloned)##" + std::to_string((uintptr_t)this);
+    if (!ImGui::Begin(title.c_str(), is_cloned_ ? &is_open_ : nullptr, is_cloned_ ? ImGuiWindowFlags_AlwaysAutoResize : 0))
     {
-        if (ImGui::Button(freeze_selection_ ? " " ICON_FA_LOCK " ": " " ICON_FA_LOCK_OPEN))
-            freeze_selection_ = !freeze_selection_;
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip(freeze_selection_ ? "Unlock selection" : "Lock selection");
+        ImGui::End();
+        return;
+    }
 
-        ImGui::SameLine();
+    {
+        if (!is_cloned_)
+        {
+            if (ImGui::Button(freeze_selection_ ? " " ICON_FA_LOCK " ": " " ICON_FA_LOCK_OPEN))
+                freeze_selection_ = !freeze_selection_;
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip(freeze_selection_ ? "Unlock selection" : "Lock selection");
+
+            ImGui::SameLine();
+
+            ImGui::BeginDisabled(cached_components_.empty());
+            if (ImGui::Button(ICON_FA_CLONE))
+            {
+                if (on_clone_click_)
+                    on_clone_click_(this);
+            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Clone into a new window");
+            ImGui::EndDisabled();
+
+            ImGui::SameLine();
+        }
 
         bool show_parents_active = show_parents_;
         if (show_parents_active)
