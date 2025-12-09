@@ -8,6 +8,14 @@
 #define ICON_FA_CLONE "\xef\x89\x8d"	// U+f24d
 #define ICON_FA_CIRCLE_PAUSE "\xef\x8a\x8b"	// U+f28b
 #define ICON_FA_CIRCLE_PLAY "\xef\x85\x84"	// U+f144
+#define ICON_FA_TABLE_COLUMNS "\xef\x83\x9b"	// U+f0db
+#define ICON_FA_BUG "\xef\x86\x88"	// U+f188
+#define ICON_FA_BUG_SLASH "\xee\x92\x90"	// U+e490
+#define ICON_FA_FOLDER_TREE "\xef\xa0\x82"	// U+f802
+#define ICON_FA_MAGNIFYING_GLASS_MINUS "\xef\x80\x90"	// U+f010
+#define ICON_FA_MAGNIFYING_GLASS_PLUS "\xef\x80\x8e"	// U+f00e
+#define ICON_FA_OBJECT_GROUP "\xef\x89\x87"	// U+f247
+#define ICON_FA_OBJECT_UNGROUP "\xef\x89\x88"	// U+f248
 
 // utility functions for working with OpenDAQ objects
 template <class Interface>

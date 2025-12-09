@@ -17,6 +17,6 @@ private:
     std::vector<CachedComponent*> cached_components_;
     bool freeze_selection_ = false;
     bool show_parents_ = false;
-    bool tabbed_interface_ = false;
+    bool tabbed_interface_ = true;
     bool show_detail_properties_ = false;
 };

@@ -1,4 +1,5 @@
 #include "properties_window.h"
+#include "utils.h"
 #include <string>
 #include "imgui.h"
 #include "imgui_stdlib.h"
@@ -180,21 +181,43 @@ void PropertiesWindow::Render()
 {
     ImGui::SetNextWindowPos(ImVec2(300.f, 20.f), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(100.f, 100.f), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Property editor", NULL, ImGuiWindowFlags_MenuBar);
+    ImGui::Begin("Property editor", NULL);
     {
-        if (ImGui::BeginMenuBar())
-        {
-            if (ImGui::BeginMenu("Settings"))
-            {
-                ImGui::Checkbox("Freeze selection", &freeze_selection_);
-                ImGui::Checkbox("Show parents", &show_parents_);
-                ImGui::Checkbox("Show debug properties", &show_detail_properties_);
-                ImGui::Checkbox("Use tabs for multiple selected components", &tabbed_interface_);
+        if (ImGui::Button(freeze_selection_ ? " " ICON_FA_LOCK " ": " " ICON_FA_LOCK_OPEN))
+            freeze_selection_ = !freeze_selection_;
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip(freeze_selection_ ? "Unlock selection" : "Lock selection");
 
-                ImGui::EndMenu();
-            }
-            ImGui::EndMenuBar();
-        }
+        ImGui::SameLine();
+
+        bool show_parents_active = show_parents_;
+        if (show_parents_active)
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.15f, 0.25f, 1.0f));
+        if (ImGui::Button(ICON_FA_FOLDER_TREE))
+            show_parents_ = !show_parents_;
+        if (show_parents_active)
+            ImGui::PopStyleColor();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip(show_parents_ ? "Hide parents" : "Show parents");
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(show_detail_properties_ ? ICON_FA_BUG_SLASH : " " ICON_FA_BUG " "))
+            show_detail_properties_ = !show_detail_properties_;
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip(show_detail_properties_ ? "Hide debug properties" : "Show debug properties");
+
+        ImGui::SameLine();
+
+        bool tabbed_interface_active = tabbed_interface_;
+        if (tabbed_interface_active)
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.15f, 0.25f, 1.0f));
+        if (ImGui::Button(" " ICON_FA_TABLE_COLUMNS " "))
+            tabbed_interface_ = !tabbed_interface_;
+        if (tabbed_interface_active)
+            ImGui::PopStyleColor();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip(tabbed_interface_ ? "Disable tabs for multiple components" : "Use tabs for multiple components");
 
         if (cached_components_.empty())
         {
