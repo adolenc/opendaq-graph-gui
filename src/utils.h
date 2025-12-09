@@ -16,6 +16,7 @@
 #define ICON_FA_MAGNIFYING_GLASS_PLUS "\xef\x80\x8e"	// U+f00e
 #define ICON_FA_OBJECT_GROUP "\xef\x89\x87"	// U+f247
 #define ICON_FA_OBJECT_UNGROUP "\xef\x89\x88"	// U+f248
+#define ICON_FA_POWER_OFF "\xef\x80\x91"	// U+f011
 
 // utility functions for working with OpenDAQ objects
 template <class Interface>

@@ -676,6 +676,31 @@ void OpenDAQNodeEditor::OnEmptySpaceClick(ImVec2 position)
     ImGui::OpenPopup("NodesContextMenu");
 }
 
+void OpenDAQNodeEditor::OnNodeActiveToggle(const ImGui::ImGuiNodesUid& uid)
+{
+    if (auto it = all_components_.find(uid); it != all_components_.end())
+    {
+        CachedComponent* cached = it->second.get();
+        if (cached->component_.assigned())
+        {
+            bool active = cached->component_.getActive();
+            cached->component_.setActive(!active);
+        }
+    }
+}
+
+void OpenDAQNodeEditor::OnSignalActiveToggle(const ImGui::ImGuiNodesUid& uid)
+{
+    if (auto it = signals_.find(uid); it != signals_.end())
+    {
+        if (it->second->component_.assigned())
+        {
+            bool active = it->second->component_.getActive();
+            it->second->component_.setActive(!active);
+        }
+    }
+}
+
 void OpenDAQNodeEditor::OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, std::optional<ImVec2> /*position*/)
 {
     if (auto it = input_ports_.find(input_uid); it != input_ports_.end())

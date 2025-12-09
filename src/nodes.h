@@ -44,6 +44,8 @@ enum ImGuiNodesState_
     ImGuiNodesState_HoveringInput,
     ImGuiNodesState_HoveringOutput,
     ImGuiNodesState_HoveringAddButton,
+    ImGuiNodesState_HoveringActiveButton,
+    ImGuiNodesState_HoveringOutputActiveButton,
     ImGuiNodesState_Dragging,
     ImGuiNodesState_DraggingInput,
     ImGuiNodesState_DraggingOutput,
@@ -107,6 +109,7 @@ struct ImGuiNodesOutput
     ImVec2 pos_;
     ImRect area_output_;
     ImRect area_name_;
+    ImRect area_active_button_;
     ImGuiNodesConnectorState state_;
     std::string name_;
     unsigned int connections_count_;
@@ -124,6 +127,7 @@ struct ImGuiNodesNode
     ImRect area_node_;
     ImRect area_name_;
     ImRect area_add_button_;
+    ImRect area_active_button_;
     float title_height_;
     float body_height_;
     ImGuiNodesNodeState state_;
@@ -152,6 +156,8 @@ public:
     virtual void OnConnectionRemoved(const ImGuiNodesUid& input_id) {}
     virtual void RenderPopupMenu(ImGuiNodes* nodes, ImVec2 position) {}
     virtual void OnAddButtonClick(const ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position) {}
+    virtual void OnNodeActiveToggle(const ImGuiNodesUid& uid) {}
+    virtual void OnSignalActiveToggle(const ImGuiNodesUid& uid) {}
     virtual void OnInputDropped(const ImGuiNodesUid& input_uid, std::optional<ImVec2> position) {}
     virtual void OnEmptySpaceClick(ImVec2 position) {}
 };

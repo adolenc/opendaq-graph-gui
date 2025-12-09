@@ -1,4 +1,5 @@
 #include "nodes.h"
+#include "utils.h"
 #include <algorithm>
 
 using namespace ImGui;
@@ -279,6 +280,16 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
             {
                 hovered_node = node;
             }
+            else
+            {
+                ImRect active_button_rect = node->area_active_button_;
+                active_button_rect.Min *= scale_;
+                active_button_rect.Max *= scale_;
+                active_button_rect.Translate(offset);
+
+                if (active_button_rect.Contains(mouse_))
+                    hovered_node = node;
+            }
         }
 
         if (state_ == ImGuiNodesState_Selecting)
@@ -382,6 +393,16 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
                 }
 
                 if (IS_SET(output.state_, ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget))
+                    SET_FLAG(output.state_, ImGuiNodesConnectorStateFlag_Hovered);
+            }
+            else
+            {
+                ImRect btn_rect = output.area_active_button_;
+                btn_rect.Min *= scale_;
+                btn_rect.Max *= scale_;
+                btn_rect.Translate(offset);
+
+                if (btn_rect.Contains(mouse_))
                     SET_FLAG(output.state_, ImGuiNodesConnectorStateFlag_Hovered);
             }
         }	
@@ -594,6 +615,8 @@ void ImGuiNodes::ProcessInteractions()
     consider_hover |= state_ == ImGuiNodesState_HoveringInput;
     consider_hover |= state_ == ImGuiNodesState_HoveringOutput;
     consider_hover |= state_ == ImGuiNodesState_HoveringAddButton;
+    consider_hover |= state_ == ImGuiNodesState_HoveringActiveButton;
+    consider_hover |= state_ == ImGuiNodesState_HoveringOutputActiveButton;
 
     if (hovered_node && consider_hover && !OtherImGuiWindowIsBlockingInteraction())
     {
@@ -615,7 +638,16 @@ void ImGuiNodes::ProcessInteractions()
             if (IS_SET(hovered_node->outputs_[output_idx].state_, ImGuiNodesConnectorStateFlag_Hovered))
             {
                 active_output_ = &hovered_node->outputs_[output_idx];
-                state_ = ImGuiNodesState_HoveringOutput;
+                
+                ImRect btn_rect = active_output_->area_active_button_;
+                btn_rect.Min *= scale_;
+                btn_rect.Max *= scale_;
+                btn_rect.Translate(nodes_imgui_window_pos_ + scroll_);
+
+                if (btn_rect.Contains(mouse_))
+                    state_ = ImGuiNodesState_HoveringOutputActiveButton;
+                else
+                    state_ = ImGuiNodesState_HoveringOutput;
                 break;
             }
         }					
@@ -631,7 +663,17 @@ void ImGuiNodes::ProcessInteractions()
             if (add_button_rect.Contains(mouse_))
                 state_ = ImGuiNodesState_HoveringAddButton;
             else
-                state_ = ImGuiNodesState_HoveringNode;	
+            {
+                ImRect active_button_rect = hovered_node->area_active_button_;
+                active_button_rect.Min *= scale_;
+                active_button_rect.Max *= scale_;
+                active_button_rect.Translate(offset);
+
+                if (active_button_rect.Contains(mouse_))
+                    state_ = ImGuiNodesState_HoveringActiveButton;
+                else
+                    state_ = ImGuiNodesState_HoveringNode;
+            }	
         }
     }
 
@@ -929,6 +971,24 @@ void ImGuiNodes::ProcessInteractions()
             active_dragging_selection_area_ = {};
 
             SortSelectedNodesOrder();
+            state_ = ImGuiNodesState_Default;
+            return;
+        }
+
+        case ImGuiNodesState_HoveringActiveButton:
+        {
+            if (interaction_handler_)
+                interaction_handler_->OnNodeActiveToggle(active_node_->uid_);
+            
+            state_ = ImGuiNodesState_Default;
+            return;
+        }
+
+        case ImGuiNodesState_HoveringOutputActiveButton:
+        {
+            if (interaction_handler_)
+                interaction_handler_->OnSignalActiveToggle(active_output_->uid_);
+            
             state_ = ImGuiNodesState_Default;
             return;
         }
@@ -1421,6 +1481,7 @@ void ImGuiNodesOutput::TranslateOutput(ImVec2 delta)
     pos_ += delta;
     area_output_.Translate(delta);
     area_name_.Translate(delta);
+    area_active_button_.Translate(delta);
 }
 
 ImGuiNodesOutput::ImGuiNodesOutput(const ImGuiNodesIdentifier& name)
@@ -1430,23 +1491,27 @@ ImGuiNodesOutput::ImGuiNodesOutput(const ImGuiNodesIdentifier& name)
     name_ = name.name_;
     uid_ = name.id_;
 
-    area_name_.Min = ImVec2(0.0f, 0.0f) - ImGui::CalcTextSize(name_.c_str());
-    area_name_.Max = ImVec2(0.0f, 0.0f);
+    area_name_.Min = ImVec2(0.0f, 0.0f);
+    area_name_.Max = ImGui::CalcTextSize(name_.c_str());
 
-    area_output_.Min.x = ImGuiNodesConnectorDotPadding + ImGuiNodesConnectorDotDiameter + ImGuiNodesConnectorDotPadding;
-    area_output_.Min.y = ImGuiNodesConnectorDistance;
-    area_output_.Min *= -area_name_.GetHeight();
-    area_output_.Max = ImVec2(0.0f, 0.0f);
+    float button_size = area_name_.GetHeight();
+    area_active_button_ = ImRect(0.0f, 0.0f, button_size, button_size);
+
+    area_output_.Min = ImVec2(0.0f, 0.0f);
+    area_output_.Max.x = ImGuiNodesConnectorDotPadding + ImGuiNodesConnectorDotDiameter + ImGuiNodesConnectorDotPadding;
+    area_output_.Max.y = ImGuiNodesConnectorDistance;
+    area_output_.Max *= area_name_.GetHeight();
 
     ImVec2 offset = ImVec2(0.0f, 0.0f) - area_output_.GetCenter();
 
-    area_name_.Translate(ImVec2(area_output_.Min.x, (area_output_.GetHeight() - area_name_.GetHeight()) * -0.5f));
+    area_name_.Translate(ImVec2(-area_name_.GetWidth(), (area_output_.GetHeight() - area_name_.GetHeight()) * 0.5f));
+    area_active_button_.Translate(ImVec2(area_name_.Min.x - button_size - (ImGuiNodesConnectorDotPadding * area_name_.GetHeight()), (area_output_.GetHeight() - button_size) * 0.5f));
 
-    area_output_.Min.x -= area_name_.GetWidth();
-    area_output_.Min.x -= ImGuiNodesConnectorDotPadding * area_name_.GetHeight();
+    area_output_.Min.x = area_active_button_.Min.x;
 
     area_output_.Translate(offset);
     area_name_.Translate(offset);
+    area_active_button_.Translate(offset);
 }
 
 void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const
@@ -1459,6 +1524,23 @@ void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale,
 
     if (IS_SET(state_, ImGuiNodesConnectorStateFlag_Selected))
         draw_list->AddRect((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 0.3f), 0.0f, 0, 2.0f * scale);
+
+    if (HAS_ANY_FLAG(state_, ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_Selected))
+    {
+        ImRect active_btn_rect = area_active_button_;
+        active_btn_rect.Min *= scale;
+        active_btn_rect.Max *= scale;
+        active_btn_rect.Translate(offset);
+
+        ImColor btn_color = ImColor(1.0f, 1.0f, 1.0f, 1.0f);
+        draw_list->AddCircleFilled(active_btn_rect.GetCenter(), active_btn_rect.GetWidth() * 0.5f, btn_color);
+        
+        ImGui::SetWindowFontScale(scale * 0.6f);
+        ImVec2 text_size = ImGui::CalcTextSize(ICON_FA_POWER_OFF);
+        ImGui::SetCursorScreenPos(active_btn_rect.GetCenter() - text_size * 0.5f);
+        ImGui::TextColored(ImColor(0.2f, 0.2f, 0.2f, 1.0f), ICON_FA_POWER_OFF);
+        ImGui::SetWindowFontScale(scale);
+    }
 
     bool consider_fill = false;
     consider_fill |= IS_SET(state_, ImGuiNodesConnectorStateFlag_Dragging);
@@ -1481,6 +1563,7 @@ void ImGuiNodesNode::TranslateNode(ImVec2 delta, bool selected_only)
     area_node_.Translate(delta);
     area_name_.Translate(delta);
     area_add_button_.Translate(delta);
+    area_active_button_.Translate(delta);
 
     for (int input_idx = 0; input_idx < inputs_.size(); ++input_idx)
         inputs_[input_idx].TranslateInput(delta);
@@ -1501,6 +1584,7 @@ ImGuiNodesNode::ImGuiNodesNode(const ImGuiNodesIdentifier& name, int color_index
     title_height_ = ImGuiNodesTitleHight * area_name_.GetHeight();
     
     area_add_button_ = ImRect(0.0f, 0.0f, 0.0f, 0.0f);
+    area_active_button_ = ImRect(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 void ImGuiNodesNode::BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size)
@@ -1519,6 +1603,9 @@ void ImGuiNodesNode::BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size)
     float add_button_size = title_height_ * 0.6f;
     area_add_button_.Min = ImVec2(area_node_.Max.x - add_button_size * 0.3f, area_node_.Min.y + (title_height_ - add_button_size) * 0.5f);
     area_add_button_.Max = area_add_button_.Min + ImVec2(add_button_size, add_button_size);
+
+    area_active_button_.Min = ImVec2(area_node_.Min.x + add_button_size * 0.3f, area_node_.Min.y - add_button_size * 0.5f);
+    area_active_button_.Max = area_active_button_.Min + ImVec2(add_button_size, add_button_size);
 
     ImVec2 inputs = area_node_.GetTL();
     inputs.y += title_height_ + (ImGuiNodesVSeparation * area_name_.GetHeight() * 0.5f);
@@ -1623,6 +1710,23 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
 
     if (HAS_ANY_FLAG(state_, ImGuiNodesNodeStateFlag_MarkedForSelection | ImGuiNodesNodeStateFlag_Selected))
         draw_list->AddRect(node_rect.Min - outline*1.5f, node_rect.Max + outline*1.5f, color, 0, 0, 2.0f * scale);
+
+    if (HAS_ANY_FLAG(state_, ImGuiNodesNodeStateFlag_Hovered | ImGuiNodesNodeStateFlag_Selected))
+    {
+        ImRect active_btn_rect = area_active_button_;
+        active_btn_rect.Min *= scale;
+        active_btn_rect.Max *= scale;
+        active_btn_rect.Translate(offset);
+
+        ImColor btn_color = ImColor(1.0f, 1.0f, 1.0f, 1.0f);
+        draw_list->AddCircleFilled(active_btn_rect.GetCenter(), active_btn_rect.GetWidth() * 0.5f, btn_color);
+        
+        ImGui::SetWindowFontScale(scale * 0.6f);
+        ImVec2 text_size = ImGui::CalcTextSize(ICON_FA_POWER_OFF);
+        ImGui::SetCursorScreenPos(active_btn_rect.GetCenter() - text_size * 0.5f);
+        ImGui::TextColored(ImColor(0.2f, 0.2f, 0.2f, 1.0f), ICON_FA_POWER_OFF);
+        ImGui::SetWindowFontScale(scale);
+    }
 
     if (HAS_ANY_FLAG(state_, ImGuiNodesNodeStateFlag_Hovered | ImGuiNodesNodeStateFlag_Selected))
     {
