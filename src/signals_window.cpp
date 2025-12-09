@@ -101,11 +101,7 @@ void SignalsWindow::Render()
         if (ImGui::Button(freeze_selection_ ? " " ICON_FA_LOCK " ": " " ICON_FA_LOCK_OPEN))
             freeze_selection_ = !freeze_selection_;
         if (ImGui::IsItemHovered())
-        {
-            ImGui::BeginTooltip();
-            ImGui::TextUnformatted(freeze_selection_ ? "Unlock selection" : "Lock selection");
-            ImGui::EndTooltip();
-        }
+            ImGui::SetTooltip(freeze_selection_ ? "Unlock selection" : "Lock selection");
         ImGui::SameLine();
         ImGui::BeginDisabled(signals_map_.empty());
         if (ImGui::Button(ICON_FA_CLONE))
@@ -114,11 +110,7 @@ void SignalsWindow::Render()
                 on_clone_click_(this);
         }
         if (ImGui::IsItemHovered())
-        {
-            ImGui::BeginTooltip();
-            ImGui::TextUnformatted("Clone into a new window");
-            ImGui::EndTooltip();
-        }
+            ImGui::SetTooltip("Clone into a new window");
         ImGui::EndDisabled();
         ImGui::SameLine();
     }
@@ -142,11 +134,7 @@ void SignalsWindow::Render()
         }
     }
     if (ImGui::IsItemHovered())
-    {
-        ImGui::BeginTooltip();
-        ImGui::TextUnformatted(is_paused_ ? "Resume updating signals" : "Pause updating signals");
-        ImGui::EndTooltip();
-    }
+        ImGui::SetTooltip(is_paused_ ? "Resume updating signals" : "Pause updating signals");
     ImGui::EndDisabled();
 
     if (signals_map_.empty())
