@@ -125,6 +125,9 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
                         cached->output_signals_,
                         parent_id);
 
+        if (!component.getActive())
+            nodes_->SetActive(component_id, false);
+
         cached->RefreshStatus();
         if (!cached->error_message_.empty())
             nodes_->SetError(component_id, cached->error_message_);
@@ -178,6 +181,22 @@ void OpenDAQNodeEditor::RebuildStructure()
     RetrieveTopology(instance_);
     nodes_->EndBatchAdd();
     RetrieveConnections();
+}
+
+void OpenDAQNodeEditor::SetNodeActiveRecursively(const std::string& node_id)
+{
+    if (auto it = all_components_.find(node_id); it != all_components_.end())
+    {
+        CachedComponent* cached = it->second.get();
+        if (!cached->component_.assigned())
+            return;
+
+        bool active = cached->component_.getActive();
+        nodes_->SetActive(node_id, active);
+
+        for (const auto& child : cached->children_)
+            SetNodeActiveRecursively(child.id_);
+    }
 }
 
 void OpenDAQNodeEditor::OnConnectionCreated(const ImGui::ImGuiNodesUid& output_id, const ImGui::ImGuiNodesUid& input_id)
@@ -395,6 +414,9 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
                                     fb_cached->output_signals_,
                                     parent_id);
 
+                    if (!fb.getActive())
+                        nodes_->SetActive(fb_id_str, false);
+
                     folders_[fb_id_str] = fb_cached.get();
                     all_components_[fb_id_str] = std::move(fb_cached);
                 }
@@ -450,6 +472,9 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
                             dev_cached->input_ports_,
                             dev_cached->output_signals_,
                             parent_id);
+
+            if (!dev.getActive())
+                nodes_->SetActive(dev_id, false);
 
             folders_[dev_id] = dev_cached.get();
             all_components_[dev_id] = std::move(dev_cached);
@@ -664,6 +689,20 @@ void OpenDAQNodeEditor::Render()
                     else
                         nodes_->SetOk(component_id);
 
+                    break;
+                }
+                case static_cast<int>(daq::CoreEventId::AttributeChanged):
+                {
+                    daq::DictPtr<daq::IString, daq::IBaseObject> params = args.getParameters();
+                    if (params.hasKey("AttributeName"))
+                    {
+                        std::string attribute_name = params.get("AttributeName");
+                        if (attribute_name == "Active")
+                        {
+                             std::string component_id = comp.getGlobalId().toStdString();
+                             SetNodeActiveRecursively(component_id);
+                        }
+                    }
                     break;
                 }
                 case static_cast<int>(daq::CoreEventId::PropertyValueChanged):

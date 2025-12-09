@@ -31,6 +31,7 @@ public:
     void RetrieveConnections();
     void RebuildStructure();
     void Render();
+    void SetNodeActiveRecursively(const std::string& node_id);
 
     void RenderFunctionBlockOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position);
     void RenderDeviceOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position);

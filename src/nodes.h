@@ -32,7 +32,8 @@ enum ImGuiNodesNodeStateFlag_
     ImGuiNodesNodeStateFlag_Collapsed            = 1 << 4,
     ImGuiNodesNodeStateFlag_Disabled             = 1 << 5,
     ImGuiNodesNodeStateFlag_Warning              = 1 << 6,
-    ImGuiNodesNodeStateFlag_Error                = 1 << 7
+    ImGuiNodesNodeStateFlag_Error                = 1 << 7,
+    ImGuiNodesNodeStateFlag_Inactive             = 1 << 8
 };
 
 enum ImGuiNodesState_
@@ -176,6 +177,7 @@ public:
     void SetWarning(const ImGuiNodesUid& uid, const std::string& message);
     void SetError(const ImGuiNodesUid& uid, const std::string& message);
     void SetOk(const ImGuiNodesUid& uid);
+    void SetActive(const ImGuiNodesUid& uid, bool active);
     void SetSelectedNodes(const std::vector<ImGuiNodesUid>& selected_ids);
     void MoveSelectedNodesIntoView();
     void Clear();

@@ -1556,6 +1556,12 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
     if (IS_SET(state_, ImGuiNodesNodeStateFlag_Error))
         head_color = ImColor(0xff0719eb);  // Red error color
 
+    if (IS_SET(state_, ImGuiNodesNodeStateFlag_Inactive))
+    {
+        body_color = ImColor(0.5f, 0.5f, 0.5f, 0.9f);
+        head_color = ImColor(0.3f, 0.3f, 0.3f, 0.5f);
+    }
+
     const ImVec2 outline(3.0f * scale, 3.0f * scale);
 
     const ImDrawFlags rounding_corners_flags = ImDrawFlags_RoundCornersAll;
@@ -1725,6 +1731,18 @@ void ImGuiNodes::SetOk(const ImGuiNodesUid& uid)
     }
 }
 
+void ImGuiNodes::SetActive(const ImGuiNodesUid& uid, bool active)
+{
+    if (auto it = nodes_by_uid_.find(uid); it != nodes_by_uid_.end())
+    {
+        ImGuiNodesNode* node = it->second;
+        if (active)
+            CLEAR_FLAG(node->state_, ImGuiNodesNodeStateFlag_Inactive);
+        else
+            SET_FLAG(node->state_, ImGuiNodesNodeStateFlag_Inactive);
+    }
+}
+
 void ImGuiNodes::Clear()
 {
     active_node_ = NULL;
@@ -1855,14 +1873,6 @@ void ImGuiNodes::EndBatchAdd()
         current_y = layout_tree(layout_tree, root, start_x, current_y);
 }
 
-#undef IS_SET
-#undef SET_FLAG
-#undef CLEAR_FLAG
-#undef TOGGLE_FLAG
-#undef HAS_ALL_FLAGS
-#undef HAS_ANY_FLAG
-#undef CLEAR_FLAGS
-
 void ImGuiNodes::RenderMinimap(ImDrawList* draw_list)
 {
     draw_list->AddRectFilled(minimap_rect_.Min, minimap_rect_.Max, ImColor(0.1f, 0.1f, 0.1f, 0.5f));
@@ -1899,6 +1909,9 @@ void ImGuiNodes::RenderMinimap(ImDrawList* draw_list)
         ImVec2 max = (node_rect.Max - world_bounds.Min) * mm_scale + mm_offset;
 
         ImColor color = ImGuiNodes::color_palette_[node->color_index_];
+        if (IS_SET(node->state_, ImGuiNodesNodeStateFlag_Inactive))
+            color = ImColor(0.5f, 0.5f, 0.5f);
+
         color.Value.w = 0.8f;
         draw_list->AddRectFilled(min, max, color);
     }
@@ -1932,3 +1945,12 @@ void ImGuiNodes::RenderMinimap(ImDrawList* draw_list)
         draw_list->AddRect(min, max, ImColor(1.0f, 1.0f, 1.0f, 0.4f));
     }
 }
+
+
+#undef IS_SET
+#undef SET_FLAG
+#undef CLEAR_FLAG
+#undef TOGGLE_FLAG
+#undef HAS_ALL_FLAGS
+#undef HAS_ANY_FLAG
+#undef CLEAR_FLAGS
