@@ -199,7 +199,7 @@ int main(int argc, char** argv)
         ImGui::ShowDemoWindow();
 #endif
 
-        if (ImGui::Begin("Node editor"))
+        if (ImGui::Begin("Node editor", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
         {
             nodes_editor.Update();
             opendaq_editor.RenderNestedNodePopup();
