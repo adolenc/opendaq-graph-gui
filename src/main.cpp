@@ -1,5 +1,6 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "implot.h"
 #include "imsearch.h"
 #include "imgui_impl_sdl2.h"
@@ -101,6 +102,7 @@ int main(int argc, char** argv)
     ImPlot::CreateContext();
     ImSearch::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     if (char *base_path = SDL_GetBasePath())
     {
         io.Fonts->AddFontFromFileTTF((std::string(base_path) + "Roboto-Medium.ttf").c_str(), 14.0f);
@@ -154,6 +156,41 @@ int main(int argc, char** argv)
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(viewport->WorkSize);
+        ImGui::SetNextWindowViewport(viewport->ID);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        ImGui::Begin("DockSpace Window", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBackground);
+        ImGui::PopStyleVar(3);
+
+        ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
+
+        static bool first_time = true;
+        if (first_time)
+        {
+            first_time = false;
+
+            ImGui::DockBuilderRemoveNode(dockspace_id);
+            ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
+            ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
+
+            ImGuiID dock_main_id = dockspace_id;
+            ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.16f, nullptr, &dock_main_id);
+            ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.30f, nullptr, &dock_main_id);
+            ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.25f, nullptr, &dock_main_id);
+
+            ImGui::DockBuilderDockWindow("Node editor", dock_main_id);
+            ImGui::DockBuilderDockWindow("Tree view", dock_id_left);
+            ImGui::DockBuilderDockWindow("Property editor", dock_id_right);
+            ImGui::DockBuilderDockWindow("Signal viewer", dock_id_bottom);
+            ImGui::DockBuilderFinish(dockspace_id);
+        }
+        ImGui::End();
+
         opendaq_editor.Render();
         if (connection_string.empty())
             opendaq_editor.ShowStartupPopup();
@@ -162,23 +199,12 @@ int main(int argc, char** argv)
         ImGui::ShowDemoWindow();
 #endif
 
-#ifdef IMGUI_HAS_VIEWPORT
-        ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(viewport->GetWorkPos());
-        ImGui::SetNextWindowSize(viewport->GetWorkSize());
-        ImGui::SetNextWindowViewport(viewport->ID);
-#else
-        ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-        ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
-#endif
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        if (ImGui::Begin("Node Editor", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus))
+        if (ImGui::Begin("Node editor"))
         {
             nodes_editor.Update();
             opendaq_editor.RenderNestedNodePopup();
         }
         ImGui::End();
-        ImGui::PopStyleVar(1);
 
         ImGui::Render();
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);

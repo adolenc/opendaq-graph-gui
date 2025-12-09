@@ -13,7 +13,7 @@ void TreeViewWindow::OnSelectionChanged(const std::vector<CachedComponent*>& sel
 
 void TreeViewWindow::Render(const CachedComponent* root, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
 {
-    ImGui::Begin("Tree View", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::Begin("Tree view", nullptr);
     if (root)
         RenderTreeNode(root, all_components);
     ImGui::End();

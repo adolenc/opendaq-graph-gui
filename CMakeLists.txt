@@ -46,7 +46,7 @@ FetchContent_MakeAvailable(openDAQ)
 FetchContent_Declare(
   imgui
   GIT_REPOSITORY https://github.com/ocornut/imgui.git
-  GIT_TAG v1.92.0
+  GIT_TAG v1.92.0-docking
   PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/imgui-32bit-vertices.patch || echo "Patch already applied"
 )
 FetchContent_MakeAvailable(imgui)
