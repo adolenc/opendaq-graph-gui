@@ -1723,28 +1723,17 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
         add_button_rect.Max *= scale;
         add_button_rect.Translate(offset);
         
-        ImColor button_bg_color = (state == ImGuiNodesState_HoveringAddButton)
-            ? ImColor(0.8f, 0.8f, 0.8f, 0.9f) 
-            : ImColor(0.6f, 0.6f, 0.6f, 0.7f);
-        
-        draw_list->AddRectFilled(add_button_rect.Min, add_button_rect.Max, button_bg_color, 0.0f);
-        draw_list->AddRect(add_button_rect.Min, add_button_rect.Max, ImColor(0.2f, 0.2f, 0.2f, 0.8f), 0.0f, 0, 1.0f * scale);
-        
         ImVec2 button_center = add_button_rect.GetCenter();
-        float cross_size = add_button_rect.GetHeight() * 0.3f;
-        float line_thickness = 2.0f * scale;
-        draw_list->AddLine(
-            ImVec2(button_center.x - cross_size, button_center.y),
-            ImVec2(button_center.x + cross_size, button_center.y),
-            ImColor(0.1f, 0.1f, 0.1f, 1.0f), 
-            line_thickness
-        );
-        draw_list->AddLine(
-            ImVec2(button_center.x, button_center.y - cross_size),
-            ImVec2(button_center.x, button_center.y + cross_size),
-            ImColor(0.1f, 0.1f, 0.1f, 1.0f), 
-            line_thickness
-        );
+        ImGui::SetWindowFontScale(scale * 1.5f);
+        ImVec2 text_size = ImGui::CalcTextSize(ICON_FA_SQUARE_PLUS);
+        ImGui::SetCursorScreenPos(button_center - text_size * 0.5f);
+
+        ImColor icon_color = (state == ImGuiNodesState_HoveringAddButton)
+            ? ImColor(1.0f, 1.0f, 1.0f, 1.0f)
+            : ImColor(0.8f, 0.8f, 0.8f, 1.0f);
+
+        ImGui::TextColored(icon_color, ICON_FA_SQUARE_PLUS);
+        ImGui::SetWindowFontScale(scale);
     }
 }
 
