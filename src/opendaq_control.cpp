@@ -185,7 +185,6 @@ void OpenDAQNodeEditor::RetrieveConnections()
 
 void OpenDAQNodeEditor::RebuildStructure()
 {
-    properties_window_.OnSelectionChanged({});
     signals_window_.OnSelectionChanged({});
     tree_view_window_.OnSelectionChanged({});
     nodes_->Clear();
@@ -199,6 +198,10 @@ void OpenDAQNodeEditor::RebuildStructure()
     RetrieveTopology(instance_);
     nodes_->EndBatchAdd();
     RetrieveConnections();
+
+    properties_window_.RestoreSelection(all_components_);
+    for (auto& w : cloned_properties_windows_)
+        w->RestoreSelection(all_components_);
 }
 
 void OpenDAQNodeEditor::SetNodeActiveRecursively(const std::string& node_id)
@@ -333,7 +336,7 @@ void OpenDAQNodeEditor::OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUi
             selected_cached_components_.push_back(it->second);
     }
     
-    properties_window_.OnSelectionChanged(selected_cached_components_);
+    properties_window_.OnSelectionChanged(selected_ids, all_components_);
     signals_window_.OnSelectionChanged(selected_cached_components_);
     tree_view_window_.OnSelectionChanged(selected_cached_components_);
 }

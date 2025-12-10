@@ -7,7 +7,8 @@
 
 PropertiesWindow::PropertiesWindow(const PropertiesWindow& other)
 {
-    cached_components_ = other.cached_components_;
+    selected_cached_components_ = other.selected_cached_components_;
+    selected_component_ids_ = other.selected_component_ids_;
     freeze_selection_ = true;
     show_parents_ = other.show_parents_;
     tabbed_interface_ = other.tabbed_interface_;
@@ -168,22 +169,34 @@ void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component)
         cached_component.RefreshProperties();
 }
 
-void PropertiesWindow::OnSelectionChanged(const std::vector<CachedComponent*>& cached_components)
+void PropertiesWindow::OnSelectionChanged(const std::vector<std::string>& selected_ids, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
 {
     if (freeze_selection_)
         return;
 
-    cached_components_ = cached_components;
-    for (auto* cached : cached_components_)
+    selected_component_ids_ = selected_ids;
+    RestoreSelection(all_components);
+}
+
+void PropertiesWindow::RestoreSelection(const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
+{
+    selected_cached_components_.clear();
+    for (const auto& id : selected_component_ids_)
     {
-        if (cached && cached->component_.assigned())
+        if (auto it = all_components.find(id); it != all_components.end())
+            selected_cached_components_.push_back(it->second.get());
+    }
+    
+    for (auto* cached : selected_cached_components_)
+    {
+        if (cached)
             cached->RefreshProperties();
     }
 }
 
 void PropertiesWindow::RefreshComponents()
 {
-    for (auto* cached : cached_components_)
+    for (auto* cached : selected_cached_components_)
         cached->needs_refresh_ = true;
 }
 
@@ -209,7 +222,7 @@ void PropertiesWindow::Render()
 
             ImGui::SameLine();
 
-            ImGui::BeginDisabled(cached_components_.empty());
+            ImGui::BeginDisabled(selected_cached_components_.empty());
             if (ImGui::Button(ICON_FA_CLONE))
             {
                 if (on_clone_click_)
@@ -241,20 +254,20 @@ void PropertiesWindow::Render()
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip(tabbed_interface_ ? "Disable tabs for multiple components" : "Use tabs for multiple components");
 
-        if (cached_components_.empty())
+        if (selected_cached_components_.empty())
         {
             ImGui::Text("No component selected");
         }
-        else if (cached_components_.size() == 1)
+        else if (selected_cached_components_.size() == 1)
         {
-            RenderCachedComponent(*cached_components_[0]);
+            RenderCachedComponent(*selected_cached_components_[0]);
         }
         else if (tabbed_interface_)
         {
             if (ImGui::BeginTabBar("Selected components"))
             {
                 int uid = 0;
-                for (auto& cached_component : cached_components_)
+                for (auto& cached_component : selected_cached_components_)
                 {
                     if (ImGui::BeginTabItem((cached_component->name_ + "##" + std::to_string(uid++)).c_str()))
                     {
@@ -268,7 +281,7 @@ void PropertiesWindow::Render()
         else
         {
             int uid = 0;
-            for (auto& cached_component : cached_components_)
+            for (auto& cached_component : selected_cached_components_)
             {
                 ImGui::BeginChild((cached_component->name_ + "##" + std::to_string(uid++)).c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
 
