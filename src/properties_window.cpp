@@ -222,32 +222,22 @@ void PropertiesWindow::Render()
             ImGui::SameLine();
         }
 
-        bool show_parents_active = show_parents_;
-        if (show_parents_active)
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.15f, 0.25f, 1.0f));
-        if (ImGui::Button(ICON_FA_FOLDER_TREE))
+        if (ImGui::Button(show_parents_ ? ICON_FA_FOLDER_TREE " " ICON_FA_TOGGLE_ON : ICON_FA_FOLDER_TREE " " ICON_FA_TOGGLE_OFF))
             show_parents_ = !show_parents_;
-        if (show_parents_active)
-            ImGui::PopStyleColor();
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip(show_parents_ ? "Hide parents" : "Show parents");
 
         ImGui::SameLine();
 
-        if (ImGui::Button(show_detail_properties_ ? ICON_FA_BUG_SLASH : " " ICON_FA_BUG " "))
+        if (ImGui::Button(show_detail_properties_ ? ICON_FA_BUG " " ICON_FA_TOGGLE_ON : ICON_FA_BUG " " ICON_FA_TOGGLE_OFF))
             show_detail_properties_ = !show_detail_properties_;
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip(show_detail_properties_ ? "Hide debug properties" : "Show debug properties");
 
         ImGui::SameLine();
 
-        bool tabbed_interface_active = tabbed_interface_;
-        if (tabbed_interface_active)
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.15f, 0.25f, 1.0f));
-        if (ImGui::Button(" " ICON_FA_TABLE_COLUMNS " "))
+        if (ImGui::Button(tabbed_interface_ ? ICON_FA_TABLE_COLUMNS " " ICON_FA_TOGGLE_ON : ICON_FA_TABLE_COLUMNS " " ICON_FA_TOGGLE_OFF))
             tabbed_interface_ = !tabbed_interface_;
-        if (tabbed_interface_active)
-            ImGui::PopStyleColor();
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip(tabbed_interface_ ? "Disable tabs for multiple components" : "Use tabs for multiple components");
 
