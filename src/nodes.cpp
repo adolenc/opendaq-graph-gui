@@ -725,12 +725,7 @@ void ImGuiNodes::ProcessInteractions()
         switch (state_)
         {
             case ImGuiNodesState_Default:
-            {
-                for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
-                    CLEAR_FLAGS(nodes_[node_idx]->state_, ImGuiNodesNodeStateFlag_Selected | ImGuiNodesNodeStateFlag_MarkedForSelection | ImGuiNodesNodeStateFlag_Hovered);
-
                 return;
-            };
 
             case ImGuiNodesState_HoveringInput:
             {
@@ -828,14 +823,6 @@ void ImGuiNodes::ProcessInteractions()
             }
         }
 
-        if (!io.KeyCtrl)
-        {
-            for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
-                CLEAR_FLAG(nodes_[node_idx]->state_, ImGuiNodesNodeStateFlag_Selected);
-            
-            ClearAllConnectorSelections();
-        }
-
         return;
     }
 
@@ -858,6 +845,7 @@ void ImGuiNodes::ProcessInteractions()
                         CLEAR_FLAGS(nodes_[node_idx]->state_, ImGuiNodesNodeStateFlag_Selected | ImGuiNodesNodeStateFlag_MarkedForSelection);
 
                     ClearAllConnectorSelections();
+                    SortSelectedNodesOrder();
                 }
 
                 state_ = ImGuiNodesState_Selecting;
