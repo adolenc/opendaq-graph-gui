@@ -25,6 +25,7 @@ public:
     void RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 position) override;
     void OnAddButtonClick(const ImGui::ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position) override;
     void OnNodeActiveToggle(const ImGui::ImGuiNodesUid& uid) override;
+    void OnNodeTrashClick(const ImGui::ImGuiNodesUid& uid) override;
     void OnSignalActiveToggle(const ImGui::ImGuiNodesUid& uid) override;
     void OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, std::optional<ImVec2> /*position*/) override;
     void OnEmptySpaceClick(ImVec2 position) override;

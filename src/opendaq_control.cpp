@@ -702,6 +702,10 @@ void OpenDAQNodeEditor::OnNodeActiveToggle(const ImGui::ImGuiNodesUid& uid)
     }
 }
 
+void OpenDAQNodeEditor::OnNodeTrashClick(const ImGui::ImGuiNodesUid& uid)
+{
+}
+
 void OpenDAQNodeEditor::OnSignalActiveToggle(const ImGui::ImGuiNodesUid& uid)
 {
     if (auto it = signals_.find(uid); it != signals_.end())

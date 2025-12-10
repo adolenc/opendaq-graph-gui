@@ -45,6 +45,7 @@ enum ImGuiNodesState_
     ImGuiNodesState_HoveringOutput,
     ImGuiNodesState_HoveringAddButton,
     ImGuiNodesState_HoveringActiveButton,
+    ImGuiNodesState_HoveringTrashButton,
     ImGuiNodesState_HoveringOutputActiveButton,
     ImGuiNodesState_Dragging,
     ImGuiNodesState_DraggingInput,
@@ -128,6 +129,7 @@ struct ImGuiNodesNode
     ImRect area_name_;
     ImRect area_add_button_;
     ImRect area_active_button_;
+    ImRect area_trash_button_;
     float title_height_;
     float body_height_;
     ImGuiNodesNodeState state_;
@@ -157,6 +159,7 @@ public:
     virtual void RenderPopupMenu(ImGuiNodes* nodes, ImVec2 position) {}
     virtual void OnAddButtonClick(const ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position) {}
     virtual void OnNodeActiveToggle(const ImGuiNodesUid& uid) {}
+    virtual void OnNodeTrashClick(const ImGuiNodesUid& uid) {}
     virtual void OnSignalActiveToggle(const ImGuiNodesUid& uid) {}
     virtual void OnInputDropped(const ImGuiNodesUid& input_uid, std::optional<ImVec2> position) {}
     virtual void OnEmptySpaceClick(ImVec2 position) {}

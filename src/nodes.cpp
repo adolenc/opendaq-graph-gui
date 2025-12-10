@@ -289,6 +289,16 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
 
                 if (active_button_rect.Contains(mouse_))
                     hovered_node = node;
+                else
+                {
+                    ImRect trash_button_rect = node->area_trash_button_;
+                    trash_button_rect.Min *= scale_;
+                    trash_button_rect.Max *= scale_;
+                    trash_button_rect.Translate(offset);
+
+                    if (trash_button_rect.Contains(mouse_))
+                        hovered_node = node;
+                }
             }
         }
 
@@ -616,6 +626,7 @@ void ImGuiNodes::ProcessInteractions()
     consider_hover |= state_ == ImGuiNodesState_HoveringOutput;
     consider_hover |= state_ == ImGuiNodesState_HoveringAddButton;
     consider_hover |= state_ == ImGuiNodesState_HoveringActiveButton;
+    consider_hover |= state_ == ImGuiNodesState_HoveringTrashButton;
     consider_hover |= state_ == ImGuiNodesState_HoveringOutputActiveButton;
 
     if (hovered_node && consider_hover && !OtherImGuiWindowIsBlockingInteraction())
@@ -672,7 +683,17 @@ void ImGuiNodes::ProcessInteractions()
                 if (active_button_rect.Contains(mouse_))
                     state_ = ImGuiNodesState_HoveringActiveButton;
                 else
-                    state_ = ImGuiNodesState_HoveringNode;
+                {
+                    ImRect trash_button_rect = hovered_node->area_trash_button_;
+                    trash_button_rect.Min *= scale_;
+                    trash_button_rect.Max *= scale_;
+                    trash_button_rect.Translate(offset);
+
+                    if (trash_button_rect.Contains(mouse_))
+                        state_ = ImGuiNodesState_HoveringTrashButton;
+                    else
+                        state_ = ImGuiNodesState_HoveringNode;
+                }
             }	
         }
     }
@@ -967,6 +988,15 @@ void ImGuiNodes::ProcessInteractions()
         {
             if (interaction_handler_)
                 interaction_handler_->OnNodeActiveToggle(active_node_->uid_);
+            
+            state_ = ImGuiNodesState_Default;
+            return;
+        }
+
+        case ImGuiNodesState_HoveringTrashButton:
+        {
+            if (interaction_handler_)
+                interaction_handler_->OnNodeTrashClick(active_node_->uid_);
             
             state_ = ImGuiNodesState_Default;
             return;
@@ -1552,6 +1582,7 @@ void ImGuiNodesNode::TranslateNode(ImVec2 delta, bool selected_only)
     area_name_.Translate(delta);
     area_add_button_.Translate(delta);
     area_active_button_.Translate(delta);
+    area_trash_button_.Translate(delta);
 
     for (int input_idx = 0; input_idx < inputs_.size(); ++input_idx)
         inputs_[input_idx].TranslateInput(delta);
@@ -1594,6 +1625,9 @@ void ImGuiNodesNode::BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size)
 
     area_active_button_.Min = ImVec2(area_node_.Min.x + add_button_size * 0.3f, area_node_.Min.y - add_button_size * 0.5f);
     area_active_button_.Max = area_active_button_.Min + ImVec2(add_button_size, add_button_size);
+
+    area_trash_button_.Min = ImVec2(area_active_button_.Max.x + add_button_size * 0.3f, area_node_.Min.y - add_button_size * 0.5f);
+    area_trash_button_.Max = area_trash_button_.Min + ImVec2(add_button_size, add_button_size);
 
     ImVec2 inputs = area_node_.GetTL();
     inputs.y += title_height_ + (ImGuiNodesVSeparation * area_name_.GetHeight() * 0.5f);
@@ -1713,6 +1747,19 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
         ImVec2 text_size = ImGui::CalcTextSize(ICON_FA_POWER_OFF);
         ImGui::SetCursorScreenPos(active_btn_rect.GetCenter() - text_size * 0.5f);
         ImGui::TextColored(ImColor(0.2f, 0.2f, 0.2f, 1.0f), ICON_FA_POWER_OFF);
+        ImGui::SetWindowFontScale(scale);
+
+        ImRect trash_btn_rect = area_trash_button_;
+        trash_btn_rect.Min *= scale;
+        trash_btn_rect.Max *= scale;
+        trash_btn_rect.Translate(offset);
+
+        draw_list->AddCircleFilled(trash_btn_rect.GetCenter(), trash_btn_rect.GetWidth() * 0.5f, btn_color);
+        
+        ImGui::SetWindowFontScale(scale * 0.6f);
+        text_size = ImGui::CalcTextSize(ICON_FA_TRASH);
+        ImGui::SetCursorScreenPos(trash_btn_rect.GetCenter() - text_size * 0.5f);
+        ImGui::TextColored(ImColor(1.0f, 0.0f, 0.0f, 1.0f), ICON_FA_TRASH);
         ImGui::SetWindowFontScale(scale);
     }
 
