@@ -185,7 +185,6 @@ void OpenDAQNodeEditor::RetrieveConnections()
 
 void OpenDAQNodeEditor::RebuildStructure()
 {
-    signals_window_.OnSelectionChanged({});
     nodes_->Clear();
     all_components_.clear();
     folders_.clear();
@@ -200,6 +199,10 @@ void OpenDAQNodeEditor::RebuildStructure()
 
     properties_window_.RestoreSelection(all_components_);
     for (auto& w : cloned_properties_windows_)
+        w->RestoreSelection(all_components_);
+
+    signals_window_.RestoreSelection(all_components_);
+    for (auto& w : cloned_signals_windows_)
         w->RestoreSelection(all_components_);
 }
 
@@ -336,7 +339,7 @@ void OpenDAQNodeEditor::OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUi
     }
     
     properties_window_.OnSelectionChanged(selected_ids, all_components_);
-    signals_window_.OnSelectionChanged(selected_cached_components_);
+    signals_window_.OnSelectionChanged(selected_ids, all_components_);
     tree_view_window_.OnSelectionChanged(selected_ids, all_components_);
 }
 

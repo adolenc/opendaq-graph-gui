@@ -14,17 +14,24 @@ SignalsWindow::SignalsWindow(const SignalsWindow& other)
 
     is_cloned_ = true;
     freeze_selection_ = true;
+    selected_component_ids_ = other.selected_component_ids_;
 
     total_min_ = other.total_min_;
     total_max_ = other.total_max_;
     plot_unique_id_ = other.plot_unique_id_;
 }
 
-void SignalsWindow::OnSelectionChanged(const std::vector<CachedComponent*>& cached_components)
+void SignalsWindow::OnSelectionChanged(const std::vector<std::string>& selected_ids, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
 {
     if (freeze_selection_)
         return;
 
+    selected_component_ids_ = selected_ids;
+    RestoreSelection(all_components);
+}
+
+void SignalsWindow::RestoreSelection(const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
+{
     std::unordered_set<std::string> selected_signal_ids;
 
     auto add_signal = [&](const daq::SignalPtr& signal)
@@ -35,8 +42,13 @@ void SignalsWindow::OnSelectionChanged(const std::vector<CachedComponent*>& cach
             signals_map_[signal_id] = { OpenDAQSignal(signal, 5.0, 5000), PausedSignalData() };
     };
 
-    for (const CachedComponent* cached : cached_components)
+    for (const auto& id : selected_component_ids_)
     {
+        auto it = all_components.find(id);
+        if (it == all_components.end())
+            continue;
+
+        const CachedComponent* cached = it->second.get();
         if (!cached || !cached->component_.assigned())
             continue;
 

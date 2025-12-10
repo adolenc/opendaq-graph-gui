@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <string>
 #include <functional>
+#include <memory>
 #include "signal.h"
 #include "component_cache.h"
 
@@ -31,7 +32,8 @@ public:
     SignalsWindow(const SignalsWindow& other);
 
     void Render();
-    void OnSelectionChanged(const std::vector<CachedComponent*>& cached_components);
+    void OnSelectionChanged(const std::vector<std::string>& selected_ids, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components);
+    void RestoreSelection(const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components);
     void RebuildInvalidSignals();
     
     std::function<void(SignalsWindow*)> on_clone_click_;
@@ -42,6 +44,7 @@ private:
     bool is_cloned_ = false;
     bool is_paused_ = false;
 
+    std::vector<std::string> selected_component_ids_;
     std::unordered_map<std::string, Signal> signals_map_;
     float total_min_ = 0.0f;
     float total_max_ = 0.0f;
