@@ -20,6 +20,7 @@
 #define ICON_FA_TOGGLE_OFF "\xef\x88\x84"	// U+f204
 #define ICON_FA_TOGGLE_ON "\xef\x88\x85"	// U+f205
 #define ICON_FA_SQUARE_PLUS "\xef\x83\xbe"	// U+f0fe
+#define ICON_FA_ARROWS_ROTATE "\xef\x80\xa1"	// U+f021
 
 // utility functions for working with OpenDAQ objects
 template <class Interface>

@@ -19,6 +19,7 @@ SignalsWindow::SignalsWindow(const SignalsWindow& other)
     total_min_ = other.total_min_;
     total_max_ = other.total_max_;
     plot_unique_id_ = other.plot_unique_id_;
+    on_reselect_click_ = other.on_reselect_click_;
 }
 
 void SignalsWindow::OnSelectionChanged(const std::vector<std::string>& selected_ids, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
@@ -106,6 +107,18 @@ void SignalsWindow::Render()
     {
         ImGui::End();
         return;
+    }
+
+    if (is_cloned_)
+    {
+        if (ImGui::Button(ICON_FA_ARROWS_ROTATE))
+        {
+            if (on_reselect_click_)
+                on_reselect_click_(selected_component_ids_);
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Reapply selection");
+        ImGui::SameLine();
     }
 
     if (!is_cloned_)

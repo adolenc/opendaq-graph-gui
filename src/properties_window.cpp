@@ -14,6 +14,7 @@ PropertiesWindow::PropertiesWindow(const PropertiesWindow& other)
     tabbed_interface_ = other.tabbed_interface_;
     show_detail_properties_ = other.show_detail_properties_;
     is_cloned_ = true;
+    on_reselect_click_ = other.on_reselect_click_;
 }
 
 void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
@@ -213,6 +214,19 @@ void PropertiesWindow::Render()
     }
 
     {
+        if (is_cloned_)
+        {
+            if (ImGui::Button(ICON_FA_ARROWS_ROTATE))
+            {
+                if (on_reselect_click_)
+                    on_reselect_click_(selected_component_ids_);
+            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Reapply selection");
+            
+            ImGui::SameLine();
+        }
+
         if (!is_cloned_)
         {
             if (ImGui::Button(freeze_selection_ ? " " ICON_FA_LOCK " ": " " ICON_FA_LOCK_OPEN))

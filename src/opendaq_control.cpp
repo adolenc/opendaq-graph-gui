@@ -39,6 +39,14 @@ void OpenDAQNodeEditor::Init()
             auto new_window = std::make_unique<PropertiesWindow>(*w);
             cloned_properties_windows_.push_back(std::move(new_window));
         };
+
+    signals_window_.on_reselect_click_ =
+    properties_window_.on_reselect_click_ =
+        [this](const std::vector<std::string>& ids)
+        {
+            nodes_->SetSelectedNodes(ids);
+            OnSelectionChanged(ids);
+        };
 }
 
 void OpenDAQNodeEditor::UpdateSignalsActiveState(CachedComponent* cached)
