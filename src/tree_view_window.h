@@ -4,12 +4,14 @@
 #include <vector>
 #include <string>
 #include <unordered_set>
+#include <unordered_map>
+#include <memory>
 
 class TreeViewWindow
 {
 public:
     void Render(const CachedComponent* root, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components);
-    void OnSelectionChanged(const std::vector<CachedComponent*>& selected_components);
+    void OnSelectionChanged(const std::vector<std::string>& selected_ids, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components);
 
     std::function<void(const std::vector<std::string>&)> on_selection_changed_callback_;
 

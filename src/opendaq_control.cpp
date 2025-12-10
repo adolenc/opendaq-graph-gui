@@ -186,7 +186,6 @@ void OpenDAQNodeEditor::RetrieveConnections()
 void OpenDAQNodeEditor::RebuildStructure()
 {
     signals_window_.OnSelectionChanged({});
-    tree_view_window_.OnSelectionChanged({});
     nodes_->Clear();
     all_components_.clear();
     folders_.clear();
@@ -338,7 +337,7 @@ void OpenDAQNodeEditor::OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUi
     
     properties_window_.OnSelectionChanged(selected_ids, all_components_);
     signals_window_.OnSelectionChanged(selected_cached_components_);
-    tree_view_window_.OnSelectionChanged(selected_cached_components_);
+    tree_view_window_.OnSelectionChanged(selected_ids, all_components_);
 }
 
 void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position)

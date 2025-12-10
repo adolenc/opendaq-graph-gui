@@ -4,11 +4,11 @@
 #include <string>
 
 
-void TreeViewWindow::OnSelectionChanged(const std::vector<CachedComponent*>& selected_components)
+void TreeViewWindow::OnSelectionChanged(const std::vector<std::string>& selected_ids, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
 {
     selected_component_guids_.clear();
-    for (CachedComponent* comp : selected_components)
-        selected_component_guids_.insert(comp->component_.getGlobalId().toStdString());
+    for (const auto& id : selected_ids)
+        selected_component_guids_.insert(id);
 }
 
 void TreeViewWindow::Render(const CachedComponent* root, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
