@@ -1733,7 +1733,7 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
     if (HAS_ANY_FLAG(state_, ImGuiNodesNodeStateFlag_MarkedForSelection | ImGuiNodesNodeStateFlag_Selected))
         draw_list->AddRect(node_rect.Min - outline*1.5f, node_rect.Max + outline*1.5f, color, 0, 0, 2.0f * scale);
 
-    if (HAS_ANY_FLAG(state_, ImGuiNodesNodeStateFlag_Hovered | ImGuiNodesNodeStateFlag_Selected))
+    if (IS_SET(state_, ImGuiNodesNodeStateFlag_Hovered))
     {
         ImRect active_btn_rect = area_active_button_;
         active_btn_rect.Min *= scale;
@@ -1763,7 +1763,7 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
         ImGui::SetWindowFontScale(scale);
     }
 
-    if (HAS_ANY_FLAG(state_, ImGuiNodesNodeStateFlag_Hovered | ImGuiNodesNodeStateFlag_Selected))
+    if (IS_SET(state_, ImGuiNodesNodeStateFlag_Hovered))
     {
         ImRect add_button_rect = area_add_button_;
         add_button_rect.Min *= scale;
