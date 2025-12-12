@@ -2063,10 +2063,15 @@ void ImGuiNodes::RenderMinimap(ImDrawList* draw_list)
         ImVec2 max = (node_rect.Max - world_bounds.Min) * mm_scale + mm_offset;
 
         ImColor color = ImGuiNodes::color_palette_[node->color_index_];
+        color.Value.w = 0.8f;
         if (IS_SET(node->state_, ImGuiNodesNodeStateFlag_Inactive))
             color = ImColor(0.5f, 0.5f, 0.5f);
+        if (IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected))
+            color = ImColor(ImMin(color.Value.x + 0.3f, 1.0f),
+                            ImMin(color.Value.y + 0.3f, 1.0f),
+                            ImMin(color.Value.z + 0.3f, 1.0f),
+                            color.Value.w);
 
-        color.Value.w = 0.8f;
         draw_list->AddRectFilled(min, max, color);
     }
 
