@@ -16,6 +16,7 @@ void TreeViewWindow::Render(const CachedComponent* root, const std::unordered_ma
     ImGui::Begin("Tree view", nullptr);
     if (root)
         RenderTreeNode(root, all_components);
+    assert(pending_expansion_states_.empty());
     ImGui::End();
 }
 
@@ -45,7 +46,36 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
         }
         else
         {
+            if (auto it = pending_expansion_states_.find(component_guid); it != pending_expansion_states_.end())
+            {
+                ImGui::SetNextItemOpen(it->second, ImGuiCond_Always);
+                pending_expansion_states_.erase(it);
+            }
+
             bool node_open = ImGui::TreeNodeEx(component_guid.c_str(), flags, "%s", name.c_str());
+
+            if (ImGui::BeginPopupContextItem())
+            {
+                enum ExpandCollapseOption { None, Expand, Collapse } expand_or_collapse_triggered = ExpandCollapseOption::None;
+                if (ImGui::MenuItem("Expand children"))
+                    expand_or_collapse_triggered = ExpandCollapseOption::Expand;
+                if (ImGui::MenuItem("Collapse children"))
+                    expand_or_collapse_triggered = ExpandCollapseOption::Collapse;
+
+                if (expand_or_collapse_triggered != ExpandCollapseOption::None)
+                {
+                    for (const auto& child_id : component->children_)
+                    {
+                        if (auto it = all_components.find(child_id.id_); it != all_components.end())
+                        {
+                            if (!it->second->children_.empty())
+                                pending_expansion_states_[child_id.id_] = (expand_or_collapse_triggered == ExpandCollapseOption::Expand);
+                        }
+                    }
+                }
+                ImGui::EndPopup();
+            }
+
             if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
             {
                 if (on_node_double_clicked_callback_)

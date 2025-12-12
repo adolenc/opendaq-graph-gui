@@ -23,4 +23,5 @@ private:
     void CheckTreeNodeClicked(const std::string& component_guid);
 
     std::unordered_set<std::string> selected_component_guids_;
+    std::unordered_map<std::string, bool> pending_expansion_states_;
 };
