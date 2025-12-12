@@ -1880,6 +1880,15 @@ void ImGuiNodes::SetActive(const ImGuiNodesUid& uid, bool active)
     }
 }
 
+void ImGuiNodes::ClearNodeConnections(const ImGuiNodesUid& node_uid)
+{
+    if (auto it = nodes_by_uid_.find(node_uid); it != nodes_by_uid_.end())
+    {
+        for (const auto& input : it->second->inputs_)
+            RemoveConnection(input.uid_);
+    }
+}
+
 void ImGuiNodes::Clear()
 {
     active_node_ = NULL;
@@ -1917,15 +1926,13 @@ void ImGuiNodes::AddConnection(const ImGuiNodesUid& output_uid, const ImGuiNodes
 
 void ImGuiNodes::RemoveConnection(const ImGuiNodesUid& input_uid)
 {
-    auto input_it = inputs_by_uid_.find(input_uid);
-    
-    if (input_it != inputs_by_uid_.end())
+    if (auto input_it = inputs_by_uid_.find(input_uid); input_it != inputs_by_uid_.end())
     {
         ImGuiNodesInput* input = input_it->second;
-        
+
         if (input->source_output_)
             input->source_output_->connections_count_--;
-        
+
         input->source_node_ = NULL;
         input->source_output_ = NULL;
     }

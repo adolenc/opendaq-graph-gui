@@ -190,6 +190,7 @@ public:
     void SetActive(const ImGuiNodesUid& uid, bool active);
     void SetSelectedNodes(const std::vector<ImGuiNodesUid>& selected_ids);
     void MoveSelectedNodesIntoView();
+    void ClearNodeConnections(const ImGuiNodesUid& node_uid);
     void Clear();
 
     static constexpr ImColor text_color_ = ImColor(0xff000000);

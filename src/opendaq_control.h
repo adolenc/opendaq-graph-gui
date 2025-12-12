@@ -32,6 +32,7 @@ public:
     void RenderNestedNodePopup();
     void ShowStartupPopup();
     void RetrieveConnections();
+    void RebuildNodeConnections(const std::string& node_id);
     void RebuildStructure();
     void Render();
     void SetNodeActiveRecursively(const std::string& node_id);

@@ -191,6 +191,30 @@ void OpenDAQNodeEditor::RetrieveConnections()
     }
 }
 
+void OpenDAQNodeEditor::RebuildNodeConnections(const std::string& node_id)
+{
+    nodes_->ClearNodeConnections(node_id);
+
+    if (auto it = folders_.find(node_id); it != folders_.end())
+    {
+        CachedComponent* cached = it->second;
+        for (const auto& input_id_struct : cached->input_ports_)
+        {
+            std::string input_id = input_id_struct.id_;
+            if (auto port_it = input_ports_.find(input_id); port_it != input_ports_.end())
+            {
+                daq::InputPortPtr input_port = castTo<daq::IInputPort>(port_it->second->component_);
+                if (input_port.assigned() && input_port.getSignal().assigned())
+                {
+                    daq::SignalPtr signal = input_port.getSignal();
+                    std::string signal_id = signal.getGlobalId().toStdString();
+                    nodes_->AddConnection(signal_id, input_id);
+                }
+            }
+        }
+    }
+}
+
 void OpenDAQNodeEditor::RebuildStructure()
 {
     nodes_->Clear();
@@ -790,6 +814,21 @@ void OpenDAQNodeEditor::Render()
                 case static_cast<int>(daq::CoreEventId::DataDescriptorChanged):
                 {
                     signals_window_.RebuildInvalidSignals();
+                    break;
+                }
+                case static_cast<int>(daq::CoreEventId::SignalConnected):
+                case static_cast<int>(daq::CoreEventId::SignalDisconnected):
+                {
+                    std::string input_port_id = comp.getGlobalId().toStdString();
+                    if (auto it = input_ports_.find(input_port_id); it != input_ports_.end())
+                    {
+                        CachedComponent* input_cached = it->second;
+                        if (input_cached->parent_.assigned())
+                        {
+                            std::string node_id = input_cached->parent_.getGlobalId().toStdString();
+                            RebuildNodeConnections(node_id);
+                        }
+                    }
                     break;
                 }
                 case static_cast<int>(daq::CoreEventId::ComponentAdded):
