@@ -26,6 +26,13 @@ void OpenDAQNodeEditor::Init()
             OnSelectionChanged(selected_ids);
         };
 
+    tree_view_window_.on_node_double_clicked_callback_ =
+        [this](const std::string& node_id)
+        {
+            nodes_->SetSelectedNodes({node_id});
+            nodes_->MoveSelectedNodesIntoView();
+        };
+
     signals_window_.on_clone_click_ =
         [this](SignalsWindow* w)
         {
@@ -45,6 +52,7 @@ void OpenDAQNodeEditor::Init()
         [this](const std::vector<std::string>& ids)
         {
             nodes_->SetSelectedNodes(ids);
+            nodes_->MoveSelectedNodesIntoView();
             OnSelectionChanged(ids);
         };
 }

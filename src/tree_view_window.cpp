@@ -46,6 +46,12 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
         else
         {
             bool node_open = ImGui::TreeNodeEx(component_guid.c_str(), flags, "%s", name.c_str());
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+            {
+                if (on_node_double_clicked_callback_)
+                    on_node_double_clicked_callback_(component_guid);
+            }
+
             if (!ImGui::IsItemToggledOpen())
                 CheckTreeNodeClicked(component_guid);
 
@@ -64,6 +70,11 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
     {
         flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
         ImGui::TreeNodeEx(component_guid.c_str(), flags, "%s", name.c_str());
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+        {
+            if (on_node_double_clicked_callback_)
+                on_node_double_clicked_callback_(component_guid);
+        }
         CheckTreeNodeClicked(component_guid);
     }
 }

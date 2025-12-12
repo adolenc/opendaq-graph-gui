@@ -32,12 +32,15 @@ void ImGuiNodes::MoveSelectedNodesIntoView()
         union_rect.Max = ImMax(union_rect.Max, selected_nodes[i]->area_node_.Max);
     }
 
-    ImRect visible_rect;
-    visible_rect.Min = -scroll_ / scale_;
-    visible_rect.Max = (-scroll_ + nodes_imgui_window_size_) / scale_;
+    if (selected_nodes.size() > 1)
+    {
+        ImRect visible_rect;
+        visible_rect.Min = -scroll_ / scale_;
+        visible_rect.Max = (-scroll_ + nodes_imgui_window_size_) / scale_;
 
-    if (visible_rect.Contains(union_rect))
-        return;
+        if (visible_rect.Contains(union_rect))
+            return;
+    }
 
     const float padding = 50.0f;
     ImVec2 available_size = nodes_imgui_window_size_ - ImVec2(padding * 2, padding * 2);
@@ -46,12 +49,15 @@ void ImGuiNodes::MoveSelectedNodesIntoView()
 
     ImVec2 required_size = union_rect.Max - union_rect.Min;
 
-    if (required_size.x * scale_ > available_size.x || required_size.y * scale_ > available_size.y)
+    if (selected_nodes.size() > 1)
     {
-        float scale_x = available_size.x / required_size.x;
-        float scale_y = available_size.y / required_size.y;
-        scale_ = ImMin(scale_x, scale_y);
-        scale_ = std::clamp(scale_, 0.3f, 3.0f);
+        if (required_size.x * scale_ > available_size.x || required_size.y * scale_ > available_size.y)
+        {
+            float scale_x = available_size.x / required_size.x;
+            float scale_y = available_size.y / required_size.y;
+            scale_ = ImMin(scale_x, scale_y);
+            scale_ = std::clamp(scale_, 0.3f, 3.0f);
+        }
     }
 
     ImVec2 center_node_space = union_rect.GetCenter();
@@ -81,7 +87,6 @@ void ImGuiNodes::SetSelectedNodes(const std::vector<ImGuiNodesUid>& selected_ids
     }
 
     SortSelectedNodesOrder();
-    MoveSelectedNodesIntoView();
 }
 
 static bool OtherImGuiWindowIsBlockingInteraction()

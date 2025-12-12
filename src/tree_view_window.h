@@ -14,6 +14,7 @@ public:
     void OnSelectionChanged(const std::vector<std::string>& selected_ids, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components);
 
     std::function<void(const std::vector<std::string>&)> on_selection_changed_callback_;
+    std::function<void(const std::string&)> on_node_double_clicked_callback_;
 
 private:
     void RenderTreeNode(const CachedComponent* component,
