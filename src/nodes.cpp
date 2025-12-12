@@ -1555,10 +1555,10 @@ void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale,
         active_btn_rect.Max *= scale;
         active_btn_rect.Translate(offset);
 
-        ImColor btn_color = ImColor(1.0f, 1.0f, 1.0f, 1.0f);
-        draw_list->AddCircleFilled(active_btn_rect.GetCenter(), active_btn_rect.GetWidth() * 0.5f, btn_color);
+        ImColor btn_color = ImColor(0.9f, 0.9f, 0.9f, 1.0f);
+        draw_list->AddRectFilled(active_btn_rect.Min, active_btn_rect.Max, btn_color, 0.0f);
         
-        ImGui::SetWindowFontScale(scale * 0.6f);
+        ImGui::SetWindowFontScale(scale * 0.7f);
         ImVec2 text_size = ImGui::CalcTextSize(ICON_FA_POWER_OFF);
         ImGui::SetCursorScreenPos(active_btn_rect.GetCenter() - text_size * 0.5f);
         ImGui::TextColored(ImColor(0.2f, 0.2f, 0.2f, 1.0f), ICON_FA_POWER_OFF);
@@ -1628,11 +1628,11 @@ void ImGuiNodesNode::BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size)
     area_add_button_.Min = ImVec2(area_node_.Max.x - add_button_size * 0.3f, area_node_.Min.y + (title_height_ - add_button_size) * 0.5f);
     area_add_button_.Max = area_add_button_.Min + ImVec2(add_button_size, add_button_size);
 
-    area_active_button_.Min = ImVec2(area_node_.Min.x + add_button_size * 0.3f, area_node_.Min.y - add_button_size * 0.5f);
-    area_active_button_.Max = area_active_button_.Min + ImVec2(add_button_size, add_button_size);
-
-    area_trash_button_.Min = ImVec2(area_active_button_.Max.x + add_button_size * 0.3f, area_node_.Min.y - add_button_size * 0.5f);
+    area_trash_button_.Min = area_node_.Min - ImVec2(add_button_size * 0.5f, add_button_size * 0.5f);
     area_trash_button_.Max = area_trash_button_.Min + ImVec2(add_button_size, add_button_size);
+
+    area_active_button_.Min = ImVec2(area_trash_button_.Max.x + add_button_size * 0.2f, area_trash_button_.Min.y);
+    area_active_button_.Max = area_active_button_.Min + ImVec2(add_button_size, add_button_size);
 
     ImVec2 inputs = area_node_.GetTL();
     inputs.y += title_height_ + (ImGuiNodesVSeparation * area_name_.GetHeight() * 0.5f);
@@ -1744,11 +1744,11 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
         active_btn_rect.Min *= scale;
         active_btn_rect.Max *= scale;
         active_btn_rect.Translate(offset);
-
-        ImColor btn_color = ImColor(1.0f, 1.0f, 1.0f, 1.0f);
-        draw_list->AddCircleFilled(active_btn_rect.GetCenter(), active_btn_rect.GetWidth() * 0.5f, btn_color);
-        
-        ImGui::SetWindowFontScale(scale * 0.6f);
+        ImColor btn_color = (state == ImGuiNodesState_HoveringActiveButton)
+            ? ImColor(1.0f, 1.0f, 1.0f, 1.0f)
+            : ImColor(0.9f, 0.9f, 0.9f, 1.0f);
+        draw_list->AddRectFilled(active_btn_rect.Min, active_btn_rect.Max, btn_color, 0.0f);
+        ImGui::SetWindowFontScale(scale * 0.75f);
         ImVec2 text_size = ImGui::CalcTextSize(ICON_FA_POWER_OFF);
         ImGui::SetCursorScreenPos(active_btn_rect.GetCenter() - text_size * 0.5f);
         ImGui::TextColored(ImColor(0.2f, 0.2f, 0.2f, 1.0f), ICON_FA_POWER_OFF);
@@ -1758,33 +1758,28 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
         trash_btn_rect.Min *= scale;
         trash_btn_rect.Max *= scale;
         trash_btn_rect.Translate(offset);
-
-        draw_list->AddCircleFilled(trash_btn_rect.GetCenter(), trash_btn_rect.GetWidth() * 0.5f, btn_color);
-        
-        ImGui::SetWindowFontScale(scale * 0.6f);
+        btn_color = (state == ImGuiNodesState_HoveringTrashButton)
+            ? ImColor(1.0f, 1.0f, 1.0f, 1.0f)
+            : ImColor(0.9f, 0.9f, 0.9f, 1.0f);
+        draw_list->AddRectFilled(trash_btn_rect.Min, trash_btn_rect.Max, btn_color, 0.0f);
+        ImGui::SetWindowFontScale(scale * 0.75f);
         text_size = ImGui::CalcTextSize(ICON_FA_TRASH);
         ImGui::SetCursorScreenPos(trash_btn_rect.GetCenter() - text_size * 0.5f);
-        ImGui::TextColored(ImColor(1.0f, 0.0f, 0.0f, 1.0f), ICON_FA_TRASH);
+        ImGui::TextColored(ImColor(0.8f, 0.1f, 0.1f, 1.0f), ICON_FA_TRASH);
         ImGui::SetWindowFontScale(scale);
-    }
 
-    if (IS_SET(state_, ImGuiNodesNodeStateFlag_Hovered))
-    {
         ImRect add_button_rect = area_add_button_;
         add_button_rect.Min *= scale;
         add_button_rect.Max *= scale;
         add_button_rect.Translate(offset);
-        
-        ImVec2 button_center = add_button_rect.GetCenter();
-        ImGui::SetWindowFontScale(scale * 1.5f);
-        ImVec2 text_size = ImGui::CalcTextSize(ICON_FA_SQUARE_PLUS);
-        ImGui::SetCursorScreenPos(button_center - text_size * 0.5f);
-
-        ImColor icon_color = (state == ImGuiNodesState_HoveringAddButton)
+        btn_color = (state == ImGuiNodesState_HoveringAddButton)
             ? ImColor(1.0f, 1.0f, 1.0f, 1.0f)
-            : ImColor(0.8f, 0.8f, 0.8f, 1.0f);
-
-        ImGui::TextColored(icon_color, ICON_FA_SQUARE_PLUS);
+            : ImColor(0.9f, 0.9f, 0.9f, 1.0f);
+        draw_list->AddRectFilled(add_button_rect.Min, add_button_rect.Max, btn_color, 0.0f);
+        ImGui::SetWindowFontScale(scale * 1.2f);
+        text_size = ImGui::CalcTextSize(ICON_FA_PLUS);
+        ImGui::SetCursorScreenPos(add_button_rect.GetCenter() - text_size * 0.5f);
+        ImGui::TextColored(ImColor(0.2f, 0.2f, 0.2f, 1.0f), ICON_FA_PLUS);
         ImGui::SetWindowFontScale(scale);
     }
 }
