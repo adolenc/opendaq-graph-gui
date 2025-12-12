@@ -57,11 +57,10 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
             if (ImGui::BeginPopupContextItem())
             {
                 enum ExpandCollapseOption { None, Expand, Collapse } expand_or_collapse_triggered = ExpandCollapseOption::None;
-                if (ImGui::MenuItem("Expand children"))
-                    expand_or_collapse_triggered = ExpandCollapseOption::Expand;
                 if (ImGui::MenuItem("Collapse children"))
                     expand_or_collapse_triggered = ExpandCollapseOption::Collapse;
-
+                if (ImGui::MenuItem("Expand children"))
+                    expand_or_collapse_triggered = ExpandCollapseOption::Expand;
                 if (expand_or_collapse_triggered != ExpandCollapseOption::None)
                 {
                     for (const auto& child_id : component->children_)
@@ -73,6 +72,19 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
                         }
                     }
                 }
+
+                ImGui::Separator();
+
+                if (ImGui::MenuItem("Select all children"))
+                {
+                    SelectChildrenRecursive(component, all_components);
+                    if (on_selection_changed_callback_)
+                    {
+                        std::vector<std::string> selected(selected_component_guids_.begin(), selected_component_guids_.end());
+                        on_selection_changed_callback_(selected);
+                    }
+                }
+
                 ImGui::EndPopup();
             }
 
@@ -106,6 +118,18 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
                 on_node_double_clicked_callback_(component_guid);
         }
         CheckTreeNodeClicked(component_guid);
+    }
+}
+
+void TreeViewWindow::SelectChildrenRecursive(const CachedComponent* component, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
+{
+    for (const auto& child_id : component->children_)
+    {
+        if (auto it = all_components.find(child_id.id_); it != all_components.end())
+        {
+            selected_component_guids_.insert(child_id.id_);
+            SelectChildrenRecursive(it->second.get(), all_components);
+        }
     }
 }
 

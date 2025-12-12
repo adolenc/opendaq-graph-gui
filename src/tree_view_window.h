@@ -20,6 +20,7 @@ private:
     void RenderTreeNode(const CachedComponent* component,
                         const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components,
                         const CachedComponent* parent = nullptr);
+    void SelectChildrenRecursive(const CachedComponent* component, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components);
     void CheckTreeNodeClicked(const std::string& component_guid);
 
     std::unordered_set<std::string> selected_component_guids_;
