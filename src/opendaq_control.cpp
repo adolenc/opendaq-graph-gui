@@ -73,7 +73,7 @@ void OpenDAQNodeEditor::UpdateSignalsActiveState(CachedComponent* cached)
     }
 }
 
-void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::string parent_id)
+void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::string parent_id, daq::ComponentPtr owner)
 {
     if (component == nullptr)
         return;
@@ -96,6 +96,7 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
         all_components_[component_id] = std::make_unique<CachedComponent>(component);
         cached = all_components_[component_id].get();
     }
+    cached->owner_ = owner;
     cached->RefreshStructure();
     cached->children_.clear();
 
@@ -108,6 +109,7 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
             auto input_cached = std::make_unique<CachedComponent>(input_port);
             input_ports_[input_id] = input_cached.get();
             input_cached->parent_ = component;
+            input_cached->owner_ = component;
             all_components_[input_id] = std::move(input_cached);
         }
 
@@ -117,6 +119,7 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
             auto signal_cached = std::make_unique<CachedComponent>(signal);
             signals_[signal_id] = signal_cached.get();
             signal_cached->parent_ = component;
+            signal_cached->owner_ = component;
             all_components_[signal_id] = std::move(signal_cached);
         }
     }
@@ -129,6 +132,7 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
             auto signal_cached = std::make_unique<CachedComponent>(signal);
             signals_[signal_id] = signal_cached.get();
             signal_cached->parent_ = component;
+            signal_cached->owner_ = component;
             all_components_[signal_id] = std::move(signal_cached);
         }
     }
@@ -174,10 +178,14 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
 
     if (canCastTo<daq::IFolder>(component))
     {
+        daq::ComponentPtr new_owner = owner;
+        if (canCastTo<daq::IInstance>(component) || canCastTo<daq::IDevice>(component) || canCastTo<daq::IFunctionBlock>(component))
+            new_owner = component;
+
         daq::FolderPtr folder = castTo<daq::IFolder>(component);
         for (const auto& item : folder.getItems())
         {
-            RetrieveTopology(item, new_parent_id);
+            RetrieveTopology(item, new_parent_id, new_owner);
             std::string item_id = item.getGlobalId().toStdString();
             if (all_components_.find(item_id) != all_components_.end())
                 cached->children_.push_back({item.getName().toStdString(), item_id});
@@ -451,6 +459,7 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
 
                     auto fb_cached = std::make_unique<CachedComponent>(fb);
                     fb_cached->parent_ = parent_component;
+                    fb_cached->owner_ = parent_component;
                     fb_cached->color_index_ = parent_id.empty() ? 0 : folders_[parent_id]->color_index_;
                     fb_cached->RefreshStructure();
                     
@@ -459,6 +468,7 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
                         std::string input_id = input_port.getGlobalId().toStdString();
                         auto input_cached = std::make_unique<CachedComponent>(input_port);
                         input_cached->parent_ = fb;
+                        input_cached->owner_ = fb;
                         input_ports_[input_id] = input_cached.get();
                         all_components_[input_id] = std::move(input_cached);
                     }
@@ -468,6 +478,7 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
                         std::string signal_id = signal.getGlobalId().toStdString();
                         auto signal_cached = std::make_unique<CachedComponent>(signal);
                         signal_cached->parent_ = fb;
+                        signal_cached->owner_ = fb;
                         signals_[signal_id] = signal_cached.get();
                         all_components_[signal_id] = std::move(signal_cached);
                     }
@@ -530,6 +541,7 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
 
             auto dev_cached = std::make_unique<CachedComponent>(dev);
             dev_cached->parent_ = parent_component;
+            dev_cached->owner_ = parent_component;
             dev_cached->color_index_ = next_color_index_++;
             dev_cached->RefreshStructure();
             
@@ -736,6 +748,39 @@ void OpenDAQNodeEditor::OnNodeActiveToggle(const ImGui::ImGuiNodesUid& uid)
 
 void OpenDAQNodeEditor::OnNodeTrashClick(const ImGui::ImGuiNodesUid& uid)
 {
+    if (auto it = all_components_.find(uid); it != all_components_.end())
+    {
+        CachedComponent* cached = it->second.get();
+        daq::ComponentPtr component = cached->component_;
+        daq::ComponentPtr owner = cached->owner_;
+
+        if (!component.assigned() || !owner.assigned())
+            return;
+
+        try
+        {
+            if (canCastTo<daq::IDevice>(component))
+            {
+                if (canCastTo<daq::IDevice>(owner))
+                    castTo<daq::IDevice>(owner)->removeDevice(castTo<daq::IDevice>(component));
+            }
+            else if (canCastTo<daq::IFunctionBlock>(component))
+            {
+                if (canCastTo<daq::IDevice>(owner))
+                    castTo<daq::IDevice>(owner)->removeFunctionBlock(castTo<daq::IFunctionBlock>(component));
+                else if (canCastTo<daq::IFunctionBlock>(owner))
+                    castTo<daq::IFunctionBlock>(owner)->removeFunctionBlock(castTo<daq::IFunctionBlock>(component));
+            }
+            else
+            {
+                // unsupported component type for removal
+            }
+        }
+        catch (const std::exception& e)
+        {
+            // failed to remove component
+        }
+    }
 }
 
 void OpenDAQNodeEditor::OnSignalActiveToggle(const ImGui::ImGuiNodesUid& uid)

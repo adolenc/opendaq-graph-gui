@@ -19,7 +19,8 @@ struct CachedComponent
     void AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr property_holder, int depth = 0, const std::string& parent_uid = "");
 
     daq::ComponentPtr component_;
-    daq::ComponentPtr parent_;
+    daq::ComponentPtr parent_; // the parent component in the hierarchy (although some folders are skipped)
+    daq::ComponentPtr owner_; // the component that can delete this one
 
     std::string name_;
     std::string warning_message_;

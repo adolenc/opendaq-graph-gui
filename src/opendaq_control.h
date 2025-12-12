@@ -16,7 +16,7 @@ class OpenDAQNodeEditor : public ImGui::ImGuiNodesInteractionHandler
 public:
     OpenDAQNodeEditor();
     void Init();
-    void RetrieveTopology(daq::ComponentPtr component, std::string parent_id = "");
+    void RetrieveTopology(daq::ComponentPtr component, std::string parent_id = "", daq::ComponentPtr owner = nullptr);
     void OnConnectionCreated(const ImGui::ImGuiNodesUid& output_id, const ImGui::ImGuiNodesUid& input_id) override;
     void OnConnectionRemoved(const ImGui::ImGuiNodesUid& input_id) override;
     void OnOutputHover(const ImGui::ImGuiNodesUid& id) override;
