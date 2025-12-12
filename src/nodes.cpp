@@ -1363,6 +1363,16 @@ void ImGuiNodes::ProcessNodes()
         }
     }
 
+    if (!OtherImGuiWindowIsBlockingInteraction())
+    {
+        if (state_ == ImGuiNodesState_HoveringActiveButton)
+            ImGui::SetTooltip("Toggle node active state");
+        else if (state_ == ImGuiNodesState_HoveringTrashButton)
+            ImGui::SetTooltip("Delete node");
+        else if (state_ == ImGuiNodesState_HoveringAddButton)
+            ImGui::SetTooltip("Add nested node");
+    }
+
     if (active_dragging_connection_.x != active_dragging_connection_.z && active_dragging_connection_.y != active_dragging_connection_.w)
     {
         if (state_ == ImGuiNodesState_DraggingParentConnection)
