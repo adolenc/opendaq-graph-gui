@@ -52,6 +52,9 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
                 pending_expansion_states_.erase(it);
             }
 
+            if (ImGui::IsPopupOpen(component_guid.c_str()))
+                flags |= ImGuiTreeNodeFlags_Selected;
+
             bool node_open = ImGui::TreeNodeEx(component_guid.c_str(), flags, "%s", name.c_str());
 
             if (ImGui::BeginPopupContextItem())
