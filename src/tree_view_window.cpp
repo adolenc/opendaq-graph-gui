@@ -34,7 +34,7 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
         if (name == "Sig" || name == "IP")
             return;
 
-        flags |= ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_DefaultOpen;
+        flags |= ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
         if (parent && name == "FB" && canCastTo<daq::IFunctionBlock>(parent->component_))
         {
             // skip the nested "FB" folder for function blocks
