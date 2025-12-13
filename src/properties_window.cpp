@@ -284,7 +284,7 @@ void PropertiesWindow::Render()
                 int uid = 0;
                 for (auto& cached_component : selected_cached_components_)
                 {
-                    if (ImGui::BeginTabItem((cached_component->name_ + "##" + std::to_string(uid++)).c_str()))
+                    if (ImGui::BeginTabItem((cached_component->name_ + "###" + std::to_string(uid++)).c_str()))
                     {
                         RenderCachedComponent(*cached_component);
                         ImGui::EndTabItem();
