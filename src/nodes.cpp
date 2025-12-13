@@ -1251,7 +1251,7 @@ void ImGuiNodes::ProcessNodes()
 
     ImGui::SetWindowFontScale(scale_);
 
-    if (HAS_ANY_FLAG(state_, ImGuiNodesState_HoveringNode | ImGuiNodesState_HoveringInput | ImGuiNodesState_HoveringOutput | ImGuiNodesState_HoveringAddButton))
+    if (HAS_ANY_FLAG(state_, ImGuiNodesState_HoveringNode | ImGuiNodesState_HoveringInput | ImGuiNodesState_HoveringOutput | ImGuiNodesState_HoveringAddButton | ImGuiNodesState_HoveringActiveButton | ImGuiNodesState_HoveringTrashButton | ImGuiNodesState_HoveringOutputActiveButton | ImGuiNodesState_Dragging | ImGuiNodesState_DraggingInput | ImGuiNodesState_DraggingOutput | ImGuiNodesState_DraggingParentConnection))
     {
         for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
         {
