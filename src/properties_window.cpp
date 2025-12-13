@@ -12,10 +12,12 @@ PropertiesWindow::PropertiesWindow(const PropertiesWindow& other)
     selected_component_ids_ = other.selected_component_ids_;
     freeze_selection_ = true;
     show_parents_ = other.show_parents_;
+    show_children_ = other.show_children_;
     tabbed_interface_ = other.tabbed_interface_;
     show_debug_properties_ = other.show_debug_properties_;
     is_cloned_ = true;
     on_reselect_click_ = other.on_reselect_click_;
+    all_components_ = other.all_components_;
 }
 
 void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
@@ -112,14 +114,17 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
     ImGui::PopID();
 }
 
-void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component)
+void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component, bool draw_header, bool render_children)
 {
-    ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(5.0f, 5.0f));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-    ImGui::SeparatorText(("[" + cached_component.name_ + "]").c_str());
-    ImGui::PopStyleColor();
-    ImGui::PopStyleVar(2);
+    if (draw_header)
+    {
+        ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(5.0f, 5.0f));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+        ImGui::SeparatorText(("[" + cached_component.name_ + "]").c_str());
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar(2);
+    }
 
     if (!cached_component.error_message_.empty())
     {
@@ -169,6 +174,79 @@ void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component)
     
     if (cached_component.needs_refresh_)
         cached_component.RefreshProperties();
+
+    if (show_children_ && render_children)
+        RenderChildren(cached_component);
+}
+
+void PropertiesWindow::RenderChildren(CachedComponent& cached_component)
+{
+    if (!all_components_ || cached_component.children_.empty())
+        return;
+
+    ImGui::Indent();
+    for (const auto& child_id_struct : cached_component.children_)
+    {
+        std::string child_id = child_id_struct.id_;
+        auto it = all_components_->find(child_id);
+        if (it != all_components_->end())
+        {
+            CachedComponent* child = it->second.get();
+            
+            if (child->name_.empty())
+                child->RefreshProperties();
+
+            ImGui::PushID(child_id.c_str());
+            if (ImGui::CollapsingHeader(child->name_.c_str()))
+            {
+                RenderCachedComponent(*child, false);
+            }
+            ImGui::PopID();
+        }
+    }
+    ImGui::Unindent();
+}
+
+void PropertiesWindow::RenderComponentWithParents(CachedComponent& cached_component)
+{
+    if (!show_parents_ || !all_components_)
+    {
+        RenderCachedComponent(cached_component);
+        return;
+    }
+
+    std::vector<CachedComponent*> hierarchy;
+    daq::ComponentPtr current_parent_ptr = cached_component.parent_;
+    
+    while (current_parent_ptr.assigned())
+    {
+        std::string id = current_parent_ptr.getGlobalId().toStdString();
+        auto it = all_components_->find(id);
+        if (it != all_components_->end())
+        {
+            hierarchy.push_back(it->second.get());
+            current_parent_ptr = it->second->parent_;
+        }
+        else
+        {
+            break;
+        }
+    }
+    
+    for (auto it = hierarchy.rbegin(); it != hierarchy.rend(); ++it)
+    {
+        if ((*it)->name_.empty())
+            (*it)->RefreshProperties();
+
+        ImGui::PushID((*it)->component_.getGlobalId().toStdString().c_str());
+        if (ImGui::CollapsingHeader((*it)->name_.c_str()))
+        {
+             RenderCachedComponent(**it, false, false);
+        }
+        ImGui::PopID();
+    }
+    
+    RenderCachedComponent(cached_component);
 }
 
 void PropertiesWindow::OnSelectionChanged(const std::vector<std::string>& selected_ids, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
@@ -182,6 +260,7 @@ void PropertiesWindow::OnSelectionChanged(const std::vector<std::string>& select
 
 void PropertiesWindow::RestoreSelection(const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
 {
+    all_components_ = &all_components;
     selected_cached_components_.clear();
     for (const auto& id : selected_component_ids_)
     {
@@ -257,6 +336,13 @@ void PropertiesWindow::Render()
 
         ImGui::SameLine();
 
+        if (ImGui::Button(show_children_ ? ICON_FA_SITEMAP " " ICON_FA_TOGGLE_ON : ICON_FA_SITEMAP " " ICON_FA_TOGGLE_OFF))
+            show_children_ = !show_children_;
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip(show_children_ ? "Hide children" : "Show children");
+
+        ImGui::SameLine();
+
         if (ImGui::Button(show_debug_properties_ ? ICON_FA_BUG " " ICON_FA_TOGGLE_ON : ICON_FA_BUG " " ICON_FA_TOGGLE_OFF))
             show_debug_properties_ = !show_debug_properties_;
         if (ImGui::IsItemHovered())
@@ -275,7 +361,7 @@ void PropertiesWindow::Render()
         }
         else if (selected_cached_components_.size() == 1)
         {
-            RenderCachedComponent(*selected_cached_components_[0]);
+            RenderComponentWithParents(*selected_cached_components_[0]);
         }
         else if (tabbed_interface_)
         {
@@ -286,7 +372,7 @@ void PropertiesWindow::Render()
                 {
                     if (ImGui::BeginTabItem((cached_component->name_ + "###" + std::to_string(uid++)).c_str()))
                     {
-                        RenderCachedComponent(*cached_component);
+                        RenderComponentWithParents(*cached_component);
                         ImGui::EndTabItem();
                     }
                 }
@@ -300,7 +386,7 @@ void PropertiesWindow::Render()
             {
                 ImGui::BeginChild((cached_component->name_ + "##" + std::to_string(uid++)).c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
 
-                RenderCachedComponent(*cached_component);
+                RenderComponentWithParents(*cached_component);
 
                 ImGui::EndChild();
                 ImGui::SameLine();

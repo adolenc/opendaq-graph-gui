@@ -23,12 +23,16 @@ public:
 
 private:
     void RenderCachedProperty(CachedProperty& cached_prop);
-    void RenderCachedComponent(CachedComponent& cached_component);
+    void RenderCachedComponent(CachedComponent& cached_component, bool draw_header = true, bool render_children = true);
+    void RenderComponentWithParents(CachedComponent& cached_component);
+    void RenderChildren(CachedComponent& cached_component);
     
     std::vector<CachedComponent*> selected_cached_components_;
     std::vector<std::string> selected_component_ids_;
+    const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>* all_components_ = nullptr;
     bool freeze_selection_ = false;
-    bool show_parents_ = false;
+    bool show_parents_ = true;
+    bool show_children_ = true;
     bool tabbed_interface_ = true;
     bool show_debug_properties_ = false;
     bool is_cloned_ = false;
