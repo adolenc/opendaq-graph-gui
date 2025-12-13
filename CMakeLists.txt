@@ -42,6 +42,14 @@ set(OPENDAQ_GENERATE_CSHARP_BINDINGS OFF CACHE BOOL "")
 set(BOOST_LOCALE_ENABLE_ICU OFF CACHE BOOL "")
 FetchContent_MakeAvailable(openDAQ)
 
+# IconFontCppHeaders - fontawesome icons
+FetchContent_Declare(
+  IconFontCppHeaders
+  GIT_REPOSITORY https://github.com/juliettef/IconFontCppHeaders.git
+  GIT_TAG main
+)
+FetchContent_MakeAvailable(IconFontCppHeaders)
+
 # imgui
 FetchContent_Declare(
   imgui
@@ -101,7 +109,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(imgui_notify)
 add_library(imgui_notify INTERFACE)
 if (WIN32)
-  target_include_directories(imgui_notify INTERFACE ${imgui_notify_SOURCE_DIR}/windowsExample/backends)
+  target_include_directories(imgui_notify INTERFACE ${imgui_notify_SOURCE_DIR}/win32Example/backends)
 else()
   target_include_directories(imgui_notify INTERFACE ${imgui_notify_SOURCE_DIR}/unixExample/backends)
 endif()
@@ -121,7 +129,7 @@ target_link_libraries(imgui PUBLIC SDL2::SDL2 SDL2::SDL2main OpenGL::GL)
 
 
 add_executable(${PROJECT_NAME} src/main.cpp src/nodes.cpp src/opendaq_control.cpp src/properties_window.cpp src/component_cache.cpp src/signals_window.cpp src/signal.cpp src/tree_view_window.cpp)
-target_include_directories(${PROJECT_NAME} PUBLIC ${openDAQ_INCLUDE_DIRS} src)
+target_include_directories(${PROJECT_NAME} PUBLIC ${openDAQ_INCLUDE_DIRS} src ${iconfontcppheaders_SOURCE_DIR})
 target_link_libraries(${PROJECT_NAME} PUBLIC daq::opendaq imgui implot imsearch imgui_notify)
 
 add_custom_command(

@@ -1,5 +1,6 @@
 #include "signals_window.h"
 #include "utils.h"
+#include "IconsFontAwesome6.h"
 #include "imgui.h"
 #include "implot.h"
 #include <unordered_set>

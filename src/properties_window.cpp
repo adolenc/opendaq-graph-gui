@@ -1,5 +1,6 @@
 #include "properties_window.h"
 #include "utils.h"
+#include "IconsFontAwesome6.h"
 #include <string>
 #include "imgui.h"
 #include "imgui_stdlib.h"
