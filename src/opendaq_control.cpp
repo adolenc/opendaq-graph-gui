@@ -1,5 +1,6 @@
 #include "opendaq_control.h"
 #include "utils.h"
+#include "ImGuiNotify.hpp"
 #include "imgui_stdlib.h"
 #include "implot.h"
 #include "imsearch.h"
@@ -420,8 +421,14 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
                 cached_available_fbs_ = nullptr;
             }
         }
+        catch (const std::exception& e)
+        {
+            ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to get available function blocks: %s", e.what()});
+            cached_available_fbs_ = nullptr;
+        }
         catch (...)
         {
+            ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to get available function blocks: Unknown error"});
             cached_available_fbs_ = nullptr;
         }
         fb_options_cache_valid_ = true;
@@ -502,9 +509,13 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
                     all_components_[fb_id_str] = std::move(fb_cached);
                 }
             }
+            catch (const std::exception& e)
+            {
+                ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to add function block: %s", e.what()});
+            }
             catch (...)
             {
-                // failed to add function block
+                ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to add function block: Unknown error"});
             }
         }
 
@@ -531,8 +542,14 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
         {
             available_devices_ = parent_device.getAvailableDevices();
         }
+        catch (const std::exception& e)
+        {
+            ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to discover devices: %s", e.what()});
+            available_devices_ = nullptr;
+        }
         catch (...)
         {
+            ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to discover devices: Unknown error"});
             available_devices_ = nullptr;
         }
     }
@@ -781,7 +798,7 @@ void OpenDAQNodeEditor::OnNodeTrashClick(const ImGui::ImGuiNodesUid& uid)
         }
         catch (const std::exception& e)
         {
-            // failed to remove component
+            ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to remove component: %s", e.what()});
         }
     }
 }

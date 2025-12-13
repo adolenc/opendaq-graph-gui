@@ -2,6 +2,8 @@
 #include <opendaq/opendaq.h>
 #include <string>
 
+const int DEFAULT_NOTIFICATION_DURATION_MS = 5000;
+
 // fontawesome icons, sourced from IconsFontAwesome6.h
 #define ICON_FA_LOCK "\xef\x80\xa3"	// U+f023
 #define ICON_FA_LOCK_OPEN "\xef\x8f\x81"	// U+f3c1

@@ -91,6 +91,22 @@ add_library(imsearch STATIC
 )
 target_include_directories(imsearch PUBLIC ${imsearch_SOURCE_DIR} ${imgui_SOURCE_DIR})
 
+# imgui-notify
+FetchContent_Declare(
+  imgui_notify
+  GIT_REPOSITORY https://github.com/TyomaVader/ImGuiNotify.git
+  GIT_TAG Dev
+  PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/imgui_notify_top_center.patch || echo "Patch already applied"
+)
+FetchContent_MakeAvailable(imgui_notify)
+add_library(imgui_notify INTERFACE)
+if (WIN32)
+  target_include_directories(imgui_notify INTERFACE ${imgui_notify_SOURCE_DIR}/windowsExample/backends)
+else()
+  target_include_directories(imgui_notify INTERFACE ${imgui_notify_SOURCE_DIR}/unixExample/backends)
+endif()
+target_compile_definitions(imgui_notify INTERFACE NOTIFY_RENDER_OUTSIDE_MAIN_WINDOW=0)
+
 # sdl2
 FetchContent_Declare(
   SDL2
@@ -106,7 +122,7 @@ target_link_libraries(imgui PUBLIC SDL2::SDL2 SDL2::SDL2main OpenGL::GL)
 
 add_executable(${PROJECT_NAME} src/main.cpp src/nodes.cpp src/opendaq_control.cpp src/properties_window.cpp src/component_cache.cpp src/signals_window.cpp src/signal.cpp src/tree_view_window.cpp)
 target_include_directories(${PROJECT_NAME} PUBLIC ${openDAQ_INCLUDE_DIRS} src)
-target_link_libraries(${PROJECT_NAME} PUBLIC daq::opendaq imgui implot imsearch)
+target_link_libraries(${PROJECT_NAME} PUBLIC daq::opendaq imgui implot imsearch imgui_notify)
 
 add_custom_command(
   TARGET ${PROJECT_NAME} POST_BUILD

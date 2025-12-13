@@ -1,0 +1,32 @@
+diff --git a/unixExample/backends/ImGuiNotify.hpp b/unixExample/backends/ImGuiNotify.hpp
+index bfc302d..9c57a5c 100755
+--- a/unixExample/backends/ImGuiNotify.hpp
++++ b/unixExample/backends/ImGuiNotify.hpp
+@@ -550,9 +550,9 @@ namespace ImGui
+                 // Set notification window position to bottom right corner of the monitor
+                 SetNextWindowPos(ImVec2(monitor.WorkPos.x + monitor.WorkSize.x - NOTIFY_PADDING_X, monitor.WorkPos.y + monitor.WorkSize.y - NOTIFY_PADDING_Y - height), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
+             #else
+-                // Set notification window position to bottom right corner of the main window, considering the main window size and location in relation to the display
++                // Set notification window position to top center of the main window
+                 ImVec2 mainWindowPos = GetMainViewport()->Pos;
+-                SetNextWindowPos(ImVec2(mainWindowPos.x + mainWindowSize.x - NOTIFY_PADDING_X, mainWindowPos.y + mainWindowSize.y - NOTIFY_PADDING_Y - height), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
++                SetNextWindowPos(ImVec2(mainWindowPos.x + mainWindowSize.x * 0.5f, mainWindowPos.y + NOTIFY_PADDING_Y + height), ImGuiCond_Always, ImVec2(0.5f, 0.0f));
+             #endif
+ 
+             // Set notification window flags
+diff --git a/win32Example/backends/ImGuiNotify.hpp b/win32Example/backends/ImGuiNotify.hpp
+index bfc302d..9c57a5c 100755
+--- a/win32Example/backends/ImGuiNotify.hpp
++++ b/win32Example/backends/ImGuiNotify.hpp
+@@ -550,9 +550,9 @@ namespace ImGui
+                 // Set notification window position to bottom right corner of the monitor
+                 SetNextWindowPos(ImVec2(monitor.WorkPos.x + monitor.WorkSize.x - NOTIFY_PADDING_X, monitor.WorkPos.y + monitor.WorkSize.y - NOTIFY_PADDING_Y - height), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
+             #else
+-                // Set notification window position to bottom right corner of the main window, considering the main window size and location in relation to the display
++                // Set notification window position to top center of the main window
+                 ImVec2 mainWindowPos = GetMainViewport()->Pos;
+-                SetNextWindowPos(ImVec2(mainWindowPos.x + mainWindowSize.x - NOTIFY_PADDING_X, mainWindowPos.y + mainWindowSize.y - NOTIFY_PADDING_Y - height), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
++                SetNextWindowPos(ImVec2(mainWindowPos.x + mainWindowSize.x * 0.5f, mainWindowPos.y + NOTIFY_PADDING_Y + height), ImGuiCond_Always, ImVec2(0.5f, 0.0f));
+             #endif
+ 
+             // Set notification window flags

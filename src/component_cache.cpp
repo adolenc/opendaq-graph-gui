@@ -1,5 +1,6 @@
 #include "component_cache.h"
 #include "utils.h"
+#include "ImGuiNotify.hpp"
 
 
 CachedComponent::CachedComponent(daq::ComponentPtr component)
@@ -1084,7 +1085,12 @@ void CachedProperty::SetValue(ValueType value)
 
         owner_->needs_refresh_ = true;
     }
+    catch (const std::exception& e)
+    {
+        ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to set property value: %s", e.what()});
+    }
     catch (...)
     {
+        ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to set property value: Unknown error"});
     }
 }

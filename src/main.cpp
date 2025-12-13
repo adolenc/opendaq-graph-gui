@@ -3,6 +3,7 @@
 #include "imgui_internal.h"
 #include "implot.h"
 #include "imsearch.h"
+#include "ImGuiNotify.hpp"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
 #include "opendaq_control.h"
@@ -205,6 +206,13 @@ int main(int argc, char** argv)
             opendaq_editor.RenderNestedNodePopup();
         }
         ImGui::End();
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.10f, 0.10f, 0.10f, 1.00f));
+        ImGui::RenderNotifications();
+        ImGui::PopStyleVar(2);
+        ImGui::PopStyleColor(1);
 
         ImGui::Render();
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
