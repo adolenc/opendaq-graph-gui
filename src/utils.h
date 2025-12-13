@@ -2,7 +2,7 @@
 #include <opendaq/opendaq.h>
 #include <string>
 
-const int DEFAULT_NOTIFICATION_DURATION_MS = 5000;
+const int DEFAULT_NOTIFICATION_DURATION_MS = 10'000;
 
 // utility functions for working with OpenDAQ objects
 template <class Interface>

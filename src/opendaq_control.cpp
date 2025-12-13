@@ -876,9 +876,15 @@ void OpenDAQNodeEditor::Render()
                     CachedComponent* cached = folders_[component_id];
                     cached->RefreshStatus();
                     if (!cached->error_message_.empty())
+                    {
                         nodes_->SetError(component_id, cached->error_message_);
+                        ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "'%s' error: %s", comp.getName().toStdString().c_str(), cached->error_message_.c_str()});
+                    }
                     else if (!cached->warning_message_.empty())
+                    {
                         nodes_->SetWarning(component_id, cached->warning_message_);
+                        ImGui::InsertNotification({ImGuiToastType::Warning, DEFAULT_NOTIFICATION_DURATION_MS, "'%s' warning: %s", comp.getName().toStdString().c_str(), cached->warning_message_.c_str()});
+                    }
                     else
                         nodes_->SetOk(component_id);
 
