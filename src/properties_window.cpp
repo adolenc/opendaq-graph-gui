@@ -12,14 +12,14 @@ PropertiesWindow::PropertiesWindow(const PropertiesWindow& other)
     freeze_selection_ = true;
     show_parents_ = other.show_parents_;
     tabbed_interface_ = other.tabbed_interface_;
-    show_detail_properties_ = other.show_detail_properties_;
+    show_debug_properties_ = other.show_debug_properties_;
     is_cloned_ = true;
     on_reselect_click_ = other.on_reselect_click_;
 }
 
 void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
 {
-    if (!(show_detail_properties_ || !cached_prop.is_detail_))
+    if (!show_debug_properties_ && cached_prop.is_debug_property_)
         return;
 
     ImGui::PushID(cached_prop.uid_.c_str());
@@ -256,10 +256,10 @@ void PropertiesWindow::Render()
 
         ImGui::SameLine();
 
-        if (ImGui::Button(show_detail_properties_ ? ICON_FA_BUG " " ICON_FA_TOGGLE_ON : ICON_FA_BUG " " ICON_FA_TOGGLE_OFF))
-            show_detail_properties_ = !show_detail_properties_;
+        if (ImGui::Button(show_debug_properties_ ? ICON_FA_BUG " " ICON_FA_TOGGLE_ON : ICON_FA_BUG " " ICON_FA_TOGGLE_OFF))
+            show_debug_properties_ = !show_debug_properties_;
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip(show_detail_properties_ ? "Hide debug properties" : "Show debug properties");
+            ImGui::SetTooltip(show_debug_properties_ ? "Hide debug properties" : "Show debug properties");
 
         ImGui::SameLine();
 

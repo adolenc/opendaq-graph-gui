@@ -55,7 +55,7 @@ struct CachedProperty
     std::string display_name_;
     int depth_{0};
     bool is_read_only_{false};
-    bool is_detail_{false};
+    bool is_debug_property_{false};
     ValueType value_;
     std::optional<double> min_value_;
     std::optional<double> max_value_;

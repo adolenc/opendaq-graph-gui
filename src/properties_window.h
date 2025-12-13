@@ -30,6 +30,6 @@ private:
     bool freeze_selection_ = false;
     bool show_parents_ = false;
     bool tabbed_interface_ = true;
-    bool show_detail_properties_ = false;
+    bool show_debug_properties_ = false;
     bool is_cloned_ = false;
 };

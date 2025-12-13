@@ -209,7 +209,7 @@ void CachedComponent::RefreshProperties()
             }
             cached.selection_values_ = modes_str.str();
             cached.selection_values_count_ = available_modes.getCount();
-            cached.is_detail_ = false;
+            cached.is_debug_property_ = false;
             attributes_.push_back(cached);
         }
 
@@ -222,7 +222,7 @@ void CachedComponent::RefreshProperties()
             cached.is_read_only_ = false;
             cached.type_ = daq::ctBool;
             cached.value_ = (bool)device.isLocked();
-            cached.is_detail_ = false;
+            cached.is_debug_property_ = false;
             attributes_.push_back(cached);
         }
     }
@@ -236,7 +236,7 @@ void CachedComponent::RefreshProperties()
         cached.is_read_only_ = false;
         cached.type_ = daq::ctString;
         cached.value_ = component_.getName().toStdString();
-        cached.is_detail_ = false;
+        cached.is_debug_property_ = false;
         attributes_.push_back(cached);
     }
     {
@@ -248,7 +248,7 @@ void CachedComponent::RefreshProperties()
         cached.is_read_only_ = false;
         cached.type_ = daq::ctString;
         cached.value_ = component_.getDescription().toStdString();
-        cached.is_detail_ = false;
+        cached.is_debug_property_ = false;
         attributes_.push_back(cached);
     }
     {
@@ -260,7 +260,7 @@ void CachedComponent::RefreshProperties()
         cached.is_read_only_ = false;
         cached.type_ = daq::ctBool;
         cached.value_ = (bool)component_.getActive();
-        cached.is_detail_ = true;
+        cached.is_debug_property_ = true;
         attributes_.push_back(cached);
     }
     {
@@ -272,7 +272,7 @@ void CachedComponent::RefreshProperties()
         cached.is_read_only_ = false;
         cached.type_ = daq::ctBool;
         cached.value_ = (bool)component_.getVisible();
-        cached.is_detail_ = true;
+        cached.is_debug_property_ = true;
         attributes_.push_back(cached);
     }
     {
@@ -284,7 +284,7 @@ void CachedComponent::RefreshProperties()
         cached.is_read_only_ = true;
         cached.type_ = daq::ctString;
         cached.value_ = component_.getLocalId().toStdString();
-        cached.is_detail_ = true;
+        cached.is_debug_property_ = true;
         attributes_.push_back(cached);
     }
     {
@@ -296,7 +296,7 @@ void CachedComponent::RefreshProperties()
         cached.is_read_only_ = true;
         cached.type_ = daq::ctString;
         cached.value_ = component_.getGlobalId().toStdString();
-        cached.is_detail_ = true;
+        cached.is_debug_property_ = true;
         attributes_.push_back(cached);
     }
     {
@@ -318,7 +318,7 @@ void CachedComponent::RefreshProperties()
         }
         tags_value << "]";
         cached.value_ = tags_value.str();
-        cached.is_detail_ = true;
+        cached.is_debug_property_ = true;
         attributes_.push_back(cached);
     }
     {
@@ -348,7 +348,7 @@ void CachedComponent::RefreshProperties()
         }
         catch (...) {}
         cached.value_ = value;
-        cached.is_detail_ = true;
+        cached.is_debug_property_ = true;
         attributes_.push_back(cached);
     }
 
@@ -365,7 +365,7 @@ void CachedComponent::RefreshProperties()
             cached.is_read_only_ = false;
             cached.type_ = daq::ctBool;
             cached.value_ = (bool)signal.getPublic();
-            cached.is_detail_ = true;
+            cached.is_debug_property_ = true;
             attributes_.push_back(cached);
         }
         {
@@ -379,7 +379,7 @@ void CachedComponent::RefreshProperties()
             cached.value_ = signal.getDomainSignal().assigned()
                           ? signal.getDomainSignal().getGlobalId().toStdString()
                           : std::string("");
-            cached.is_detail_ = true;
+            cached.is_debug_property_ = true;
             attributes_.push_back(cached);
         }
         {
@@ -391,7 +391,7 @@ void CachedComponent::RefreshProperties()
             cached.is_read_only_ = true;
             cached.type_ = daq::ctBool;
             cached.value_ = (bool)signal.getStreamed();
-            cached.is_detail_ = true;
+            cached.is_debug_property_ = true;
             attributes_.push_back(cached);
         }
         {
@@ -441,7 +441,7 @@ void CachedComponent::RefreshProperties()
             {
                 cached.value_ = "<unavailable>";
             }
-            cached.is_detail_ = true;
+            cached.is_debug_property_ = true;
             attributes_.push_back(cached);
         }
         
@@ -961,7 +961,7 @@ void CachedComponent::RefreshProperties()
             cached.value_ = input_port.getSignal().assigned()
                           ? input_port.getSignal().getGlobalId().toStdString()
                           : std::string("");
-            cached.is_detail_ = true;
+            cached.is_debug_property_ = true;
             attributes_.push_back(cached);
         }
         {
@@ -973,7 +973,7 @@ void CachedComponent::RefreshProperties()
             cached.is_read_only_ = true;
             cached.type_ = daq::ctBool;
             cached.value_ = (bool)input_port.getRequiresSignal();
-            cached.is_detail_ = true;
+            cached.is_debug_property_ = true;
             attributes_.push_back(cached);
         }
         {
@@ -999,7 +999,7 @@ void CachedComponent::RefreshProperties()
             {
                 cached.value_ = "<unavailable>";
             }
-            cached.is_detail_ = true;
+            cached.is_debug_property_ = true;
             attributes_.push_back(cached);
         }
     }
