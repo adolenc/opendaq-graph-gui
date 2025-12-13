@@ -779,38 +779,57 @@ void OpenDAQNodeEditor::OnNodeActiveToggle(const ImGui::ImGuiNodesUid& uid)
 
 void OpenDAQNodeEditor::OnNodeTrashClick(const ImGui::ImGuiNodesUid& uid)
 {
-    if (auto it = all_components_.find(uid); it != all_components_.end())
+    auto it = all_components_.find(uid);
+    if (it == all_components_.end())
     {
-        CachedComponent* cached = it->second.get();
-        daq::ComponentPtr component = cached->component_;
-        daq::ComponentPtr owner = cached->owner_;
+        ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Cannot remove component: Unknown component"});
+        return;
+    }
 
-        if (!component.assigned() || !owner.assigned())
-            return;
+    CachedComponent* cached = it->second.get();
+    daq::ComponentPtr component = cached->component_;
+    daq::ComponentPtr owner = cached->owner_;
 
-        try
+    if (!component.assigned() || !owner.assigned())
+    {
+        ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Cannot remove component: Invalid component or owner"});
+        return;
+    }
+
+    try
+    {
+        if (canCastTo<daq::IDevice>(component))
         {
-            if (canCastTo<daq::IDevice>(component))
+            if (canCastTo<daq::IDevice>(owner))
             {
-                if (canCastTo<daq::IDevice>(owner))
-                    castTo<daq::IDevice>(owner)->removeDevice(castTo<daq::IDevice>(component));
-            }
-            else if (canCastTo<daq::IFunctionBlock>(component))
-            {
-                if (canCastTo<daq::IDevice>(owner))
-                    castTo<daq::IDevice>(owner)->removeFunctionBlock(castTo<daq::IFunctionBlock>(component));
-                else if (canCastTo<daq::IFunctionBlock>(owner))
-                    castTo<daq::IFunctionBlock>(owner)->removeFunctionBlock(castTo<daq::IFunctionBlock>(component));
-            }
-            else
-            {
-                // unsupported component type for removal
+                 daq::DevicePtr(castTo<daq::IDevice>(owner)).removeDevice(castTo<daq::IDevice>(component));
+                 return;
             }
         }
-        catch (const std::exception& e)
+
+        if (canCastTo<daq::IFunctionBlock>(component))
         {
-            ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to remove component: %s", e.what()});
+            if (canCastTo<daq::IDevice>(owner))
+            {
+                daq::DevicePtr(castTo<daq::IDevice>(owner)).removeFunctionBlock(castTo<daq::IFunctionBlock>(component));
+                return;
+            }
+            else if (canCastTo<daq::IFunctionBlock>(owner))
+            {
+                daq::FunctionBlockPtr(castTo<daq::IFunctionBlock>(owner)).removeFunctionBlock(castTo<daq::IFunctionBlock>(component));
+                return;
+            }
         }
+
+        ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Cannot remove component: Unsupported component type"});
+    }
+    catch (const daq::DaqException& e)
+    {
+        ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to remove component: %s", e.what()});
+    }
+    catch (...)
+    {
+        ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to remove component: Unknown error"});
     }
 }
 
