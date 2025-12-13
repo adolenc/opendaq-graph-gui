@@ -1,5 +1,6 @@
 #include "tree_view_window.h"
 #include "imgui.h"
+#include "imsearch.h"
 #include "utils.h"
 #include <string>
 
@@ -14,8 +15,13 @@ void TreeViewWindow::OnSelectionChanged(const std::vector<std::string>& selected
 void TreeViewWindow::Render(const CachedComponent* root, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
 {
     ImGui::Begin("Tree view", nullptr);
-    if (root)
-        RenderTreeNode(root, all_components);
+    if (ImSearch::BeginSearch())
+    {
+        ImSearch::SearchBar();
+        if (root)
+            RenderTreeNode(root, all_components);
+        ImSearch::EndSearch();
+    }
     assert(pending_expansion_states_.empty());
     ImGui::End();
 }
@@ -46,59 +52,64 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
         }
         else
         {
-            if (auto it = pending_expansion_states_.find(component_guid); it != pending_expansion_states_.end())
-            {
-                ImGui::SetNextItemOpen(it->second, ImGuiCond_Always);
-                pending_expansion_states_.erase(it);
-            }
-
-            if (ImGui::IsPopupOpen(component_guid.c_str()))
-                flags |= ImGuiTreeNodeFlags_Selected;
-
-            bool node_open = ImGui::TreeNodeEx(component_guid.c_str(), flags, "%s", name.c_str());
-
-            if (ImGui::BeginPopupContextItem())
-            {
-                enum ExpandCollapseOption { None, Expand, Collapse } expand_or_collapse_triggered = ExpandCollapseOption::None;
-                if (ImGui::MenuItem("Collapse children"))
-                    expand_or_collapse_triggered = ExpandCollapseOption::Collapse;
-                if (ImGui::MenuItem("Expand children"))
-                    expand_or_collapse_triggered = ExpandCollapseOption::Expand;
-                if (expand_or_collapse_triggered != ExpandCollapseOption::None)
+            bool node_open = ImSearch::PushSearchable(name.c_str(), [this, component_guid, flags, component, &all_components](const char* label) -> bool {
+                if (auto it = pending_expansion_states_.find(component_guid); it != pending_expansion_states_.end())
                 {
-                    for (const auto& child_id : component->children_)
+                    ImGui::SetNextItemOpen(it->second, ImGuiCond_Always);
+                    pending_expansion_states_.erase(it);
+                }
+
+                ImGuiTreeNodeFlags local_flags = flags;
+                if (ImGui::IsPopupOpen(component_guid.c_str()))
+                    local_flags |= ImGuiTreeNodeFlags_Selected;
+
+                bool open = ImGui::TreeNodeEx(component_guid.c_str(), local_flags, "%s", label);
+
+                if (ImGui::BeginPopupContextItem())
+                {
+                    enum ExpandCollapseOption { None, Expand, Collapse } expand_or_collapse_triggered = ExpandCollapseOption::None;
+                    if (ImGui::MenuItem("Collapse children"))
+                        expand_or_collapse_triggered = ExpandCollapseOption::Collapse;
+                    if (ImGui::MenuItem("Expand children"))
+                        expand_or_collapse_triggered = ExpandCollapseOption::Expand;
+                    if (expand_or_collapse_triggered != ExpandCollapseOption::None)
                     {
-                        if (auto it = all_components.find(child_id.id_); it != all_components.end())
+                        for (const auto& child_id : component->children_)
                         {
-                            if (!it->second->children_.empty())
-                                pending_expansion_states_[child_id.id_] = (expand_or_collapse_triggered == ExpandCollapseOption::Expand);
+                            if (auto it = all_components.find(child_id.id_); it != all_components.end())
+                            {
+                                if (!it->second->children_.empty())
+                                    pending_expansion_states_[child_id.id_] = (expand_or_collapse_triggered == ExpandCollapseOption::Expand);
+                            }
                         }
                     }
-                }
 
-                ImGui::Separator();
+                    ImGui::Separator();
 
-                if (ImGui::MenuItem("Select all children"))
-                {
-                    SelectChildrenRecursive(component, all_components);
-                    if (on_selection_changed_callback_)
+                    if (ImGui::MenuItem("Select all children"))
                     {
-                        std::vector<std::string> selected(selected_component_guids_.begin(), selected_component_guids_.end());
-                        on_selection_changed_callback_(selected);
+                        SelectChildrenRecursive(component, all_components);
+                        if (on_selection_changed_callback_)
+                        {
+                            std::vector<std::string> selected(selected_component_guids_.begin(), selected_component_guids_.end());
+                            on_selection_changed_callback_(selected);
+                        }
                     }
+
+                    ImGui::EndPopup();
                 }
 
-                ImGui::EndPopup();
-            }
+                if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+                {
+                    if (on_node_double_clicked_callback_)
+                        on_node_double_clicked_callback_(component_guid);
+                }
 
-            if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
-            {
-                if (on_node_double_clicked_callback_)
-                    on_node_double_clicked_callback_(component_guid);
-            }
+                if (!ImGui::IsItemToggledOpen())
+                    CheckTreeNodeClicked(component_guid);
 
-            if (!ImGui::IsItemToggledOpen())
-                CheckTreeNodeClicked(component_guid);
+                return open;
+            });
 
             if (node_open)
             {
@@ -107,20 +118,22 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
                     if (auto it = all_components.find(child_id.id_); it != all_components.end())
                         RenderTreeNode(it->second.get(), all_components, component);
                 }
-                ImGui::TreePop();
+                ImSearch::PopSearchable([](){ ImGui::TreePop(); });
             }
         }
     }
     else
     {
         flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-        ImGui::TreeNodeEx(component_guid.c_str(), flags, "%s", name.c_str());
-        if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
-        {
-            if (on_node_double_clicked_callback_)
-                on_node_double_clicked_callback_(component_guid);
-        }
-        CheckTreeNodeClicked(component_guid);
+        ImSearch::SearchableItem(name.c_str(), [this, component_guid, flags](const char* label) {
+            ImGui::TreeNodeEx(component_guid.c_str(), flags, "%s", label);
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+            {
+                if (on_node_double_clicked_callback_)
+                    on_node_double_clicked_callback_(component_guid);
+            }
+            CheckTreeNodeClicked(component_guid);
+        });
     }
 }
 
