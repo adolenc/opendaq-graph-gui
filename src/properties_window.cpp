@@ -11,8 +11,7 @@ PropertiesWindow::PropertiesWindow(const PropertiesWindow& other)
     selected_cached_components_ = other.selected_cached_components_;
     selected_component_ids_ = other.selected_component_ids_;
     freeze_selection_ = true;
-    show_parents_ = other.show_parents_;
-    show_children_ = other.show_children_;
+    show_parents_and_children_ = other.show_parents_and_children_;
     tabbed_interface_ = other.tabbed_interface_;
     show_debug_properties_ = other.show_debug_properties_;
     is_cloned_ = true;
@@ -175,7 +174,7 @@ void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component, 
     if (cached_component.needs_refresh_)
         cached_component.RefreshProperties();
 
-    if (show_children_ && render_children)
+    if (show_parents_and_children_ && render_children)
         RenderChildren(cached_component);
 }
 
@@ -209,7 +208,7 @@ void PropertiesWindow::RenderChildren(CachedComponent& cached_component)
 
 void PropertiesWindow::RenderComponentWithParents(CachedComponent& cached_component)
 {
-    if (!show_parents_ || !all_components_)
+    if (!show_parents_and_children_ || !all_components_)
     {
         RenderCachedComponent(cached_component);
         return;
@@ -329,17 +328,10 @@ void PropertiesWindow::Render()
             ImGui::SameLine();
         }
 
-        if (ImGui::Button(show_parents_ ? ICON_FA_FOLDER_TREE " " ICON_FA_TOGGLE_ON : ICON_FA_FOLDER_TREE " " ICON_FA_TOGGLE_OFF))
-            show_parents_ = !show_parents_;
+        if (ImGui::Button(show_parents_and_children_ ? ICON_FA_SITEMAP " " ICON_FA_TOGGLE_ON : ICON_FA_SITEMAP " " ICON_FA_TOGGLE_OFF))
+            show_parents_and_children_ = !show_parents_and_children_;
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip(show_parents_ ? "Hide parents" : "Show parents");
-
-        ImGui::SameLine();
-
-        if (ImGui::Button(show_children_ ? ICON_FA_SITEMAP " " ICON_FA_TOGGLE_ON : ICON_FA_SITEMAP " " ICON_FA_TOGGLE_OFF))
-            show_children_ = !show_children_;
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip(show_children_ ? "Hide children" : "Show children");
+            ImGui::SetTooltip(show_parents_and_children_ ? "Hide parents and children" : "Show parents and children");
 
         ImGui::SameLine();
 

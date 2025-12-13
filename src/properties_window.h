@@ -31,8 +31,7 @@ private:
     std::vector<std::string> selected_component_ids_;
     const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>* all_components_ = nullptr;
     bool freeze_selection_ = false;
-    bool show_parents_ = true;
-    bool show_children_ = true;
+    bool show_parents_and_children_ = false;
     bool tabbed_interface_ = true;
     bool show_debug_properties_ = false;
     bool is_cloned_ = false;
