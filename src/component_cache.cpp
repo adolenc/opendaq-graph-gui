@@ -212,6 +212,19 @@ void CachedComponent::RefreshProperties()
             cached.is_detail_ = false;
             attributes_.push_back(cached);
         }
+
+        {
+            CachedProperty cached;
+            cached.owner_ = this;
+            cached.name_ = "@Locked";
+            cached.uid_ = "@Locked";
+            cached.display_name_ = "Locked";
+            cached.is_read_only_ = false;
+            cached.type_ = daq::ctBool;
+            cached.value_ = (bool)device.isLocked();
+            cached.is_detail_ = false;
+            attributes_.push_back(cached);
+        }
     }
 
     {
@@ -1012,6 +1025,15 @@ void CachedProperty::SetValue(ValueType value)
                 assert(canCastTo<daq::IDevice>(component));
                 daq::DevicePtr device = castTo<daq::IDevice>(component);
                 device.setOperationMode(device.getAvailableOperationModes().getItemAt(std::get<int64_t>(value)));
+            }
+            else if (name_ == "@Locked")
+            {
+                assert(canCastTo<daq::IDevice>(component));
+                daq::DevicePtr device = castTo<daq::IDevice>(component);
+                if (std::get<bool>(value))
+                    device.lock();
+                else
+                    device.unlock();
             }
             else if (name_ == "@Name")
             {
