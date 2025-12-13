@@ -556,29 +556,40 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
 
     auto add_device = [&](const std::string& device_connection_string)
         {
-            const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
-            std::string dev_id = dev.getGlobalId().toStdString();
+            try
+            {
+                const daq::DevicePtr dev = parent_device.addDevice(device_connection_string);
+                std::string dev_id = dev.getGlobalId().toStdString();
 
-            auto dev_cached = std::make_unique<CachedComponent>(dev);
-            dev_cached->parent_ = parent_component;
-            dev_cached->owner_ = parent_component;
-            dev_cached->color_index_ = next_color_index_++;
-            dev_cached->RefreshStructure();
-            
-            nodes_->AddNode({dev.getName().toString(), dev_id}, 
-                            dev_cached->color_index_, 
-                            position,
-                            dev_cached->input_ports_,
-                            dev_cached->output_signals_,
-                            parent_id);
+                auto dev_cached = std::make_unique<CachedComponent>(dev);
+                dev_cached->parent_ = parent_component;
+                dev_cached->owner_ = parent_component;
+                dev_cached->color_index_ = next_color_index_++;
+                dev_cached->RefreshStructure();
 
-            if (!dev.getActive())
-                nodes_->SetActive(dev_id, false);
+                nodes_->AddNode({dev.getName().toString(), dev_id},
+                                dev_cached->color_index_,
+                                position,
+                                dev_cached->input_ports_,
+                                dev_cached->output_signals_,
+                                parent_id);
 
-            UpdateSignalsActiveState(dev_cached.get());
+                if (!dev.getActive())
+                    nodes_->SetActive(dev_id, false);
 
-            folders_[dev_id] = dev_cached.get();
-            all_components_[dev_id] = std::move(dev_cached);
+                UpdateSignalsActiveState(dev_cached.get());
+
+                folders_[dev_id] = dev_cached.get();
+                all_components_[dev_id] = std::move(dev_cached);
+            }
+            catch (const std::exception& e)
+            {
+                ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to add device: %s", e.what()});
+            }
+            catch (...)
+            {
+                ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to add device: Unknown error"});
+            }
         };
 
     if (available_devices_.assigned() && available_devices_.getCount() > 0)
