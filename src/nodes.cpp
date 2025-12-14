@@ -152,6 +152,7 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
 
     ImRect canvas(nodes_imgui_window_pos_, nodes_imgui_window_pos_ + nodes_imgui_window_size_);
 
+    // First limit the minimap size to 250px in the largest dimension
     float max_minimap_size = 250.0f;
     float aspect_ratio = (nodes_imgui_window_size_.x > 0.0f) ? (nodes_imgui_window_size_.y / nodes_imgui_window_size_.x) : 1.0f;
     ImVec2 minimap_size;
@@ -159,6 +160,9 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
         minimap_size = ImVec2(max_minimap_size / aspect_ratio, max_minimap_size);
     else
         minimap_size = ImVec2(max_minimap_size, max_minimap_size * aspect_ratio);
+    // After that limit minimap to 20% of canvas width or height, so smaller canvases have smaller minimaps
+    if (nodes_imgui_window_size_.x > 0.0f && nodes_imgui_window_size_.y > 0.0f)
+        minimap_size *= ImMin(1.0f, ImMin((nodes_imgui_window_size_.x * 0.2f) / minimap_size.x, (nodes_imgui_window_size_.y * 0.2f) / minimap_size.y));
     ImVec2 padding(20.0f, 20.0f);
     minimap_rect_.Max = nodes_imgui_window_pos_ + nodes_imgui_window_size_ - padding;
     minimap_rect_.Min = minimap_rect_.Max - minimap_size;
