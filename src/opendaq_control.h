@@ -38,8 +38,8 @@ public:
     void SetNodeActiveRecursively(const std::string& node_id);
     void UpdateSignalsActiveState(CachedComponent* cached);
 
-    void RenderFunctionBlockOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position);
-    void RenderDeviceOptions(daq::ComponentPtr parent_component, const std::string& parent_id, ImVec2 position);
+    void RenderFunctionBlockOptions(daq::ComponentPtr parent_component, const std::string& parent_id, std::optional<ImVec2> position);
+    void RenderDeviceOptions(daq::ComponentPtr parent_component, const std::string& parent_id, std::optional<ImVec2> position);
 
     daq::InstancePtr instance_;
     std::unordered_map<std::string, std::unique_ptr<CachedComponent>> all_components_;

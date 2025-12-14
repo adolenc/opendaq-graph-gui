@@ -435,16 +435,64 @@ void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, int color_index,
                          ImGuiNodesUid parent_uid)
 {
     ImVec2 pos(0.0f, 0.0f);
-    if (!batch_add_mode_)
+
+    if (auto it = node_cache_.find(name.id_); it != node_cache_.end())
     {
+        pos = it->second.pos;
+        color_index = it->second.color_index;
+        AddNode(name, color_index, pos, inputs, outputs, parent_uid);
+
+        if (it->second.is_selected)
+        {
+            if (auto new_node_it = nodes_by_uid_.find(name.id_); new_node_it != nodes_by_uid_.end())
+                SET_FLAG(new_node_it->second->state_, ImGuiNodesNodeStateFlag_Selected);
+        }
+        return;
+    }
+
+    // If we are in batch mode but have a cache, we are likely rebuilding/updating the graph.
+    // In this case, we want to manually position new nodes (not in cache) instead of relying on EndBatchAdd layout,
+    // because EndBatchAdd layout would overwrite the positions of our cached nodes.
+    bool use_auto_layout = batch_add_mode_ && node_cache_.empty();
+
+    if (!use_auto_layout)
+    {
+        ImGuiNodesNode* parent = nullptr;
         if (!parent_uid.empty())
         {
             if (auto it = nodes_by_uid_.find(parent_uid); it != nodes_by_uid_.end())
+                parent = it->second;
+        }
+
+        ImGuiNodesNode* bottom_most_sibling = nullptr;
+        float max_y = -1.0e30f;
+
+        for (int i = 0; i < nodes_.size(); ++i)
+        {
+            if (nodes_[i]->parent_node_ == parent)
             {
-                pos = it->second->area_node_.GetCenter() + ImVec2(200.0f, 0.0f);
+                if (nodes_[i]->area_node_.Max.y > max_y)
+                {
+                    max_y = nodes_[i]->area_node_.Max.y;
+                    bottom_most_sibling = nodes_[i];
+                }
             }
         }
-        pos += ImVec2(0.0f, (float)(nodes_.size() * 20));
+
+        if (bottom_most_sibling)
+        {
+            float spacing = 20.0f;
+            float sibling_height = bottom_most_sibling->area_node_.GetHeight();
+            float estimated_height = ImMax(sibling_height, 80.0f);
+
+            ImVec2 sibling_center = bottom_most_sibling->area_node_.GetCenter();
+            pos.x = sibling_center.x;
+            pos.y = sibling_center.y + (sibling_height * 0.5f) + spacing + (estimated_height * 0.5f);
+        }
+        else
+        {
+            pos = parent ? parent->area_node_.GetCenter() + ImVec2(300.0f, 0.0f) : ImVec2(50.0f, 50.0f);
+        }
     }
     AddNode(name, color_index, pos, inputs, outputs, parent_uid);
 }
@@ -1184,6 +1232,8 @@ void ImGuiNodes::ProcessInteractions()
 
             if (IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected))
             {
+                node_cache_[node->uid_] = { node->area_node_.GetCenter(), node->color_index_, true };
+
                 active_node_ = NULL;
                 active_input_ = NULL;
                 active_output_ = NULL;
@@ -1906,7 +1956,12 @@ void ImGuiNodes::Clear()
     active_output_ = NULL;
 
     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
-        delete nodes_[node_idx];
+    {
+        ImGuiNodesNode* node = nodes_[node_idx];
+        bool selected = IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected);
+        node_cache_[node->uid_] = { node->area_node_.GetCenter(), node->color_index_, selected };
+        delete node;
+    }
     
     nodes_.clear();
     nodes_by_uid_.clear();
@@ -1972,6 +2027,11 @@ void ImGuiNodes::EndBatchAdd()
     batch_add_mode_ = false;
 
     if (nodes_.empty())
+        return;
+
+    // If we have cached nodes, we assume the graph is being rebuilt/updated and we want to preserve positions.
+    // Running the auto-layout would overwrite all positions, including the cached ones.
+    if (!node_cache_.empty())
         return;
 
     std::unordered_map<ImGuiNodesUid, std::vector<ImGuiNodesNode*>> children_map;

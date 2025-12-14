@@ -235,6 +235,14 @@ private:
     std::unordered_map<ImGuiNodesUid, ImGuiNodesInput*> inputs_by_uid_;
     std::unordered_map<ImGuiNodesUid, OutputWithOwner> outputs_by_uid_;
 
+    // cache for node positions and colors between deletions
+    struct NodeCacheEntry
+    {
+        ImVec2 pos;
+        int color_index;
+        bool is_selected;
+    };
+    std::unordered_map<ImGuiNodesUid, NodeCacheEntry> node_cache_;
     bool batch_add_mode_ = false;
 
     void ProcessInteractions();
