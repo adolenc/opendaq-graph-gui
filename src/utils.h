@@ -1,8 +1,11 @@
 #pragma once
 #include <opendaq/opendaq.h>
 #include <string>
+#include "imgui.h"
 
 const int DEFAULT_NOTIFICATION_DURATION_MS = 10'000;
+const ImVec4 COLOR_ERROR = ImVec4(1.0f, 0.3f, 0.3f, 1.0f);
+const ImVec4 COLOR_WARNING = ImVec4(1.0f, 0.7f, 0.2f, 1.0f);
 
 // utility functions for working with OpenDAQ objects
 template <class Interface>

@@ -66,12 +66,12 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
                 bool has_color = false;
                 if (!component->error_message_.empty())
                 {
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, COLOR_ERROR);
                     has_color = true;
                 }
                 else if (!component->warning_message_.empty())
                 {
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.0f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, COLOR_WARNING);
                     has_color = true;
                 }
 
@@ -144,12 +144,12 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
             bool has_color = false;
             if (!component->error_message_.empty())
             {
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Text, COLOR_ERROR);
                 has_color = true;
             }
             else if (!component->warning_message_.empty())
             {
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.0f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Text, COLOR_WARNING);
                 has_color = true;
             }
 
