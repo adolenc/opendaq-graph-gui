@@ -80,6 +80,14 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
                 if (has_color)
                     ImGui::PopStyleColor();
 
+                if (has_color && ImGui::IsItemHovered())
+                {
+                    if (!component->error_message_.empty())
+                        ImGui::SetTooltip("%s", component->error_message_.c_str());
+                    else
+                        ImGui::SetTooltip("%s", component->warning_message_.c_str());
+                }
+
                 if (ImGui::BeginPopupContextItem())
                 {
                     enum ExpandCollapseOption { None, Expand, Collapse } expand_or_collapse_triggered = ExpandCollapseOption::None;
@@ -157,6 +165,14 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
 
             if (has_color)
                 ImGui::PopStyleColor();
+
+            if (has_color && ImGui::IsItemHovered())
+            {
+                if (!component->error_message_.empty())
+                    ImGui::SetTooltip("%s", component->error_message_.c_str());
+                else
+                    ImGui::SetTooltip("%s", component->warning_message_.c_str());
+            }
 
             if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
             {
