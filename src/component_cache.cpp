@@ -122,6 +122,265 @@ void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr 
     catch (...) {}
 }
 
+void CachedComponent::AddDescriptorProperties(daq::DataDescriptorPtr descriptor, std::vector<CachedProperty>& properties, bool is_domain_signal)
+{
+    std::string prefix = is_domain_signal ? "@DSD_" : "@SD_";
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = prefix + "SampleType";
+        cached.uid_ = prefix + "SampleType";
+        cached.display_name_ = "Sample Type";
+        cached.is_read_only_ = true;
+        cached.is_debug_property_ = true;
+        cached.type_ = daq::ctString;
+        try
+        {
+            cached.value_ = SampleTypeToString(descriptor.getSampleType());
+        }
+        catch (...)
+        {
+            cached.value_ = std::string("<unavailable>");
+        }
+        properties.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = prefix + "Name";
+        cached.uid_ = prefix + "Name";
+        cached.display_name_ = "Name";
+        cached.is_read_only_ = true;
+        cached.type_ = daq::ctString;
+        cached.value_ = descriptor.getName().assigned() ? descriptor.getName().toStdString() : "None";
+        properties.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = prefix + "Dimensions";
+        cached.uid_ = prefix + "Dimensions";
+        cached.display_name_ = "Dimensions";
+        cached.is_read_only_ = true;
+        cached.type_ = daq::ctString;
+        if (descriptor.getDimensions().assigned())
+        {
+            auto dimensions = descriptor.getDimensions();
+            try
+            {
+                std::string text = "[";
+                for (int i = 0; i < dimensions.getCount(); i++)
+                {
+                    if (i > 0) text += ", ";
+                    text += std::to_string((long long)dimensions.getItemAt(i).asPtr<daq::IInteger>());
+                }
+                text += "]";
+                cached.value_ = text;
+            } catch (...)
+            {
+                cached.value_ = std::string("<error>");
+            }
+        }
+        else
+            cached.value_ = std::string("None");
+        properties.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = prefix + "Origin";
+        cached.uid_ = prefix + "Origin";
+        cached.display_name_ = "Origin";
+        cached.is_read_only_ = true;
+        cached.is_debug_property_ = true;
+        cached.type_ = daq::ctString;
+        cached.value_ = descriptor.getOrigin().assigned() ? descriptor.getOrigin().toStdString() : "None";
+        properties.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = prefix + "RawSampleSize";
+        cached.uid_ = prefix + "RawSampleSize";
+        cached.display_name_ = "Raw Sample Size";
+        cached.is_read_only_ = true;
+        cached.is_debug_property_ = true;
+        cached.type_ = daq::ctString;
+        cached.value_ = std::to_string(descriptor.getRawSampleSize());
+        properties.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = prefix + "SampleSize";
+        cached.uid_ = prefix + "SampleSize";
+        cached.display_name_ = "Sample Size";
+        cached.is_read_only_ = true;
+        cached.is_debug_property_ = true;
+        cached.type_ = daq::ctString;
+        cached.value_ = std::to_string(descriptor.getSampleSize());
+        properties.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = prefix + "TickResolution";
+        cached.uid_ = prefix + "TickResolution";
+        cached.display_name_ = "Tick Resolution";
+        cached.is_read_only_ = true;
+        cached.is_debug_property_ = !is_domain_signal;
+        cached.type_ = daq::ctString;
+        if (auto tick_res = descriptor.getTickResolution(); tick_res.assigned())
+            cached.value_ = std::to_string((long long)tick_res.getNumerator()) + "/" + std::to_string((long long)tick_res.getDenominator());
+        else
+            cached.value_ = std::string("None");
+        properties.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = prefix + "Unit";
+        cached.uid_ = prefix + "Unit";
+        cached.display_name_ = "Unit";
+        cached.is_read_only_ = true;
+        cached.type_ = daq::ctString;
+        if (auto unit = descriptor.getUnit(); unit.assigned())
+        {
+            std::string symbol = unit.getSymbol().assigned() ? unit.getSymbol().toStdString() : "None";
+            std::string quantity = unit.getQuantity().assigned() ? unit.getQuantity().toStdString() : "None";
+            cached.value_ = symbol + " (" + quantity + ")";
+        }
+        else
+            cached.value_ = std::string("None");
+        properties.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = prefix + "Rule";
+        cached.uid_ = prefix + "Rule";
+        cached.display_name_ = "Rule";
+        cached.is_read_only_ = true;
+        cached.is_debug_property_ = !is_domain_signal;
+        cached.type_ = daq::ctString;
+        try
+        {
+            if (auto rule = descriptor.getRule(); rule.assigned())
+                cached.value_ = ValueToString(rule);
+            else
+                cached.value_ = std::string("None");
+        }
+        catch (...)
+        {
+            cached.value_ = std::string("<unavailable>");
+        }
+        properties.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = prefix + "ValueRange";
+        cached.uid_ = prefix + "ValueRange";
+        cached.display_name_ = "Value Range";
+        cached.is_read_only_ = true;
+        cached.is_debug_property_ = is_domain_signal;
+        cached.type_ = daq::ctString;
+        try
+        {
+            if (auto range = descriptor.getValueRange(); range.assigned())
+            {
+                auto low = range.getLowValue();
+                auto high = range.getHighValue();
+                std::string low_str = low.assigned() ? std::to_string((double)low.asPtr<daq::IFloat>()) : "None";
+                std::string high_str = high.assigned() ? std::to_string((double)high.asPtr<daq::IFloat>()) : "None";
+                cached.value_ = "[" + low_str + ", " + high_str + "]";
+            }
+            else
+                cached.value_ = std::string("None");
+        }
+        catch (...)
+        {
+            cached.value_ = std::string("<unavailable>");
+        }
+        properties.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = prefix + "PostScaling";
+        cached.uid_ = prefix + "PostScaling";
+        cached.display_name_ = "Post Scaling";
+        cached.is_read_only_ = true;
+        cached.is_debug_property_ = true;
+        cached.type_ = daq::ctString;
+        try
+        {
+            if (auto scaling = descriptor.getPostScaling(); scaling.assigned())
+                cached.value_ = static_cast<std::string>(scaling.asPtr<daq::IBaseObject>().toString());
+            else
+                cached.value_ = std::string("None");
+        }
+        catch (...)
+        {
+            cached.value_ = std::string("<unavailable>");
+        }
+        properties.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = prefix + "StructFields";
+        cached.uid_ = prefix + "StructFields";
+        cached.display_name_ = "Struct Fields";
+        cached.is_read_only_ = true;
+        cached.is_debug_property_ = true;
+        cached.type_ = daq::ctString;
+        try
+        {
+            if (auto fields = descriptor.getStructFields(); fields.assigned())
+            {
+                std::string text = "[";
+                for (int i = 0; i < fields.getCount(); i++)
+                {
+                    if (i > 0) text += ", ";
+                    text += static_cast<std::string>(fields.getItemAt(i).asPtr<daq::IBaseObject>().toString());
+                }
+                text += "]";
+                cached.value_ = text;
+            }
+            else
+                cached.value_ = std::string("None");
+        }
+        catch (...)
+        {
+            cached.value_ = std::string("<unavailable>");
+        }
+        properties.push_back(cached);
+    }
+    {
+        CachedProperty cached;
+        cached.owner_ = this;
+        cached.name_ = prefix + "Metadata";
+        cached.uid_ = prefix + "Metadata";
+        cached.display_name_ = "Metadata";
+        cached.is_read_only_ = true;
+        cached.is_debug_property_ = true;
+        cached.type_ = daq::ctString;
+        try
+        {
+            if (auto metadata = descriptor.getMetadata(); metadata.assigned())
+                cached.value_ = DictToString(metadata);
+            else
+                cached.value_ = std::string("None");
+        }
+        catch (...)
+        {
+            cached.value_ = std::string("<unavailable>");
+        }
+        properties.push_back(cached);
+    }
+}
+
 void CachedComponent::RefreshStructure()
 {
     input_ports_.clear();
@@ -447,520 +706,12 @@ void CachedComponent::RefreshProperties()
         }
         
         if (auto descriptor = signal.getDescriptor(); descriptor.assigned())
-        {
-            {
-                CachedProperty cached;
-                cached.owner_ = this;
-                cached.name_ = "@SD_SampleType";
-                cached.uid_ = "@SD_SampleType";
-                cached.display_name_ = "Sample Type";
-                cached.is_read_only_ = true;
-                cached.is_debug_property_ = true;
-                cached.type_ = daq::ctString;
-                try
-                {
-                    cached.value_ = SampleTypeToString(descriptor.getSampleType());
-                }
-                catch (...)
-                {
-                    cached.value_ = std::string("<unavailable>");
-                }
-                signal_descriptor_properties_.push_back(cached);
-            }
-            {
-                CachedProperty cached;
-                cached.owner_ = this;
-                cached.name_ = "@SD_Name";
-                cached.uid_ = "@SD_Name";
-                cached.display_name_ = "Name";
-                cached.is_read_only_ = true;
-                cached.type_ = daq::ctString;
-                cached.value_ = descriptor.getName().assigned() ? descriptor.getName().toStdString() : "None";
-                signal_descriptor_properties_.push_back(cached);
-            }
-            {
-                CachedProperty cached;
-                cached.owner_ = this;
-                cached.name_ = "@SD_Dimensions";
-                cached.uid_ = "@SD_Dimensions";
-                cached.display_name_ = "Dimensions";
-                cached.is_read_only_ = true;
-                cached.type_ = daq::ctString;
-                if (descriptor.getDimensions().assigned())
-                {
-                    auto dimensions = descriptor.getDimensions();
-                    try
-                    {
-                        std::string text = "[";
-                        for (int i = 0; i < dimensions.getCount(); i++)
-                        {
-                            if (i > 0) text += ", ";
-                            text += std::to_string((long long)dimensions.getItemAt(i).asPtr<daq::IInteger>());
-                        }
-                        text += "]";
-                        cached.value_ = text;
-                    } catch (...)
-                    {
-                        cached.value_ = std::string("<error>");
-                    }
-                }
-                else
-                    cached.value_ = std::string("None");
-                signal_descriptor_properties_.push_back(cached);
-            }
-            {
-                CachedProperty cached;
-                cached.owner_ = this;
-                cached.name_ = "@SD_Origin";
-                cached.uid_ = "@SD_Origin";
-                cached.display_name_ = "Origin";
-                cached.is_read_only_ = true;
-                cached.is_debug_property_ = true;
-                cached.type_ = daq::ctString;
-                cached.value_ = descriptor.getOrigin().assigned() ? descriptor.getOrigin().toStdString() : "None";
-                signal_descriptor_properties_.push_back(cached);
-            }
-            {
-                CachedProperty cached;
-                cached.owner_ = this;
-                cached.name_ = "@SD_RawSampleSize";
-                cached.uid_ = "@SD_RawSampleSize";
-                cached.display_name_ = "Raw Sample Size";
-                cached.is_read_only_ = true;
-                cached.is_debug_property_ = true;
-                cached.type_ = daq::ctString;
-                cached.value_ = std::to_string(descriptor.getRawSampleSize());
-                signal_descriptor_properties_.push_back(cached);
-            }
-            {
-                CachedProperty cached;
-                cached.owner_ = this;
-                cached.name_ = "@SD_SampleSize";
-                cached.uid_ = "@SD_SampleSize";
-                cached.display_name_ = "Sample Size";
-                cached.is_read_only_ = true;
-                cached.is_debug_property_ = true;
-                cached.type_ = daq::ctString;
-                cached.value_ = std::to_string(descriptor.getSampleSize());
-                signal_descriptor_properties_.push_back(cached);
-            }
-            {
-                CachedProperty cached;
-                cached.owner_ = this;
-                cached.name_ = "@SD_TickResolution";
-                cached.uid_ = "@SD_TickResolution";
-                cached.display_name_ = "Tick Resolution";
-                cached.is_read_only_ = true;
-                cached.is_debug_property_ = true;
-                cached.type_ = daq::ctString;
-                if (auto tick_res = descriptor.getTickResolution(); tick_res.assigned())
-                    cached.value_ = std::to_string((long long)tick_res.getNumerator()) + "/" + std::to_string((long long)tick_res.getDenominator());
-                else
-                    cached.value_ = std::string("None");
-                signal_descriptor_properties_.push_back(cached);
-            }
-            {
-                CachedProperty cached;
-                cached.owner_ = this;
-                cached.name_ = "@SD_Unit";
-                cached.uid_ = "@SD_Unit";
-                cached.display_name_ = "Unit";
-                cached.is_read_only_ = true;
-                cached.type_ = daq::ctString;
-                if (auto unit = descriptor.getUnit(); unit.assigned())
-                {
-                    std::string symbol = unit.getSymbol().assigned() ? unit.getSymbol().toStdString() : "None";
-                    std::string quantity = unit.getQuantity().assigned() ? unit.getQuantity().toStdString() : "None";
-                    cached.value_ = symbol + " (" + quantity + ")";
-                }
-                else
-                    cached.value_ = std::string("None");
-                signal_descriptor_properties_.push_back(cached);
-            }
-            {
-                CachedProperty cached;
-                cached.owner_ = this;
-                cached.name_ = "@SD_Rule";
-                cached.uid_ = "@SD_Rule";
-                cached.display_name_ = "Rule";
-                cached.is_read_only_ = true;
-                cached.is_debug_property_ = true;
-                cached.type_ = daq::ctString;
-                try
-                {
-                    if (auto rule = descriptor.getRule(); rule.assigned())
-                        cached.value_ = ValueToString(rule);
-                    else
-                        cached.value_ = std::string("None");
-                }
-                catch (...)
-                {
-                    cached.value_ = std::string("<unavailable>");
-                }
-                signal_descriptor_properties_.push_back(cached);
-            }
-            {
-                CachedProperty cached;
-                cached.owner_ = this;
-                cached.name_ = "@SD_ValueRange";
-                cached.uid_ = "@SD_ValueRange";
-                cached.display_name_ = "Value Range";
-                cached.is_read_only_ = true;
-                cached.type_ = daq::ctString;
-                try
-                {
-                    if (auto range = descriptor.getValueRange(); range.assigned())
-                    {
-                        auto low = range.getLowValue();
-                        auto high = range.getHighValue();
-                        std::string low_str = low.assigned() ? std::to_string((double)low.asPtr<daq::IFloat>()) : "None";
-                        std::string high_str = high.assigned() ? std::to_string((double)high.asPtr<daq::IFloat>()) : "None";
-                        cached.value_ = "[" + low_str + ", " + high_str + "]";
-                    }
-                    else
-                        cached.value_ = std::string("None");
-                }
-                catch (...)
-                {
-                    cached.value_ = std::string("<unavailable>");
-                }
-                signal_descriptor_properties_.push_back(cached);
-            }
-            {
-                CachedProperty cached;
-                cached.owner_ = this;
-                cached.name_ = "@SD_PostScaling";
-                cached.uid_ = "@SD_PostScaling";
-                cached.display_name_ = "Post Scaling";
-                cached.is_read_only_ = true;
-                cached.is_debug_property_ = true;
-                cached.type_ = daq::ctString;
-                try
-                {
-                    if (auto scaling = descriptor.getPostScaling(); scaling.assigned())
-                        cached.value_ = static_cast<std::string>(scaling.asPtr<daq::IBaseObject>().toString());
-                    else
-                        cached.value_ = std::string("None");
-                }
-                catch (...)
-                {
-                    cached.value_ = std::string("<unavailable>");
-                }
-                signal_descriptor_properties_.push_back(cached);
-            }
-            {
-                CachedProperty cached;
-                cached.owner_ = this;
-                cached.name_ = "@SD_StructFields";
-                cached.uid_ = "@SD_StructFields";
-                cached.display_name_ = "Struct Fields";
-                cached.is_read_only_ = true;
-                cached.is_debug_property_ = true;
-                cached.type_ = daq::ctString;
-                try
-                {
-                    if (auto fields = descriptor.getStructFields(); fields.assigned())
-                    {
-                        std::string text = "[";
-                        for (int i = 0; i < fields.getCount(); i++)
-                        {
-                            if (i > 0) text += ", ";
-                            text += static_cast<std::string>(fields.getItemAt(i).asPtr<daq::IBaseObject>().toString());
-                        }
-                        text += "]";
-                        cached.value_ = text;
-                    }
-                    else
-                        cached.value_ = std::string("None");
-                }
-                catch (...)
-                {
-                    cached.value_ = std::string("<unavailable>");
-                }
-                signal_descriptor_properties_.push_back(cached);
-            }
-            {
-                CachedProperty cached;
-                cached.owner_ = this;
-                cached.name_ = "@SD_Metadata";
-                cached.uid_ = "@SD_Metadata";
-                cached.display_name_ = "Metadata";
-                cached.is_read_only_ = true;
-                cached.is_debug_property_ = true;
-                cached.type_ = daq::ctString;
-                try
-                {
-                    if (auto metadata = descriptor.getMetadata(); metadata.assigned())
-                        cached.value_ = DictToString(metadata);
-                    else
-                        cached.value_ = std::string("None");
-                }
-                catch (...)
-                {
-                    cached.value_ = std::string("<unavailable>");
-                }
-                signal_descriptor_properties_.push_back(cached);
-            }
-        }
+            AddDescriptorProperties(descriptor, signal_descriptor_properties_);
 
         if (auto domain_signal = signal.getDomainSignal(); domain_signal.assigned())
         {
             if (auto descriptor = domain_signal.getDescriptor(); descriptor.assigned())
-            {
-                {
-                    CachedProperty cached;
-                    cached.owner_ = this;
-                    cached.name_ = "@DSD_SampleType";
-                    cached.uid_ = "@DSD_SampleType";
-                    cached.display_name_ = "Sample Type";
-                    cached.is_read_only_ = true;
-                    cached.is_debug_property_ = true;
-                    cached.type_ = daq::ctString;
-                    try
-                    {
-                        cached.value_ = SampleTypeToString(descriptor.getSampleType());
-                    }
-                    catch (...)
-                    {
-                        cached.value_ = std::string("<unavailable>");
-                    }
-                    signal_domain_descriptor_properties_.push_back(cached);
-                }
-                {
-                    CachedProperty cached;
-                    cached.owner_ = this;
-                    cached.name_ = "@DSD_Name";
-                    cached.uid_ = "@DSD_Name";
-                    cached.display_name_ = "Name";
-                    cached.is_read_only_ = true;
-                    cached.type_ = daq::ctString;
-                    cached.value_ = descriptor.getName().assigned() ? descriptor.getName().toStdString() : "None";
-                    signal_domain_descriptor_properties_.push_back(cached);
-                }
-                {
-                    CachedProperty cached;
-                    cached.owner_ = this;
-                    cached.name_ = "@DSD_Dimensions";
-                    cached.uid_ = "@DSD_Dimensions";
-                    cached.display_name_ = "Dimensions";
-                    cached.is_read_only_ = true;
-                    cached.type_ = daq::ctString;
-                    if (descriptor.getDimensions().assigned())
-                    {
-                        auto dimensions = descriptor.getDimensions();
-                        try
-                        {
-                            std::string text = "[";
-                            for (int i = 0; i < dimensions.getCount(); i++)
-                            {
-                                if (i > 0) text += ", ";
-                                text += std::to_string((long long)dimensions.getItemAt(i).asPtr<daq::IInteger>());
-                            }
-                            text += "]";
-                            cached.value_ = text;
-                        }
-                        catch (...)
-                        {
-                            cached.value_ = std::string("<error>");
-                        }
-                    }
-                    else
-                        cached.value_ = std::string("None");
-                    signal_domain_descriptor_properties_.push_back(cached);
-                }
-                {
-                    CachedProperty cached;
-                    cached.owner_ = this;
-                    cached.name_ = "@DSD_Origin";
-                    cached.uid_ = "@DSD_Origin";
-                    cached.display_name_ = "Origin";
-                    cached.is_read_only_ = true;
-                    cached.is_debug_property_ = true;
-                    cached.type_ = daq::ctString;
-                    cached.value_ = descriptor.getOrigin().assigned() ? descriptor.getOrigin().toStdString() : "None";
-                    signal_domain_descriptor_properties_.push_back(cached);
-                }
-                {
-                    CachedProperty cached;
-                    cached.owner_ = this;
-                    cached.name_ = "@DSD_RawSampleSize";
-                    cached.uid_ = "@DSD_RawSampleSize";
-                    cached.display_name_ = "Raw Sample Size";
-                    cached.is_read_only_ = true;
-                    cached.is_debug_property_ = true;
-                    cached.type_ = daq::ctString;
-                    cached.value_ = std::to_string(descriptor.getRawSampleSize());
-                    signal_domain_descriptor_properties_.push_back(cached);
-                }
-                {
-                    CachedProperty cached;
-                    cached.owner_ = this;
-                    cached.name_ = "@DSD_SampleSize";
-                    cached.uid_ = "@DSD_SampleSize";
-                    cached.display_name_ = "Sample Size";
-                    cached.is_read_only_ = true;
-                    cached.is_debug_property_ = true;
-                    cached.type_ = daq::ctString;
-                    cached.value_ = std::to_string(descriptor.getSampleSize());
-                    signal_domain_descriptor_properties_.push_back(cached);
-                }
-                {
-                    CachedProperty cached;
-                    cached.owner_ = this;
-                    cached.name_ = "@DSD_TickResolution";
-                    cached.uid_ = "@DSD_TickResolution";
-                    cached.display_name_ = "Tick Resolution";
-                    cached.is_read_only_ = true;
-                    cached.type_ = daq::ctString;
-                    if (auto tick_res = descriptor.getTickResolution(); tick_res.assigned())
-                        cached.value_ = std::to_string((long long)tick_res.getNumerator()) + "/" + std::to_string((long long)tick_res.getDenominator());
-                    else
-                        cached.value_ = std::string("None");
-                    signal_domain_descriptor_properties_.push_back(cached);
-                }
-                {
-                    CachedProperty cached;
-                    cached.owner_ = this;
-                    cached.name_ = "@DSD_Unit";
-                    cached.uid_ = "@DSD_Unit";
-                    cached.display_name_ = "Unit";
-                    cached.is_read_only_ = true;
-                    cached.type_ = daq::ctString;
-                    if (auto unit = descriptor.getUnit(); unit.assigned())
-                    {
-                        std::string symbol = unit.getSymbol().assigned() ? unit.getSymbol().toStdString() : "None";
-                        std::string quantity = unit.getQuantity().assigned() ? unit.getQuantity().toStdString() : "None";
-                        cached.value_ = symbol + " (" + quantity + ")";
-                    }
-                    else
-                        cached.value_ = std::string("None");
-                    signal_domain_descriptor_properties_.push_back(cached);
-                }
-                {
-                    CachedProperty cached;
-                    cached.owner_ = this;
-                    cached.name_ = "@DSD_Rule";
-                    cached.uid_ = "@DSD_Rule";
-                    cached.display_name_ = "Rule";
-                    cached.is_read_only_ = true;
-                    cached.type_ = daq::ctString;
-                    try
-                    {
-                        if (auto rule = descriptor.getRule(); rule.assigned())
-                            cached.value_ = ValueToString(rule);
-                        else
-                            cached.value_ = std::string("None");
-                    }
-                    catch (...)
-                    {
-                        cached.value_ = std::string("<unavailable>");
-                    }
-                    signal_domain_descriptor_properties_.push_back(cached);
-                }
-                {
-                    CachedProperty cached;
-                    cached.owner_ = this;
-                    cached.name_ = "@DSD_ValueRange";
-                    cached.uid_ = "@DSD_ValueRange";
-                    cached.display_name_ = "Value Range";
-                    cached.is_read_only_ = true;
-                    cached.is_debug_property_ = true;
-                    cached.type_ = daq::ctString;
-                    try
-                    {
-                        if (auto range = descriptor.getValueRange(); range.assigned())
-                        {
-                            auto low = range.getLowValue();
-                            auto high = range.getHighValue();
-                            std::string low_str = low.assigned() ? std::to_string((double)low.asPtr<daq::IFloat>()) : "None";
-                            std::string high_str = high.assigned() ? std::to_string((double)high.asPtr<daq::IFloat>()) : "None";
-                            cached.value_ = "[" + low_str + ", " + high_str + "]";
-                        }
-                        else
-                            cached.value_ = std::string("None");
-                    }
-                    catch (...)
-                    {
-                        cached.value_ = std::string("<unavailable>");
-                    }
-                    signal_domain_descriptor_properties_.push_back(cached);
-                }
-                {
-                    CachedProperty cached;
-                    cached.owner_ = this;
-                    cached.name_ = "@DSD_PostScaling";
-                    cached.uid_ = "@DSD_PostScaling";
-                    cached.display_name_ = "Post Scaling";
-                    cached.is_read_only_ = true;
-                    cached.is_debug_property_ = true;
-                    cached.type_ = daq::ctString;
-                    try
-                    {
-                        if (auto scaling = descriptor.getPostScaling(); scaling.assigned())
-                            cached.value_ = static_cast<std::string>(scaling.asPtr<daq::IBaseObject>().toString());
-                        else
-                            cached.value_ = std::string("None");
-                    }
-                    catch (...)
-                    {
-                        cached.value_ = std::string("<unavailable>");
-                    }
-                    signal_domain_descriptor_properties_.push_back(cached);
-                }
-                {
-                    CachedProperty cached;
-                    cached.owner_ = this;
-                    cached.name_ = "@DSD_StructFields";
-                    cached.uid_ = "@DSD_StructFields";
-                    cached.display_name_ = "Struct Fields";
-                    cached.is_read_only_ = true;
-                    cached.is_debug_property_ = true;
-                    cached.type_ = daq::ctString;
-                    try
-                    {
-                        if (auto fields = descriptor.getStructFields(); fields.assigned())
-                        {
-                            std::string text = "[";
-                            for (int i = 0; i < fields.getCount(); i++)
-                            {
-                                if (i > 0) text += ", ";
-                                text += static_cast<std::string>(fields.getItemAt(i).asPtr<daq::IBaseObject>().toString());
-                            }
-                            text += "]";
-                            cached.value_ = text;
-                        }
-                        else
-                            cached.value_ = std::string("None");
-                    }
-                    catch (...)
-                    {
-                        cached.value_ = std::string("<unavailable>");
-                    }
-                    signal_domain_descriptor_properties_.push_back(cached);
-                }
-                {
-                    CachedProperty cached;
-                    cached.owner_ = this;
-                    cached.name_ = "@DSD_Metadata";
-                    cached.uid_ = "@DSD_Metadata";
-                    cached.display_name_ = "Metadata";
-                    cached.is_read_only_ = true;
-                    cached.is_debug_property_ = true;
-                    cached.type_ = daq::ctString;
-                    try
-                    {
-                        if (auto metadata = descriptor.getMetadata(); metadata.assigned())
-                            cached.value_ = DictToString(metadata);
-                        else
-                            cached.value_ = std::string("None");
-                    }
-                    catch (...)
-                    {
-                        cached.value_ = std::string("<unavailable>");
-                    }
-                    signal_domain_descriptor_properties_.push_back(cached);
-                }
-            }
+                AddDescriptorProperties(descriptor, signal_domain_descriptor_properties_, true);
         }
     }
 

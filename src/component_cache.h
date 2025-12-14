@@ -17,6 +17,7 @@ struct CachedComponent
     void RefreshProperties();
     void RefreshStructure();
     void AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr property_holder, int depth = 0, const std::string& parent_uid = "");
+    void AddDescriptorProperties(daq::DataDescriptorPtr descriptor, std::vector<CachedProperty>& properties, bool is_domain_signal = false);
 
     daq::ComponentPtr component_;
     daq::ComponentPtr parent_; // the parent component in the hierarchy (although some folders are skipped)
