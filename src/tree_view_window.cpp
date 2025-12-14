@@ -63,7 +63,22 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
                 if (ImGui::IsPopupOpen(component_guid.c_str()))
                     local_flags |= ImGuiTreeNodeFlags_Selected;
 
+                bool has_color = false;
+                if (!component->error_message_.empty())
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+                    has_color = true;
+                }
+                else if (!component->warning_message_.empty())
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.0f, 1.0f));
+                    has_color = true;
+                }
+
                 bool open = ImGui::TreeNodeEx(component_guid.c_str(), local_flags, "%s", label);
+
+                if (has_color)
+                    ImGui::PopStyleColor();
 
                 if (ImGui::BeginPopupContextItem())
                 {
@@ -125,8 +140,24 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
     else
     {
         flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-        ImSearch::SearchableItem(name.c_str(), [this, component_guid, flags](const char* label) {
+        ImSearch::SearchableItem(name.c_str(), [this, component_guid, flags, component](const char* label) {
+            bool has_color = false;
+            if (!component->error_message_.empty())
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+                has_color = true;
+            }
+            else if (!component->warning_message_.empty())
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.0f, 1.0f));
+                has_color = true;
+            }
+
             ImGui::TreeNodeEx(component_guid.c_str(), flags, "%s", label);
+
+            if (has_color)
+                ImGui::PopStyleColor();
+
             if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
             {
                 if (on_node_double_clicked_callback_)
