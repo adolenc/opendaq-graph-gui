@@ -122,47 +122,35 @@ void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr 
     catch (...) {}
 }
 
+CachedProperty& CachedComponent::AddAttribute(std::vector<CachedProperty>& properties, const std::string& name, const std::string& display_name, CachedProperty::ValueType value, bool is_read_only, bool is_debug_property, daq::CoreType type)
+{
+    properties.push_back(CachedProperty());
+    CachedProperty& cached = properties.back();
+    cached.owner_ = this;
+    cached.name_ = name;
+    cached.uid_ = name;
+    cached.display_name_ = display_name;
+    cached.value_ = value;
+    cached.is_read_only_ = is_read_only;
+    cached.is_debug_property_ = is_debug_property;
+    cached.type_ = type;
+    return cached;
+}
+
 void CachedComponent::AddDescriptorProperties(daq::DataDescriptorPtr descriptor, std::vector<CachedProperty>& properties, bool is_domain_signal)
 {
     std::string prefix = is_domain_signal ? "@DSD_" : "@SD_";
     {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = prefix + "SampleType";
-        cached.uid_ = prefix + "SampleType";
-        cached.display_name_ = "Sample Type";
-        cached.is_read_only_ = true;
-        cached.is_debug_property_ = true;
-        cached.type_ = daq::ctString;
-        try
-        {
-            cached.value_ = SampleTypeToString(descriptor.getSampleType());
-        }
-        catch (...)
-        {
-            cached.value_ = std::string("<unavailable>");
-        }
-        properties.push_back(cached);
+        std::string value;
+        try { value = SampleTypeToString(descriptor.getSampleType()); } catch (...) { value = "<unavailable>"; }
+        AddAttribute(properties, prefix + "SampleType", "Sample Type", value, true, true);
     }
     {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = prefix + "Name";
-        cached.uid_ = prefix + "Name";
-        cached.display_name_ = "Name";
-        cached.is_read_only_ = true;
-        cached.type_ = daq::ctString;
-        cached.value_ = descriptor.getName().assigned() ? descriptor.getName().toStdString() : "None";
-        properties.push_back(cached);
+        std::string value = descriptor.getName().assigned() ? descriptor.getName().toStdString() : "None";
+        AddAttribute(properties, prefix + "Name", "Name", value, true, false);
     }
     {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = prefix + "Dimensions";
-        cached.uid_ = prefix + "Dimensions";
-        cached.display_name_ = "Dimensions";
-        cached.is_read_only_ = true;
-        cached.type_ = daq::ctString;
+        std::string value;
         if (descriptor.getDimensions().assigned())
         {
             auto dimensions = descriptor.getDimensions();
@@ -175,168 +163,73 @@ void CachedComponent::AddDescriptorProperties(daq::DataDescriptorPtr descriptor,
                     text += std::to_string((long long)dimensions.getItemAt(i).asPtr<daq::IInteger>());
                 }
                 text += "]";
-                cached.value_ = text;
-            } catch (...)
-            {
-                cached.value_ = std::string("<error>");
-            }
+                value = text;
+            } catch (...) { value = "<error>"; }
         }
-        else
-            cached.value_ = std::string("None");
-        properties.push_back(cached);
+        else value = "None";
+        AddAttribute(properties, prefix + "Dimensions", "Dimensions", value, true, false);
     }
     {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = prefix + "Origin";
-        cached.uid_ = prefix + "Origin";
-        cached.display_name_ = "Origin";
-        cached.is_read_only_ = true;
-        cached.is_debug_property_ = true;
-        cached.type_ = daq::ctString;
-        cached.value_ = descriptor.getOrigin().assigned() ? descriptor.getOrigin().toStdString() : "None";
-        properties.push_back(cached);
+        std::string value = descriptor.getOrigin().assigned() ? descriptor.getOrigin().toStdString() : "None";
+        AddAttribute(properties, prefix + "Origin", "Origin", value, true, true);
     }
+    AddAttribute(properties, prefix + "RawSampleSize", "Raw Sample Size", std::to_string(descriptor.getRawSampleSize()), true, true);
+    AddAttribute(properties, prefix + "SampleSize", "Sample Size", std::to_string(descriptor.getSampleSize()), true, true);
     {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = prefix + "RawSampleSize";
-        cached.uid_ = prefix + "RawSampleSize";
-        cached.display_name_ = "Raw Sample Size";
-        cached.is_read_only_ = true;
-        cached.is_debug_property_ = true;
-        cached.type_ = daq::ctString;
-        cached.value_ = std::to_string(descriptor.getRawSampleSize());
-        properties.push_back(cached);
-    }
-    {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = prefix + "SampleSize";
-        cached.uid_ = prefix + "SampleSize";
-        cached.display_name_ = "Sample Size";
-        cached.is_read_only_ = true;
-        cached.is_debug_property_ = true;
-        cached.type_ = daq::ctString;
-        cached.value_ = std::to_string(descriptor.getSampleSize());
-        properties.push_back(cached);
-    }
-    {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = prefix + "TickResolution";
-        cached.uid_ = prefix + "TickResolution";
-        cached.display_name_ = "Tick Resolution";
-        cached.is_read_only_ = true;
-        cached.is_debug_property_ = !is_domain_signal;
-        cached.type_ = daq::ctString;
+        std::string value;
         if (auto tick_res = descriptor.getTickResolution(); tick_res.assigned())
-            cached.value_ = std::to_string((long long)tick_res.getNumerator()) + "/" + std::to_string((long long)tick_res.getDenominator());
+            value = std::to_string((long long)tick_res.getNumerator()) + "/" + std::to_string((long long)tick_res.getDenominator());
         else
-            cached.value_ = std::string("None");
-        properties.push_back(cached);
+            value = "None";
+        AddAttribute(properties, prefix + "TickResolution", "Tick Resolution", value, true, !is_domain_signal);
     }
     {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = prefix + "Unit";
-        cached.uid_ = prefix + "Unit";
-        cached.display_name_ = "Unit";
-        cached.is_read_only_ = true;
-        cached.type_ = daq::ctString;
+        std::string value;
         if (auto unit = descriptor.getUnit(); unit.assigned())
         {
             std::string symbol = unit.getSymbol().assigned() ? unit.getSymbol().toStdString() : "None";
             std::string quantity = unit.getQuantity().assigned() ? unit.getQuantity().toStdString() : "None";
-            cached.value_ = symbol + " (" + quantity + ")";
+            value = symbol + " (" + quantity + ")";
         }
         else
-            cached.value_ = std::string("None");
-        properties.push_back(cached);
+            value = "None";
+        AddAttribute(properties, prefix + "Unit", "Unit", value, true, false);
     }
     {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = prefix + "Rule";
-        cached.uid_ = prefix + "Rule";
-        cached.display_name_ = "Rule";
-        cached.is_read_only_ = true;
-        cached.is_debug_property_ = !is_domain_signal;
-        cached.type_ = daq::ctString;
-        try
-        {
-            if (auto rule = descriptor.getRule(); rule.assigned())
-                cached.value_ = ValueToString(rule);
-            else
-                cached.value_ = std::string("None");
-        }
-        catch (...)
-        {
-            cached.value_ = std::string("<unavailable>");
-        }
-        properties.push_back(cached);
+        std::string value;
+        try {
+            if (auto rule = descriptor.getRule(); rule.assigned()) value = ValueToString(rule);
+            else value = "None";
+        } catch (...) { value = "<unavailable>"; }
+        AddAttribute(properties, prefix + "Rule", "Rule", value, true, !is_domain_signal);
     }
     {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = prefix + "ValueRange";
-        cached.uid_ = prefix + "ValueRange";
-        cached.display_name_ = "Value Range";
-        cached.is_read_only_ = true;
-        cached.is_debug_property_ = is_domain_signal;
-        cached.type_ = daq::ctString;
-        try
-        {
+        std::string value;
+        try {
             if (auto range = descriptor.getValueRange(); range.assigned())
             {
                 auto low = range.getLowValue();
                 auto high = range.getHighValue();
                 std::string low_str = low.assigned() ? std::to_string((double)low.asPtr<daq::IFloat>()) : "None";
                 std::string high_str = high.assigned() ? std::to_string((double)high.asPtr<daq::IFloat>()) : "None";
-                cached.value_ = "[" + low_str + ", " + high_str + "]";
+                value = "[" + low_str + ", " + high_str + "]";
             }
-            else
-                cached.value_ = std::string("None");
-        }
-        catch (...)
-        {
-            cached.value_ = std::string("<unavailable>");
-        }
-        properties.push_back(cached);
+            else value = "None";
+        } catch (...) { value = "<unavailable>"; }
+        AddAttribute(properties, prefix + "ValueRange", "Value Range", value, true, is_domain_signal);
     }
     {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = prefix + "PostScaling";
-        cached.uid_ = prefix + "PostScaling";
-        cached.display_name_ = "Post Scaling";
-        cached.is_read_only_ = true;
-        cached.is_debug_property_ = true;
-        cached.type_ = daq::ctString;
-        try
-        {
+        std::string value;
+        try {
             if (auto scaling = descriptor.getPostScaling(); scaling.assigned())
-                cached.value_ = static_cast<std::string>(scaling.asPtr<daq::IBaseObject>().toString());
-            else
-                cached.value_ = std::string("None");
-        }
-        catch (...)
-        {
-            cached.value_ = std::string("<unavailable>");
-        }
-        properties.push_back(cached);
+                value = static_cast<std::string>(scaling.asPtr<daq::IBaseObject>().toString());
+            else value = "None";
+        } catch (...) { value = "<unavailable>"; }
+        AddAttribute(properties, prefix + "PostScaling", "Post Scaling", value, true, true);
     }
     {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = prefix + "StructFields";
-        cached.uid_ = prefix + "StructFields";
-        cached.display_name_ = "Struct Fields";
-        cached.is_read_only_ = true;
-        cached.is_debug_property_ = true;
-        cached.type_ = daq::ctString;
-        try
-        {
+        std::string value;
+        try {
             if (auto fields = descriptor.getStructFields(); fields.assigned())
             {
                 std::string text = "[";
@@ -346,38 +239,20 @@ void CachedComponent::AddDescriptorProperties(daq::DataDescriptorPtr descriptor,
                     text += static_cast<std::string>(fields.getItemAt(i).asPtr<daq::IBaseObject>().toString());
                 }
                 text += "]";
-                cached.value_ = text;
+                value = text;
             }
-            else
-                cached.value_ = std::string("None");
-        }
-        catch (...)
-        {
-            cached.value_ = std::string("<unavailable>");
-        }
-        properties.push_back(cached);
+            else value = "None";
+        } catch (...) { value = "<unavailable>"; }
+        AddAttribute(properties, prefix + "StructFields", "Struct Fields", value, true, true);
     }
     {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = prefix + "Metadata";
-        cached.uid_ = prefix + "Metadata";
-        cached.display_name_ = "Metadata";
-        cached.is_read_only_ = true;
-        cached.is_debug_property_ = true;
-        cached.type_ = daq::ctString;
-        try
-        {
+        std::string value;
+        try {
             if (auto metadata = descriptor.getMetadata(); metadata.assigned())
-                cached.value_ = DictToString(metadata);
-            else
-                cached.value_ = std::string("None");
-        }
-        catch (...)
-        {
-            cached.value_ = std::string("<unavailable>");
-        }
-        properties.push_back(cached);
+                value = DictToString(metadata);
+            else value = "None";
+        } catch (...) { value = "<unavailable>"; }
+        AddAttribute(properties, prefix + "Metadata", "Metadata", value, true, true);
     }
 }
 
@@ -449,16 +324,8 @@ void CachedComponent::RefreshProperties()
         daq::DevicePtr device = castTo<daq::IDevice>(component_);
         if (auto available_modes = device.getAvailableOperationModes(); available_modes.assigned() && available_modes.getCount() > 0)
         {
-            CachedProperty cached;
-            cached.owner_ = this;
-            cached.name_ = "@OperationMode";
-            cached.uid_ = "@OperationMode";
-            cached.display_name_ = "Operation Mode";
-            cached.is_read_only_ = false;
-            cached.type_ = daq::ctInt;
-
+            auto& cached = AddAttribute(attributes_, "@OperationMode", "Operation Mode", (int64_t)0, false, false, daq::ctInt);
             auto current_mode = device.getOperationMode();
-            int current_index = 0;
             std::stringstream modes_str;
             for (size_t i = 0; i < available_modes.getCount(); i++)
             {
@@ -469,104 +336,19 @@ void CachedComponent::RefreshProperties()
             }
             cached.selection_values_ = modes_str.str();
             cached.selection_values_count_ = available_modes.getCount();
-            cached.is_debug_property_ = false;
-            attributes_.push_back(cached);
         }
 
-        {
-            CachedProperty cached;
-            cached.owner_ = this;
-            cached.name_ = "@Locked";
-            cached.uid_ = "@Locked";
-            cached.display_name_ = "Locked";
-            cached.is_read_only_ = false;
-            cached.type_ = daq::ctBool;
-            cached.value_ = (bool)device.isLocked();
-            cached.is_debug_property_ = false;
-            attributes_.push_back(cached);
-        }
+        AddAttribute(attributes_, "@Locked", "Locked", (bool)device.isLocked(), false, false, daq::ctBool);
     }
 
+    AddAttribute(attributes_, "@Name", "Name", component_.getName().toStdString(), false, false);
+    AddAttribute(attributes_, "@Description", "Description", component_.getDescription().toStdString(), false, false);
+    AddAttribute(attributes_, "@Active", "Active", (bool)component_.getActive(), false, true, daq::ctBool);
+    AddAttribute(attributes_, "@Visible", "Visible", (bool)component_.getVisible(), false, true, daq::ctBool);
+    AddAttribute(attributes_, "@LocalID", "Local ID", component_.getLocalId().toStdString(), true, true);
+    AddAttribute(attributes_, "@GlobalID", "Global ID", component_.getGlobalId().toStdString(), true, true);
+
     {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = "@Name";
-        cached.uid_ = "@Name";
-        cached.display_name_ = "Name";
-        cached.is_read_only_ = false;
-        cached.type_ = daq::ctString;
-        cached.value_ = component_.getName().toStdString();
-        cached.is_debug_property_ = false;
-        attributes_.push_back(cached);
-    }
-    {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = "@Description";
-        cached.uid_ = "@Description";
-        cached.display_name_ = "Description";
-        cached.is_read_only_ = false;
-        cached.type_ = daq::ctString;
-        cached.value_ = component_.getDescription().toStdString();
-        cached.is_debug_property_ = false;
-        attributes_.push_back(cached);
-    }
-    {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = "@Active";
-        cached.uid_ = "@Active";
-        cached.display_name_ = "Active";
-        cached.is_read_only_ = false;
-        cached.type_ = daq::ctBool;
-        cached.value_ = (bool)component_.getActive();
-        cached.is_debug_property_ = true;
-        attributes_.push_back(cached);
-    }
-    {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = "@Visible";
-        cached.uid_ = "@Visible";
-        cached.display_name_ = "Visible";
-        cached.is_read_only_ = false;
-        cached.type_ = daq::ctBool;
-        cached.value_ = (bool)component_.getVisible();
-        cached.is_debug_property_ = true;
-        attributes_.push_back(cached);
-    }
-    {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = "@LocalID";
-        cached.uid_ = "@LocalID";
-        cached.display_name_ = "Local ID";
-        cached.is_read_only_ = true;
-        cached.type_ = daq::ctString;
-        cached.value_ = component_.getLocalId().toStdString();
-        cached.is_debug_property_ = true;
-        attributes_.push_back(cached);
-    }
-    {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = "@GlobalID";
-        cached.uid_ = "@GlobalID";
-        cached.display_name_ = "Global ID";
-        cached.is_read_only_ = true;
-        cached.type_ = daq::ctString;
-        cached.value_ = component_.getGlobalId().toStdString();
-        cached.is_debug_property_ = true;
-        attributes_.push_back(cached);
-    }
-    {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = "@Tags";
-        cached.uid_ = "@Tags";
-        cached.display_name_ = "Tags";
-        cached.is_read_only_ = true;
-        cached.type_ = daq::ctString;
         daq::ListPtr<daq::IString> tags = component_.getTags().getList();
         std::stringstream tags_value;
         tags_value << "[";
@@ -577,18 +359,9 @@ void CachedComponent::RefreshProperties()
             tags_value << tags.getItemAt(i).toStdString();
         }
         tags_value << "]";
-        cached.value_ = tags_value.str();
-        cached.is_debug_property_ = true;
-        attributes_.push_back(cached);
+        AddAttribute(attributes_, "@Tags", "Tags", tags_value.str(), true, true);
     }
     {
-        CachedProperty cached;
-        cached.owner_ = this;
-        cached.name_ = "@TypeID";
-        cached.uid_ = "@TypeID";
-        cached.display_name_ = "Type ID";
-        cached.is_read_only_ = true;
-        cached.type_ = daq::ctString;
         std::string value = "unknown";
         try
         {
@@ -607,87 +380,38 @@ void CachedComponent::RefreshProperties()
             }
         }
         catch (...) {}
-        cached.value_ = value;
-        cached.is_debug_property_ = true;
-        attributes_.push_back(cached);
+        AddAttribute(attributes_, "@TypeID", "Type ID", value, true, true);
     }
 
     if (canCastTo<daq::ISignal>(component_))
     {
         daq::SignalPtr signal = castTo<daq::ISignal>(component_);
-        
-        {
-            CachedProperty cached;
-            cached.owner_ = this;
-            cached.name_ = "@Public";
-            cached.uid_ = "@Public";
-            cached.display_name_ = "Public";
-            cached.is_read_only_ = false;
-            cached.type_ = daq::ctBool;
-            cached.value_ = (bool)signal.getPublic();
-            cached.is_debug_property_ = true;
-            attributes_.push_back(cached);
-        }
-        {
-            CachedProperty cached;
-            cached.owner_ = this;
-            cached.name_ = "@DomainSignalID";
-            cached.uid_ = "@DomainSignalID";
-            cached.display_name_ = "Domain Signal ID";
-            cached.is_read_only_ = true;
-            cached.type_ = daq::ctString;
-            cached.value_ = signal.getDomainSignal().assigned()
+        AddAttribute(attributes_, "@Public", "Public", (bool)signal.getPublic(), false, true, daq::ctBool);
+        std::string domain_signal_id = signal.getDomainSignal().assigned()
                           ? signal.getDomainSignal().getGlobalId().toStdString()
                           : std::string("");
-            cached.is_debug_property_ = true;
-            attributes_.push_back(cached);
-        }
+        AddAttribute(attributes_, "@DomainSignalID", "Domain Signal ID", domain_signal_id, true, true);
+        AddAttribute(attributes_, "@Streamed", "Streamed", (bool)signal.getStreamed(), true, true, daq::ctBool);
+
         {
-            CachedProperty cached;
-            cached.owner_ = this;
-            cached.name_ = "@Streamed";
-            cached.uid_ = "@Streamed";
-            cached.display_name_ = "Streamed";
-            cached.is_read_only_ = true;
-            cached.type_ = daq::ctBool;
-            cached.value_ = (bool)signal.getStreamed();
-            cached.is_debug_property_ = true;
-            attributes_.push_back(cached);
-        }
-        {
-            CachedProperty cached;
-            cached.owner_ = this;
-            cached.name_ = "@LastValue";
-            cached.uid_ = "@LastValue";
-            cached.display_name_ = "Last Value";
-            cached.is_read_only_ = true;
-            cached.type_ = daq::ctString;
+            std::string value = "N/A";
             try
             {
                 if (signal.getLastValue().assigned())
                 {
                     auto last_val = signal.getLastValue();
                     if (last_val.supportsInterface<daq::IString>())
-                        cached.value_ = last_val.asPtr<daq::IString>().toStdString();
+                        value = last_val.asPtr<daq::IString>().toStdString();
                     else if (last_val.supportsInterface<daq::IInteger>())
-                        cached.value_ = std::to_string((long long)last_val.asPtr<daq::IInteger>());
+                        value = std::to_string((long long)last_val.asPtr<daq::IInteger>());
                     else if (last_val.supportsInterface<daq::IFloat>())
-                        cached.value_ = std::to_string((double)last_val.asPtr<daq::IFloat>());
-                    else
-                        cached.value_ = "N/A";
+                        value = std::to_string((double)last_val.asPtr<daq::IFloat>());
                 }
             } catch (...) { }
-            attributes_.push_back(cached);
+            AddAttribute(attributes_, "@LastValue", "Last Value", value, true, true);
         }
         {
-            CachedProperty cached;
-            cached.owner_ = this;
-            cached.name_ = "@Status";
-            cached.uid_ = "@Status";
-            cached.display_name_ = "Status";
-            cached.is_read_only_ = true;
-            cached.type_ = daq::ctString;
-            cached.value_ = "OK";
+            std::string value = "OK";
             try
             {
                 auto status_container = signal.getStatusContainer();
@@ -695,16 +419,12 @@ void CachedComponent::RefreshProperties()
                 {
                     auto statuses = status_container.getStatuses();
                     if (statuses.assigned() && statuses.getCount() > 0)
-                        cached.value_ = "Multiple statuses available";
+                        value = "Multiple statuses available";
                 }
-            } catch (...)
-            {
-                cached.value_ = "<unavailable>";
-            }
-            cached.is_debug_property_ = true;
-            attributes_.push_back(cached);
+            } catch (...) { value = "<unavailable>"; }
+            AddAttribute(attributes_, "@Status", "Status", value, true, true);
         }
-        
+
         if (auto descriptor = signal.getDescriptor(); descriptor.assigned())
             AddDescriptorProperties(descriptor, signal_descriptor_properties_);
 
@@ -718,42 +438,14 @@ void CachedComponent::RefreshProperties()
     if (canCastTo<daq::IInputPort>(component_))
     {
         daq::InputPortPtr input_port = castTo<daq::IInputPort>(component_);
-        
+
+        std::string signal_id = input_port.getSignal().assigned()
+                      ? input_port.getSignal().getGlobalId().toStdString()
+                      : std::string("");
+        AddAttribute(attributes_, "@SignalID", "Signal ID", signal_id, true, true);
+        AddAttribute(attributes_, "@RequiresSignal", "Requires Signal", (bool)input_port.getRequiresSignal(), true, true, daq::ctBool);
         {
-            CachedProperty cached;
-            cached.owner_ = this;
-            cached.name_ = "@SignalID";
-            cached.uid_ = "@SignalID";
-            cached.display_name_ = "Signal ID";
-            cached.is_read_only_ = true;
-            cached.type_ = daq::ctString;
-            cached.value_ = input_port.getSignal().assigned()
-                          ? input_port.getSignal().getGlobalId().toStdString()
-                          : std::string("");
-            cached.is_debug_property_ = true;
-            attributes_.push_back(cached);
-        }
-        {
-            CachedProperty cached;
-            cached.owner_ = this;
-            cached.name_ = "@RequiresSignal";
-            cached.uid_ = "@RequiresSignal";
-            cached.display_name_ = "Requires Signal";
-            cached.is_read_only_ = true;
-            cached.type_ = daq::ctBool;
-            cached.value_ = (bool)input_port.getRequiresSignal();
-            cached.is_debug_property_ = true;
-            attributes_.push_back(cached);
-        }
-        {
-            CachedProperty cached;
-            cached.owner_ = this;
-            cached.name_ = "@Status";
-            cached.uid_ = "@Status";
-            cached.display_name_ = "Status";
-            cached.is_read_only_ = true;
-            cached.type_ = daq::ctString;
-            cached.value_ = "OK";
+            std::string value = "OK";
             try
             {
                 auto status_container = input_port.getStatusContainer();
@@ -761,15 +453,11 @@ void CachedComponent::RefreshProperties()
                 {
                     auto statuses = status_container.getStatuses();
                     if (statuses.assigned() && statuses.getCount() > 0)
-                        cached.value_ = "Multiple statuses available";
+                        value = "Multiple statuses available";
                 }
             }
-            catch (...)
-            {
-                cached.value_ = "<unavailable>";
-            }
-            cached.is_debug_property_ = true;
-            attributes_.push_back(cached);
+            catch (...) { value = "<unavailable>"; }
+            AddAttribute(attributes_, "@Status", "Status", value, true, true);
         }
     }
 

@@ -7,38 +7,7 @@
 #include <vector>
 
 
-struct CachedProperty;
-
-struct CachedComponent
-{
-    CachedComponent(daq::ComponentPtr component);
-
-    void RefreshStatus();
-    void RefreshProperties();
-    void RefreshStructure();
-    void AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr property_holder, int depth = 0, const std::string& parent_uid = "");
-    void AddDescriptorProperties(daq::DataDescriptorPtr descriptor, std::vector<CachedProperty>& properties, bool is_domain_signal = false);
-
-    daq::ComponentPtr component_;
-    daq::ComponentPtr parent_; // the parent component in the hierarchy (although some folders are skipped)
-    daq::ComponentPtr owner_; // the component that can delete this one
-
-    std::string name_;
-    std::string warning_message_;
-    std::string error_message_;
-    std::vector<CachedProperty> attributes_;
-    std::vector<CachedProperty> properties_;
-    std::vector<CachedProperty> signal_descriptor_properties_;
-    std::vector<CachedProperty> signal_domain_descriptor_properties_;
-
-    std::vector<ImGui::ImGuiNodesIdentifier> input_ports_;
-    std::vector<ImGui::ImGuiNodesIdentifier> output_signals_;
-    std::vector<ImGui::ImGuiNodesIdentifier> children_;
-
-    int color_index_ = 0;
-
-    bool needs_refresh_ = false;
-};
+struct CachedComponent;
 
 struct CachedProperty
 {
@@ -62,4 +31,36 @@ struct CachedProperty
     std::optional<double> max_value_;
     std::optional<std::string> selection_values_;
     int selection_values_count_ = 0;
+};
+
+struct CachedComponent
+{
+    CachedComponent(daq::ComponentPtr component);
+
+    void RefreshStatus();
+    void RefreshProperties();
+    void RefreshStructure();
+    void AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr property_holder, int depth = 0, const std::string& parent_uid = "");
+    void AddDescriptorProperties(daq::DataDescriptorPtr descriptor, std::vector<CachedProperty>& properties, bool is_domain_signal = false);
+    CachedProperty& AddAttribute(std::vector<CachedProperty>& properties, const std::string& name, const std::string& display_name, CachedProperty::ValueType value, bool is_read_only = true, bool is_debug_property = false, daq::CoreType type = daq::ctString);
+
+    daq::ComponentPtr component_;
+    daq::ComponentPtr parent_; // the parent component in the hierarchy (although some folders are skipped)
+    daq::ComponentPtr owner_; // the component that can delete this one
+
+    std::string name_;
+    std::string warning_message_;
+    std::string error_message_;
+    std::vector<CachedProperty> attributes_;
+    std::vector<CachedProperty> properties_;
+    std::vector<CachedProperty> signal_descriptor_properties_;
+    std::vector<CachedProperty> signal_domain_descriptor_properties_;
+
+    std::vector<ImGui::ImGuiNodesIdentifier> input_ports_;
+    std::vector<ImGui::ImGuiNodesIdentifier> output_signals_;
+    std::vector<ImGui::ImGuiNodesIdentifier> children_;
+
+    int color_index_ = 0;
+
+    bool needs_refresh_ = false;
 };
