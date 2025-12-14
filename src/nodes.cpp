@@ -1730,10 +1730,10 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
     body_color.Value.w = 0.9f;		
 
     if (IS_SET(state_, ImGuiNodesNodeStateFlag_Warning))
-        head_color = ImColor(0xff0060ff);  // Darker orange warning color
+        head_color = ImGuiNodes::warning_color_;
     
     if (IS_SET(state_, ImGuiNodesNodeStateFlag_Error))
-        head_color = ImColor(0xff0719eb);  // Red error color
+        head_color = ImGuiNodes::error_color_;
 
     if (IS_SET(state_, ImGuiNodesNodeStateFlag_Inactive))
     {
@@ -2127,6 +2127,12 @@ void ImGuiNodes::RenderMinimap(ImDrawList* draw_list)
         ImVec2 max = (node_rect.Max - world_bounds.Min) * mm_scale + mm_offset;
 
         ImColor color = ImGuiNodes::color_palette_[node->color_index_];
+
+        if (IS_SET(node->state_, ImGuiNodesNodeStateFlag_Warning))
+            color = ImGuiNodes::warning_color_;
+        if (IS_SET(node->state_, ImGuiNodesNodeStateFlag_Error))
+            color = ImGuiNodes::error_color_;
+
         color.Value.w = 0.8f;
         if (IS_SET(node->state_, ImGuiNodesNodeStateFlag_Inactive))
             color = ImColor(0.5f, 0.5f, 0.5f);

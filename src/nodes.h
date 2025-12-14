@@ -196,6 +196,8 @@ public:
     static constexpr ImColor text_color_ = ImColor(0xff000000);
     static constexpr ImColor connection_color_ = ImColor(0xffffffff);
     static constexpr ImColor parent_connection_color_ = ImColor(0x20ffffff);
+    static constexpr ImColor warning_color_ = ImColor(0xff0060ff);
+    static constexpr ImColor error_color_ = ImColor(0xff0719eb);
     static constexpr ImColor color_palette_[] = {
         ImColor(0xffffd670),
         ImColor(0xff70d6ff),
