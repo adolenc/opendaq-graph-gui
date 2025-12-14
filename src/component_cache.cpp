@@ -455,6 +455,7 @@ void CachedComponent::RefreshProperties()
                 cached.uid_ = "@SD_SampleType";
                 cached.display_name_ = "Sample Type";
                 cached.is_read_only_ = true;
+                cached.is_debug_property_ = true;
                 cached.type_ = daq::ctString;
                 try
                 {
@@ -514,6 +515,7 @@ void CachedComponent::RefreshProperties()
                 cached.uid_ = "@SD_Origin";
                 cached.display_name_ = "Origin";
                 cached.is_read_only_ = true;
+                cached.is_debug_property_ = true;
                 cached.type_ = daq::ctString;
                 cached.value_ = descriptor.getOrigin().assigned() ? descriptor.getOrigin().toStdString() : "None";
                 signal_descriptor_properties_.push_back(cached);
@@ -525,6 +527,7 @@ void CachedComponent::RefreshProperties()
                 cached.uid_ = "@SD_RawSampleSize";
                 cached.display_name_ = "Raw Sample Size";
                 cached.is_read_only_ = true;
+                cached.is_debug_property_ = true;
                 cached.type_ = daq::ctString;
                 cached.value_ = std::to_string(descriptor.getRawSampleSize());
                 signal_descriptor_properties_.push_back(cached);
@@ -536,6 +539,7 @@ void CachedComponent::RefreshProperties()
                 cached.uid_ = "@SD_SampleSize";
                 cached.display_name_ = "Sample Size";
                 cached.is_read_only_ = true;
+                cached.is_debug_property_ = true;
                 cached.type_ = daq::ctString;
                 cached.value_ = std::to_string(descriptor.getSampleSize());
                 signal_descriptor_properties_.push_back(cached);
@@ -547,6 +551,7 @@ void CachedComponent::RefreshProperties()
                 cached.uid_ = "@SD_TickResolution";
                 cached.display_name_ = "Tick Resolution";
                 cached.is_read_only_ = true;
+                cached.is_debug_property_ = true;
                 cached.type_ = daq::ctString;
                 if (auto tick_res = descriptor.getTickResolution(); tick_res.assigned())
                     cached.value_ = std::to_string((long long)tick_res.getNumerator()) + "/" + std::to_string((long long)tick_res.getDenominator());
@@ -579,6 +584,7 @@ void CachedComponent::RefreshProperties()
                 cached.uid_ = "@SD_Rule";
                 cached.display_name_ = "Rule";
                 cached.is_read_only_ = true;
+                cached.is_debug_property_ = true;
                 cached.type_ = daq::ctString;
                 try
                 {
@@ -627,6 +633,7 @@ void CachedComponent::RefreshProperties()
                 cached.uid_ = "@SD_PostScaling";
                 cached.display_name_ = "Post Scaling";
                 cached.is_read_only_ = true;
+                cached.is_debug_property_ = true;
                 cached.type_ = daq::ctString;
                 try
                 {
@@ -648,6 +655,7 @@ void CachedComponent::RefreshProperties()
                 cached.uid_ = "@SD_StructFields";
                 cached.display_name_ = "Struct Fields";
                 cached.is_read_only_ = true;
+                cached.is_debug_property_ = true;
                 cached.type_ = daq::ctString;
                 try
                 {
@@ -678,6 +686,7 @@ void CachedComponent::RefreshProperties()
                 cached.uid_ = "@SD_Metadata";
                 cached.display_name_ = "Metadata";
                 cached.is_read_only_ = true;
+                cached.is_debug_property_ = true;
                 cached.type_ = daq::ctString;
                 try
                 {
@@ -705,6 +714,7 @@ void CachedComponent::RefreshProperties()
                     cached.uid_ = "@DSD_SampleType";
                     cached.display_name_ = "Sample Type";
                     cached.is_read_only_ = true;
+                    cached.is_debug_property_ = true;
                     cached.type_ = daq::ctString;
                     try
                     {
@@ -765,6 +775,7 @@ void CachedComponent::RefreshProperties()
                     cached.uid_ = "@DSD_Origin";
                     cached.display_name_ = "Origin";
                     cached.is_read_only_ = true;
+                    cached.is_debug_property_ = true;
                     cached.type_ = daq::ctString;
                     cached.value_ = descriptor.getOrigin().assigned() ? descriptor.getOrigin().toStdString() : "None";
                     signal_domain_descriptor_properties_.push_back(cached);
@@ -776,6 +787,7 @@ void CachedComponent::RefreshProperties()
                     cached.uid_ = "@DSD_RawSampleSize";
                     cached.display_name_ = "Raw Sample Size";
                     cached.is_read_only_ = true;
+                    cached.is_debug_property_ = true;
                     cached.type_ = daq::ctString;
                     cached.value_ = std::to_string(descriptor.getRawSampleSize());
                     signal_domain_descriptor_properties_.push_back(cached);
@@ -787,6 +799,7 @@ void CachedComponent::RefreshProperties()
                     cached.uid_ = "@DSD_SampleSize";
                     cached.display_name_ = "Sample Size";
                     cached.is_read_only_ = true;
+                    cached.is_debug_property_ = true;
                     cached.type_ = daq::ctString;
                     cached.value_ = std::to_string(descriptor.getSampleSize());
                     signal_domain_descriptor_properties_.push_back(cached);
@@ -851,6 +864,7 @@ void CachedComponent::RefreshProperties()
                     cached.uid_ = "@DSD_ValueRange";
                     cached.display_name_ = "Value Range";
                     cached.is_read_only_ = true;
+                    cached.is_debug_property_ = true;
                     cached.type_ = daq::ctString;
                     try
                     {
@@ -878,6 +892,7 @@ void CachedComponent::RefreshProperties()
                     cached.uid_ = "@DSD_PostScaling";
                     cached.display_name_ = "Post Scaling";
                     cached.is_read_only_ = true;
+                    cached.is_debug_property_ = true;
                     cached.type_ = daq::ctString;
                     try
                     {
@@ -899,6 +914,7 @@ void CachedComponent::RefreshProperties()
                     cached.uid_ = "@DSD_StructFields";
                     cached.display_name_ = "Struct Fields";
                     cached.is_read_only_ = true;
+                    cached.is_debug_property_ = true;
                     cached.type_ = daq::ctString;
                     try
                     {
@@ -929,6 +945,7 @@ void CachedComponent::RefreshProperties()
                     cached.uid_ = "@DSD_Metadata";
                     cached.display_name_ = "Metadata";
                     cached.is_read_only_ = true;
+                    cached.is_debug_property_ = true;
                     cached.type_ = daq::ctString;
                     try
                     {
