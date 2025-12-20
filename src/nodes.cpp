@@ -1801,7 +1801,10 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
     ImGui::SetCursorScreenPos((area_name_.Min * scale) + offset);
     ImGui::TextColored(ImGuiNodes::text_color_, "%s", name_.c_str());
 
-    draw_list->AddRect(node_rect.Min - outline * 0.5f, node_rect.Max + outline * 0.5f, ImColor(0.0f, 0.0f, 0.0f, 1.0f), 0, 0, 3.0f * scale);
+    ImVec4 text_color = ImGui::GetStyle().Colors[ImGuiCol_Text];
+    ImColor border_color = text_color;
+    border_color.Value.w = (text_color.x > 0.5f) ? 0.2f : 0.5f;
+    draw_list->AddRect(node_rect.Min - outline * 0.5f, node_rect.Max + outline * 0.5f, border_color, 0, 0, 3.0f * scale);
 
     if (HAS_ANY_FLAG(state_, ImGuiNodesNodeStateFlag_MarkedForSelection | ImGuiNodesNodeStateFlag_Selected))
         draw_list->AddRect(node_rect.Min - outline*1.5f, node_rect.Max + outline*1.5f, color, 0, 0, 2.0f * scale);
