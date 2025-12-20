@@ -229,7 +229,14 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
         {
             int mark_x = (int)((x - scroll_.x) / grid);
             int mark_y = (int)((y - scroll_.y) / grid);
-            ImColor color = (mark_y % 5) || (mark_x % 5) ? ImColor(0.3f, 0.3f, 0.3f, .3f) : ImColor(1.0f, 1.0f, 1.0f, .3f);
+            
+            ImVec4 grid_base_color = ImGui::GetStyle().Colors[ImGuiCol_Text];
+            float alpha = ((mark_y % 5) || (mark_x % 5)) ? 0.05f : 0.2f;
+            // In dark mode (light text), we can use slightly higher alpha
+            if (grid_base_color.x > 0.5f)
+                alpha *= 1.5f;
+                
+            ImColor color = ImColor(grid_base_color.x, grid_base_color.y, grid_base_color.z, alpha);
             draw_list->AddCircleFilled(ImVec2(x, y) + nodes_imgui_window_pos_, 2.0f * scale_, color);
         }
     }
@@ -1454,8 +1461,17 @@ void ImGuiNodes::ProcessNodes()
 
     if (state_ == ImGuiNodesState_Selecting)
     {
-        draw_list->AddRectFilled(active_dragging_selection_area_.Min, active_dragging_selection_area_.Max, ImColor(1.0f, 1.0f, 0.0f, 0.1f));
-        draw_list->AddRect(active_dragging_selection_area_.Min, active_dragging_selection_area_.Max, ImColor(1.0f, 1.0f, 0.0f, 0.5f));
+        // Use the theme's NavHighlight color (usually blue) for selection in both modes
+        ImVec4 base_color = ImGui::GetStyle().Colors[ImGuiCol_NavHighlight];
+        
+        ImColor fill_color = base_color;
+        fill_color.Value.w = 0.2f;
+        
+        ImColor border_color = base_color;
+        border_color.Value.w = 0.8f;
+
+        draw_list->AddRectFilled(active_dragging_selection_area_.Min, active_dragging_selection_area_.Max, fill_color);
+        draw_list->AddRect(active_dragging_selection_area_.Min, active_dragging_selection_area_.Max, border_color);
     }
 
     ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
@@ -1545,15 +1561,14 @@ void ImGuiNodesInput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, 
 {
     if (state != ImGuiNodesState_Dragging && IS_SET(state_, ImGuiNodesConnectorStateFlag_Hovered) && !IS_SET(state_, ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget))
     {
-        const ImColor color = ImColor(1.0f, 1.0f, 1.0f, 0.3f);
-        draw_list->AddRectFilled((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, color);
+        draw_list->AddRectFilled((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImGui::GetColorU32(ImGuiCol_Text, 0.2f));
     }
 
     if (HAS_ANY_FLAG(state_, ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget | ImGuiNodesConnectorStateFlag_Dragging))
-        draw_list->AddRectFilled((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 0.3f));
+        draw_list->AddRectFilled((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImGui::GetColorU32(ImGuiCol_Text, 0.2f));
 
     if (IS_SET(state_, ImGuiNodesConnectorStateFlag_Selected))
-        draw_list->AddRect((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImColor(0.0f, 0.0f, 0.0f, 0.3f), 0.0f, 0, 2.0f * scale);
+        draw_list->AddRect((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImGui::GetColorU32(ImGuiCol_Text, 0.5f), 0.0f, 0, 2.0f * scale);
 
     bool consider_fill = false;
     consider_fill |= IS_SET(state_, ImGuiNodesConnectorStateFlag_Dragging);
@@ -1608,13 +1623,13 @@ ImGuiNodesOutput::ImGuiNodesOutput(const ImGuiNodesIdentifier& name)
 void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const
 {
     if (state != ImGuiNodesState_Dragging && IS_SET(state_, ImGuiNodesConnectorStateFlag_Hovered) && !IS_SET(state_, ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget))
-        draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 0.3f));
+        draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImGui::GetColorU32(ImGuiCol_Text, 0.2f));
 
     if (HAS_ANY_FLAG(state_, ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget | ImGuiNodesConnectorStateFlag_Dragging))
-        draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 0.3f));
+        draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImGui::GetColorU32(ImGuiCol_Text, 0.2f));
 
     if (IS_SET(state_, ImGuiNodesConnectorStateFlag_Selected))
-        draw_list->AddRect((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 0.3f), 0.0f, 0, 2.0f * scale);
+        draw_list->AddRect((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImGui::GetColorU32(ImGuiCol_Text, 0.5f), 0.0f, 0, 2.0f * scale);
 
     if (HAS_ANY_FLAG(state_, ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_Selected))
     {
