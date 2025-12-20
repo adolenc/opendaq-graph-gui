@@ -2097,8 +2097,10 @@ void ImGuiNodes::EndBatchAdd()
 
 void ImGuiNodes::RenderMinimap(ImDrawList* draw_list)
 {
-    draw_list->AddRectFilled(minimap_rect_.Min, minimap_rect_.Max, ImColor(0.1f, 0.1f, 0.1f, 0.5f));
-    draw_list->AddRect(minimap_rect_.Min, minimap_rect_.Max, ImColor(1.0f, 1.0f, 1.0f, 0.3f));
+    ImColor bg_color = ImGui::GetStyle().Colors[ImGuiCol_PopupBg];
+    bg_color.Value.w = 0.9f;
+    draw_list->AddRectFilled(minimap_rect_.Min, minimap_rect_.Max, bg_color);
+    draw_list->AddRect(minimap_rect_.Min, minimap_rect_.Max, ImGui::GetColorU32(ImGuiCol_Border));
 
     if (nodes_.empty()) return;
 
@@ -2157,7 +2159,9 @@ void ImGuiNodes::RenderMinimap(ImDrawList* draw_list)
         min = ImMax(min, minimap_rect_.Min);
         max = ImMin(max, minimap_rect_.Max);
 
-        draw_list->AddRect(min, max, ImColor(1.0f, 1.0f, 1.0f, 0.8f));
+        ImColor view_color = ImGui::GetStyle().Colors[ImGuiCol_Text];
+        view_color.Value.w = 0.8f;
+        draw_list->AddRect(min, max, view_color);
     }
 
     if (minimap_rect_.Contains(mouse_))
@@ -2175,7 +2179,9 @@ void ImGuiNodes::RenderMinimap(ImDrawList* draw_list)
         min = ImMax(min, minimap_rect_.Min);
         max = ImMin(max, minimap_rect_.Max);
 
-        draw_list->AddRect(min, max, ImColor(1.0f, 1.0f, 1.0f, 0.4f));
+        ImColor target_color = ImGui::GetStyle().Colors[ImGuiCol_Text];
+        target_color.Value.w = 0.4f;
+        draw_list->AddRect(min, max, target_color);
     }
 }
 
