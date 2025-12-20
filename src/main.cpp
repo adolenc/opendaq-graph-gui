@@ -209,10 +209,8 @@ int main(int argc, char** argv)
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.10f, 0.10f, 0.10f, 1.00f));
         ImGui::RenderNotifications();
         ImGui::PopStyleVar(2);
-        ImGui::PopStyleColor(1);
 
         ImGui::Render();
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
