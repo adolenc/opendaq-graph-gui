@@ -1566,11 +1566,11 @@ void ImGuiNodesInput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, 
 {
     if (state != ImGuiNodesState_Dragging && IS_SET(state_, ImGuiNodesConnectorStateFlag_Hovered) && !IS_SET(state_, ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget))
     {
-        draw_list->AddRectFilled((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImGui::GetColorU32(ImGuiCol_Text, 0.2f));
+        draw_list->AddRectFilled((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 0.5f));
     }
 
     if (HAS_ANY_FLAG(state_, ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget | ImGuiNodesConnectorStateFlag_Dragging))
-        draw_list->AddRectFilled((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImGui::GetColorU32(ImGuiCol_Text, 0.2f));
+        draw_list->AddRectFilled((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 0.5f));
 
     if (IS_SET(state_, ImGuiNodesConnectorStateFlag_Selected))
         draw_list->AddRect((area_input_.Min * scale) + offset, (area_input_.Max * scale) + offset, ImGui::GetColorU32(ImGuiCol_Text, 0.5f), 0.0f, 0, 2.0f * scale);
@@ -1628,10 +1628,10 @@ ImGuiNodesOutput::ImGuiNodesOutput(const ImGuiNodesIdentifier& name)
 void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const
 {
     if (state != ImGuiNodesState_Dragging && IS_SET(state_, ImGuiNodesConnectorStateFlag_Hovered) && !IS_SET(state_, ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget))
-        draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImGui::GetColorU32(ImGuiCol_Text, 0.2f));
+        draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 0.5f));
 
     if (HAS_ANY_FLAG(state_, ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget | ImGuiNodesConnectorStateFlag_Dragging))
-        draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImGui::GetColorU32(ImGuiCol_Text, 0.2f));
+        draw_list->AddRectFilled((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImColor(1.0f, 1.0f, 1.0f, 0.5f));
 
     if (IS_SET(state_, ImGuiNodesConnectorStateFlag_Selected))
         draw_list->AddRect((area_output_.Min * scale) + offset, (area_output_.Max * scale) + offset, ImGui::GetColorU32(ImGuiCol_Text, 0.5f), 0.0f, 0, 2.0f * scale);
