@@ -1374,7 +1374,7 @@ void ImGuiNodes::ProcessNodes()
                 ImColor color = IS_SET(node->state_, ImGuiNodesNodeStateFlag_Collapsed)
                     ? ImColor(0.4f, 0.4f, 0.4f, 0.1f)
                     : (!any_node_selected || IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected) || IS_SET(source_node->state_, ImGuiNodesNodeStateFlag_Selected))
-                    ? ImGuiNodes::connection_color_
+                    ? ImColor(ImGui::GetStyle().Colors[ImGuiCol_Text])
                     : ImColor(0.4f, 0.4f, 0.4f, 0.5f);
                 RenderConnection(p1, p4, color);
             }
@@ -1444,7 +1444,7 @@ void ImGuiNodes::ProcessNodes()
         {
             RenderConnection(ImVec2(active_dragging_connection_.x, active_dragging_connection_.y), 
                             ImVec2(active_dragging_connection_.z, active_dragging_connection_.w), 
-                            ImGuiNodes::connection_color_);
+                            ImColor(ImGui::GetStyle().Colors[ImGuiCol_Text]));
         }
     }
 
