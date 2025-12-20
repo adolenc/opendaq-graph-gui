@@ -227,23 +227,30 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
         }
     }
 
+    float grid_alpha_minor = 0.03f;
+    float grid_alpha_major = 0.06f;
+    if (UsingImGuiLightStyle())
+    {
+        grid_alpha_minor = 0.07f;
+        grid_alpha_major = 0.15f;
+    }
+    const ImVec4 grid_base_color = ImGui::GetStyle().Colors[ImGuiCol_Text];
+    const ImColor grid_color_minor = ImColor(grid_base_color.x, grid_base_color.y, grid_base_color.z, grid_alpha_minor);
+    const ImColor grid_color_major = ImColor(grid_base_color.x, grid_base_color.y, grid_base_color.z, grid_alpha_major);
     const float grid = 64.0f * scale_;
     for (float x = fmodf(scroll_.x, grid); x < nodes_imgui_window_size_.x; x += grid)
-    {		
-        for (float y = fmodf(scroll_.y, grid); y < nodes_imgui_window_size_.y; y += grid)
-        {
-            int mark_x = (int)((x - scroll_.x) / grid);
-            int mark_y = (int)((y - scroll_.y) / grid);
-            
-            ImVec4 grid_base_color = ImGui::GetStyle().Colors[ImGuiCol_Text];
-            float alpha = ((mark_y % 5) || (mark_x % 5)) ? 0.05f : 0.2f;
-
-            if (!UsingImGuiLightStyle())
-                alpha *= 1.5f;
-                
-            ImColor color = ImColor(grid_base_color.x, grid_base_color.y, grid_base_color.z, alpha);
-            draw_list->AddCircleFilled(ImVec2(x, y) + nodes_imgui_window_pos_, 2.0f * scale_, color);
-        }
+    {
+        if (x < 0.0f) continue;
+        int mark_x = (int)floorf((x - scroll_.x) / grid + 0.5f);
+        ImColor color = (mark_x % 5 == 0) ? grid_color_major : grid_color_minor;
+        draw_list->AddLine(ImVec2(x, 0.0f) + nodes_imgui_window_pos_, ImVec2(x, nodes_imgui_window_size_.y) + nodes_imgui_window_pos_, color);
+    }
+    for (float y = fmodf(scroll_.y, grid); y < nodes_imgui_window_size_.y; y += grid)
+    {
+        if (y < 0.0f) continue;
+        int mark_y = (int)floorf((y - scroll_.y) / grid + 0.5f);
+        ImColor color = (mark_y % 5 == 0) ? grid_color_major : grid_color_minor;
+        draw_list->AddLine(ImVec2(0.0f, y) + nodes_imgui_window_pos_, ImVec2(nodes_imgui_window_size_.x, y) + nodes_imgui_window_pos_, color);
     }
 }
 
