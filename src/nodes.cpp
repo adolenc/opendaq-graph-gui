@@ -1643,14 +1643,16 @@ void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale,
         active_btn_rect.Max *= scale;
         active_btn_rect.Translate(offset);
 
-        ImColor btn_color = ImColor(0.9f, 0.9f, 0.9f, 1.0f);
-        draw_list->AddRectFilled(active_btn_rect.Min, active_btn_rect.Max, btn_color, 0.0f);
-        draw_list->AddRect(active_btn_rect.Min, active_btn_rect.Max, ImGui::GetColorU32(ImGuiCol_Text, 0.3f));
+        bool hovered = active_btn_rect.Contains(ImGui::GetMousePos());
+        ImVec4 btn_color_v = ImGui::GetStyle().Colors[hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button];
+        if (hovered) { btn_color_v.x *= 1.1f; btn_color_v.y *= 1.1f; btn_color_v.z *= 1.1f; }
+        btn_color_v.w = 0.95f;
+        draw_list->AddRectFilled(active_btn_rect.Min, active_btn_rect.Max, ImGui::GetColorU32(btn_color_v), 0.0f);
         
         ImGui::SetWindowFontScale(scale * 0.7f);
         ImVec2 text_size = ImGui::CalcTextSize(ICON_FA_POWER_OFF);
         ImGui::SetCursorScreenPos(active_btn_rect.GetCenter() - text_size * 0.5f);
-        ImGui::TextColored(ImColor(0.2f, 0.2f, 0.2f, 1.0f), ICON_FA_POWER_OFF);
+        ImGui::TextColored(ImGui::GetStyle().Colors[ImGuiCol_Text], ICON_FA_POWER_OFF);
         ImGui::SetWindowFontScale(scale);
     }
 
@@ -1839,26 +1841,26 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
         active_btn_rect.Min *= scale;
         active_btn_rect.Max *= scale;
         active_btn_rect.Translate(offset);
-        ImColor btn_color = (state == ImGuiNodesState_HoveringActiveButton)
-            ? ImColor(1.0f, 1.0f, 1.0f, 1.0f)
-            : ImColor(0.9f, 0.9f, 0.9f, 1.0f);
-        draw_list->AddRectFilled(active_btn_rect.Min, active_btn_rect.Max, btn_color, 0.0f);
-        draw_list->AddRect(active_btn_rect.Min, active_btn_rect.Max, ImGui::GetColorU32(ImGuiCol_Text, 0.3f));
+        bool hovered = (state == ImGuiNodesState_HoveringActiveButton);
+        ImVec4 btn_color_v = ImGui::GetStyle().Colors[hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button];
+        if (hovered) { btn_color_v.x *= 1.1f; btn_color_v.y *= 1.1f; btn_color_v.z *= 1.1f; }
+        btn_color_v.w = 0.95f;
+        draw_list->AddRectFilled(active_btn_rect.Min, active_btn_rect.Max, ImGui::GetColorU32(btn_color_v), 0.0f);
         ImGui::SetWindowFontScale(scale * 0.75f);
         ImVec2 text_size = ImGui::CalcTextSize(ICON_FA_POWER_OFF);
         ImGui::SetCursorScreenPos(active_btn_rect.GetCenter() - text_size * 0.5f);
-        ImGui::TextColored(ImColor(0.2f, 0.2f, 0.2f, 1.0f), ICON_FA_POWER_OFF);
+        ImGui::TextColored(ImGui::GetStyle().Colors[ImGuiCol_Text], ICON_FA_POWER_OFF);
         ImGui::SetWindowFontScale(scale);
 
         ImRect trash_btn_rect = area_trash_button_;
         trash_btn_rect.Min *= scale;
         trash_btn_rect.Max *= scale;
         trash_btn_rect.Translate(offset);
-        btn_color = (state == ImGuiNodesState_HoveringTrashButton)
-            ? ImColor(1.0f, 1.0f, 1.0f, 1.0f)
-            : ImColor(0.9f, 0.9f, 0.9f, 1.0f);
-        draw_list->AddRectFilled(trash_btn_rect.Min, trash_btn_rect.Max, btn_color, 0.0f);
-        draw_list->AddRect(trash_btn_rect.Min, trash_btn_rect.Max, ImGui::GetColorU32(ImGuiCol_Text, 0.3f));
+        hovered = (state == ImGuiNodesState_HoveringTrashButton);
+        btn_color_v = ImGui::GetStyle().Colors[hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button];
+        if (hovered) { btn_color_v.x *= 1.1f; btn_color_v.y *= 1.1f; btn_color_v.z *= 1.1f; }
+        btn_color_v.w = 0.95f;
+        draw_list->AddRectFilled(trash_btn_rect.Min, trash_btn_rect.Max, ImGui::GetColorU32(btn_color_v), 0.0f);
         ImGui::SetWindowFontScale(scale * 0.75f);
         text_size = ImGui::CalcTextSize(ICON_FA_TRASH);
         ImGui::SetCursorScreenPos(trash_btn_rect.GetCenter() - text_size * 0.5f);
@@ -1869,15 +1871,15 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
         add_button_rect.Min *= scale;
         add_button_rect.Max *= scale;
         add_button_rect.Translate(offset);
-        btn_color = (state == ImGuiNodesState_HoveringAddButton)
-            ? ImColor(1.0f, 1.0f, 1.0f, 1.0f)
-            : ImColor(0.9f, 0.9f, 0.9f, 1.0f);
-        draw_list->AddRectFilled(add_button_rect.Min, add_button_rect.Max, btn_color, 0.0f);
-        draw_list->AddRect(add_button_rect.Min, add_button_rect.Max, ImGui::GetColorU32(ImGuiCol_Text, 0.3f));
+        hovered = (state == ImGuiNodesState_HoveringAddButton);
+        btn_color_v = ImGui::GetStyle().Colors[hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button];
+        if (hovered) { btn_color_v.x *= 1.1f; btn_color_v.y *= 1.1f; btn_color_v.z *= 1.1f; }
+        btn_color_v.w = 0.95f;
+        draw_list->AddRectFilled(add_button_rect.Min, add_button_rect.Max, ImGui::GetColorU32(btn_color_v), 0.0f);
         ImGui::SetWindowFontScale(scale * 1.2f);
         text_size = ImGui::CalcTextSize(ICON_FA_PLUS);
         ImGui::SetCursorScreenPos(add_button_rect.GetCenter() - text_size * 0.5f);
-        ImGui::TextColored(ImColor(0.2f, 0.2f, 0.2f, 1.0f), ICON_FA_PLUS);
+        ImGui::TextColored(ImGui::GetStyle().Colors[ImGuiCol_Text], ICON_FA_PLUS);
         ImGui::SetWindowFontScale(scale);
     }
 }
