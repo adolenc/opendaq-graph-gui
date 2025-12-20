@@ -13,6 +13,11 @@ using namespace ImGui;
 #define HAS_ANY_FLAG(state, flags)  ((state) & (flags))
 #define CLEAR_FLAGS(state, flags)   ((state) &= ~(flags))
 
+static bool UsingImGuiLightStyle()
+{
+    return ImGui::GetStyle().Colors[ImGuiCol_Text].x < 0.5f;
+}
+
 void ImGuiNodes::MoveSelectedNodesIntoView()
 {
     std::vector<ImGuiNodesNode*> selected_nodes;
@@ -232,8 +237,8 @@ void ImGuiNodes::UpdateCanvasGeometry(ImDrawList* draw_list)
             
             ImVec4 grid_base_color = ImGui::GetStyle().Colors[ImGuiCol_Text];
             float alpha = ((mark_y % 5) || (mark_x % 5)) ? 0.05f : 0.2f;
-            // In dark mode (light text), we can use slightly higher alpha
-            if (grid_base_color.x > 0.5f)
+
+            if (!UsingImGuiLightStyle())
                 alpha *= 1.5f;
                 
             ImColor color = ImColor(grid_base_color.x, grid_base_color.y, grid_base_color.z, alpha);
@@ -1818,7 +1823,7 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
 
     ImVec4 text_color = ImGui::GetStyle().Colors[ImGuiCol_Text];
     ImColor border_color = text_color;
-    border_color.Value.w = (text_color.x > 0.5f) ? 0.2f : 0.5f;
+    border_color.Value.w = UsingImGuiLightStyle() ? 0.5f : 0.2f;
     draw_list->AddRect(node_rect.Min - outline * 0.5f, node_rect.Max + outline * 0.5f, border_color, 0, 0, 3.0f * scale);
 
     if (HAS_ANY_FLAG(state_, ImGuiNodesNodeStateFlag_MarkedForSelection | ImGuiNodesNodeStateFlag_Selected))
@@ -2164,10 +2169,22 @@ void ImGuiNodes::RenderMinimap(ImDrawList* draw_list)
         if (IS_SET(node->state_, ImGuiNodesNodeStateFlag_Inactive))
             color = ImColor(0.5f, 0.5f, 0.5f);
         if (IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected))
-            color = ImColor(ImMin(color.Value.x + 0.3f, 1.0f),
-                            ImMin(color.Value.y + 0.3f, 1.0f),
-                            ImMin(color.Value.z + 0.3f, 1.0f),
-                            color.Value.w);
+        {
+            if (UsingImGuiLightStyle())
+            {
+                color = ImColor(ImMax(color.Value.x - 0.3f, 0.0f),
+                                ImMax(color.Value.y - 0.3f, 0.0f),
+                                ImMax(color.Value.z - 0.3f, 0.0f),
+                                color.Value.w);
+            }
+            else
+            {
+                color = ImColor(ImMin(color.Value.x + 0.3f, 1.0f),
+                                ImMin(color.Value.y + 0.3f, 1.0f),
+                                ImMin(color.Value.z + 0.3f, 1.0f),
+                                color.Value.w);
+            }
+        }
 
         draw_list->AddRectFilled(min, max, color);
     }
