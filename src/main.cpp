@@ -17,6 +17,7 @@
 int main(int argc, char** argv)
 {
     std::string connection_string;
+    bool light_mode = false;
     for (int i = 1; i < argc; i++)
     {
         std::string arg = argv[i];
@@ -32,11 +33,16 @@ int main(int argc, char** argv)
             i += 1;
             connection_string = argv[i];
         }
+        else if (arg == "--light-mode")
+        {
+            light_mode = true;
+        }
         else if (arg == "--help" || arg == "-h")
         {
             printf("Usage: %s [options]\n", argv[0]);
             printf("Options:\n");
             printf("  --connection-string, -c <string>   Connect directly to a device (usually daq.nd://<ip>).\n");
+            printf("  --light-mode                       Use light theme instead of dark theme.\n");
             printf("  --version, -v                      Show used openDAQ version.\n");
             printf("  --help, -h                         Show this help message.\n");
             return 0;
@@ -127,8 +133,16 @@ int main(int argc, char** argv)
         io.Fonts->AddFontFromFileTTF("fa-solid-900.ttf", 14.0f, &icons_config, icons_ranges);
     }
 
-    ImGui::StyleColorsDark();
-    ImPlot::StyleColorsDark();
+    if (light_mode)
+    {
+        ImGui::StyleColorsLight();
+        ImPlot::StyleColorsLight();
+    }
+    else
+    {
+        ImGui::StyleColorsDark();
+        ImPlot::StyleColorsDark();
+    }
     ImPlot::GetStyle().UseISO8601 = true;
 
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
