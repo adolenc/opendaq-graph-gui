@@ -128,6 +128,7 @@ int main(int argc, char** argv)
     }
 
     ImGui::StyleColorsDark();
+    ImPlot::StyleColorsDark();
     ImPlot::GetStyle().UseISO8601 = true;
 
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
