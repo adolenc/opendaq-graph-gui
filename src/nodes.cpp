@@ -1822,7 +1822,10 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
     draw_list->AddRect(node_rect.Min - outline * 0.5f, node_rect.Max + outline * 0.5f, border_color, 0, 0, 3.0f * scale);
 
     if (HAS_ANY_FLAG(state_, ImGuiNodesNodeStateFlag_MarkedForSelection | ImGuiNodesNodeStateFlag_Selected))
-        draw_list->AddRect(node_rect.Min - outline*1.5f, node_rect.Max + outline*1.5f, color, 0, 0, 2.0f * scale);
+    {
+        ImColor selection_color = ImGui::GetStyle().Colors[ImGuiCol_NavHighlight];
+        draw_list->AddRect(node_rect.Min - outline*1.5f, node_rect.Max + outline*1.5f, selection_color, 0, 0, 3.0f * scale);
+    }
 
     if (IS_SET(state_, ImGuiNodesNodeStateFlag_Hovered))
     {
