@@ -214,6 +214,7 @@ void SignalsWindow::Render()
             std::string label = signal.live.signal_name_;
             if (!signal.live.signal_unit_.empty())
                 label += " [" + signal.live.signal_unit_ + "]";
+            label += "##" + signal.live.signal_id_;
 
             if (is_paused_)
             {
