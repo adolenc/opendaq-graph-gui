@@ -97,6 +97,7 @@ struct ImGuiNodesInput
     std::string name_;
     ImGuiNodesNode* source_node_;
     ImGuiNodesOutput* source_output_;
+    std::optional<ImColor> connection_color_;
 
     ImGuiNodesInput(const ImGuiNodesIdentifier& name);
     void TranslateInput(ImVec2 delta);
@@ -182,7 +183,8 @@ public:
                  ImGuiNodesUid parent_uid = "");
     void BeginBatchAdd();
     void EndBatchAdd();
-    void AddConnection(const ImGuiNodesUid& output_uid, const ImGuiNodesUid& input_uid);
+    void AddConnection(const ImGuiNodesUid& output_uid, const ImGuiNodesUid& input_uid, std::optional<ImColor> color = std::nullopt);
+    void SetConnectionColor(const ImGuiNodesUid& input_uid, std::optional<ImColor> color);
     void RemoveConnection(const ImGuiNodesUid& input_uid);
     void SetWarning(const ImGuiNodesUid& uid, const std::string& message);
     void SetError(const ImGuiNodesUid& uid, const std::string& message);

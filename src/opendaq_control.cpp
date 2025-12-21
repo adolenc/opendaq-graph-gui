@@ -68,6 +68,19 @@ void OpenDAQNodeEditor::Init()
             signals_window_.UpdateSignalColor(component_id, color);
             for (auto& w : cloned_signals_windows_)
                 w->UpdateSignalColor(component_id, color);
+
+            for (const auto& [input_id, cached_input] : input_ports_)
+            {
+                if (cached_input->component_.assigned())
+                {
+                    if (daq::InputPortPtr input_port = castTo<daq::IInputPort>(cached_input->component_); input_port.assigned())
+                    {
+                        daq::SignalPtr signal = input_port.getSignal();
+                        if (signal.assigned() && signal.getGlobalId().toStdString() == component_id)
+                            nodes_->SetConnectionColor(input_id, color);
+                    }
+                }
+            }
         }
     };
 }
@@ -219,7 +232,7 @@ void OpenDAQNodeEditor::RetrieveConnections()
         {
             daq::SignalPtr connected_signal = input_port.getSignal();
             std::string signal_uid = connected_signal.getGlobalId().toStdString();
-            nodes_->AddConnection(signal_uid, input_uid);
+            nodes_->AddConnection(signal_uid, input_uid, GetSignalColor(signal_uid));
         }
     }
 }
@@ -241,7 +254,7 @@ void OpenDAQNodeEditor::RebuildNodeConnections(const std::string& node_id)
                 {
                     daq::SignalPtr signal = input_port.getSignal();
                     std::string signal_id = signal.getGlobalId().toStdString();
-                    nodes_->AddConnection(signal_id, input_id);
+                    nodes_->AddConnection(signal_id, input_id, GetSignalColor(signal_id));
                 }
             }
         }

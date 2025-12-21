@@ -1434,8 +1434,8 @@ void ImGuiNodes::ProcessNodes()
                 ImColor color = IS_SET(node->state_, ImGuiNodesNodeStateFlag_Collapsed)
                     ? ImColor(0.4f, 0.4f, 0.4f, 0.1f)
                     : (!any_node_selected || IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected) || IS_SET(source_node->state_, ImGuiNodesNodeStateFlag_Selected))
-                    ? ImColor(ImGui::GetStyle().Colors[ImGuiCol_Text])
-                    : ImColor(0.4f, 0.4f, 0.4f, 0.5f);
+                    ? (input.connection_color_.has_value() ? input.connection_color_.value() : ImColor(ImGui::GetStyle().Colors[ImGuiCol_Text]))
+                    : (input.connection_color_.has_value() ? ImColor(input.connection_color_.value().Value.x, input.connection_color_.value().Value.y, input.connection_color_.value().Value.z, 0.5f) : ImColor(0.4f, 0.4f, 0.4f, 0.5f));
                 RenderConnection(p1, p4, color);
             }
         }
@@ -2050,7 +2050,7 @@ void ImGuiNodes::Clear()
     outputs_by_uid_.clear();
 }
 
-void ImGuiNodes::AddConnection(const ImGuiNodesUid& output_uid, const ImGuiNodesUid& input_uid)
+void ImGuiNodes::AddConnection(const ImGuiNodesUid& output_uid, const ImGuiNodesUid& input_uid, std::optional<ImColor> color)
 {
     auto input_it = inputs_by_uid_.find(input_uid);
     auto output_it = outputs_by_uid_.find(output_uid);
@@ -2066,7 +2066,17 @@ void ImGuiNodes::AddConnection(const ImGuiNodesUid& output_uid, const ImGuiNodes
         
         input->source_node_ = source_node;
         input->source_output_ = output;
+        input->connection_color_ = color;
         output->connections_count_++;
+    }
+}
+
+void ImGuiNodes::SetConnectionColor(const ImGuiNodesUid& input_uid, std::optional<ImColor> color)
+{
+    if (auto input_it = inputs_by_uid_.find(input_uid); input_it != inputs_by_uid_.end())
+    {
+        ImGuiNodesInput* input = input_it->second;
+        input->connection_color_ = color;
     }
 }
 
