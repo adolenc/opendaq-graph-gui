@@ -8,6 +8,7 @@
 #include "imgui_impl_opengl3.h"
 #include "opendaq_control.h"
 #include "nodes.h"
+#include "im_anim.h"
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include <opendaq/version.h>
@@ -171,6 +172,7 @@ int main(int argc, char** argv)
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
+        iam_update_begin_frame();
 
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->WorkPos);
