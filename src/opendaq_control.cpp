@@ -337,6 +337,9 @@ void OpenDAQNodeEditor::OnOutputHover(const ImGui::ImGuiNodesUid& id)
 
     if (ImGui::BeginTooltip())
     {
+        ImVec4 signal_color = GetSignalColor(id);
+        ImGui::ColorButton("##SignalColor", signal_color, ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoOptions, ImVec2(ImGui::GetTextLineHeight(), ImGui::GetTextLineHeight()));
+        ImGui::SameLine();
         ImGui::Text("%s [%s]", signal_preview.signal_name_.c_str(), signal_preview.signal_unit_.c_str());
         
         static ImPlotAxisFlags flags = ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_ShowEdgeLabels;
@@ -347,11 +350,11 @@ void OpenDAQNodeEditor::OnOutputHover(const ImGui::ImGuiNodesUid& id)
             ImPlot::SetupAxisLimits(ImAxis_X1, signal_preview.end_time_seconds_ - 2.0, signal_preview.end_time_seconds_, ImGuiCond_Always);
             ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
             
-            ImVec4 color = GetSignalColor(id);
+            ImVec4 plot_color = ImPlot::GetColormapColor(0);
 
             if (signal_preview.signal_type_ == SignalType::DomainAndValue)
             {
-                ImPlot::SetNextFillStyle(color, 0.3);
+                ImPlot::SetNextFillStyle(plot_color, 0.3);
                 ImPlot::PlotShaded("Uncertain Data", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_min_.data(), signal_preview.plot_values_max_.data(), (int)signal_preview.points_in_plot_buffer_, 0, signal_preview.pos_in_plot_buffer_);
             }
             else
@@ -361,7 +364,7 @@ void OpenDAQNodeEditor::OnOutputHover(const ImGui::ImGuiNodesUid& id)
                 ImPlot::SetupAxis(ImAxis_Y1, "", ImPlotAxisFlags_AutoFit);
                 ImPlot::SetupAxisTicks(ImAxis_Y1, dummy_ticks, 1, dummy_labels, false);
             }
-            ImPlot::SetNextLineStyle(color);
+            ImPlot::SetNextLineStyle(plot_color);
             ImPlot::PlotLine("", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_avg_.data(), (int)signal_preview.points_in_plot_buffer_, 0, signal_preview.pos_in_plot_buffer_);
             ImPlot::EndPlot();
         }
