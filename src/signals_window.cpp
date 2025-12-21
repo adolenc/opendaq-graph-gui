@@ -194,29 +194,31 @@ void SignalsWindow::Render()
                 max_end_time = ImMax(max_end_time, signal.live.end_time_seconds_);
         }
         ImPlot::SetupAxisLimits(ImAxis_X1, max_end_time - seconds_shown_, max_end_time, ImGuiCond_Always);
-
         ImPlot::SetupAxisLimits(ImAxis_Y1, total_min_, total_max_);
-
+        int color_idx = 0;
         for (auto& [_, signal] : signals_map_)
         {
             std::string label = signal.live.signal_name_;
             if (!signal.live.signal_unit_.empty())
                 label += " [" + signal.live.signal_unit_ + "]";
-                
+
+            ImVec4 color = ImPlot::GetColormapColor(color_idx); // TODO: change to the signal color
+
             if (is_paused_)
             {
-                // ImPlot::SetNextFillStyle(ImColor(0xff66ffff), 0.3);
-                ImPlot::PlotShaded(label.c_str(), signal.paused.plot_times_seconds_.data(), signal.paused.plot_values_min_.data(), signal.paused.plot_values_max_.data(), (int)signal.paused.points_in_plot_buffer_, 0, signal.paused.pos_in_plot_buffer_);
-                // ImPlot::SetNextLineStyle(ImColor(0xff66ffff));
+                ImPlot::SetNextLineStyle(color);
                 ImPlot::PlotLine(label.c_str(), signal.paused.plot_times_seconds_.data(), signal.paused.plot_values_avg_.data(), (int)signal.paused.points_in_plot_buffer_, 0, signal.paused.pos_in_plot_buffer_);
+                ImPlot::SetNextFillStyle(color, 0.25f);
+                ImPlot::PlotShaded(label.c_str(), signal.paused.plot_times_seconds_.data(), signal.paused.plot_values_min_.data(), signal.paused.plot_values_max_.data(), (int)signal.paused.points_in_plot_buffer_, (ImPlotShadedFlags)ImPlotItemFlags_NoLegend, signal.paused.pos_in_plot_buffer_);
             }
             else
             {
-                // ImPlot::SetNextFillStyle(ImColor(0xff66ffff), 0.3);
-                ImPlot::PlotShaded(label.c_str(), signal.live.plot_times_seconds_.data(), signal.live.plot_values_min_.data(), signal.live.plot_values_max_.data(), (int)signal.live.points_in_plot_buffer_, 0, signal.live.pos_in_plot_buffer_);
-                // ImPlot::SetNextLineStyle(ImColor(0xff66ffff));
+                ImPlot::SetNextLineStyle(color);
                 ImPlot::PlotLine(label.c_str(), signal.live.plot_times_seconds_.data(), signal.live.plot_values_avg_.data(), (int)signal.live.points_in_plot_buffer_, 0, signal.live.pos_in_plot_buffer_);
+                ImPlot::SetNextFillStyle(color, 0.25f);
+                ImPlot::PlotShaded(label.c_str(), signal.live.plot_times_seconds_.data(), signal.live.plot_values_min_.data(), signal.live.plot_values_max_.data(), (int)signal.live.points_in_plot_buffer_, (ImPlotShadedFlags)ImPlotItemFlags_NoLegend, signal.live.pos_in_plot_buffer_);
             }
+            color_idx++;
         }
 
         ImPlot::EndPlot();
