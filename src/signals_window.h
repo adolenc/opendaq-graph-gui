@@ -7,22 +7,10 @@
 #include "signal.h"
 #include "component_cache.h"
 
-struct PausedSignalData
-{
-    std::vector<double> values_avg;
-    std::vector<double> values_min;
-    std::vector<double> values_max;
-    std::vector<double> times_seconds;
-
-    size_t pos_in_buffer = 0;
-    size_t points_in_buffer = 0;
-    double end_time_seconds = 0;
-};
-
 struct Signal
 {
     OpenDAQSignal live;
-    PausedSignalData paused;
+    OpenDAQSignal paused;
 };
 
 class SignalsWindow

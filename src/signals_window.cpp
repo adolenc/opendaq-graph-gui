@@ -10,7 +10,7 @@ SignalsWindow::SignalsWindow(const SignalsWindow& other)
 {
     for (const auto& [id, signal] : other.signals_map_)
     {
-        signals_map_[id] = { OpenDAQSignal(signal.live.signal_, 5.0, 5000), PausedSignalData() };
+        signals_map_[id] = { OpenDAQSignal(signal.live.signal_, 5.0, 5000), OpenDAQSignal() };
     }
 
     is_cloned_ = true;
@@ -41,7 +41,7 @@ void SignalsWindow::RestoreSelection(const std::unordered_map<std::string, std::
         std::string signal_id = signal.getGlobalId().toStdString();
         selected_signal_ids.insert(signal_id);
         if (signals_map_.find(signal_id) == signals_map_.end())
-            signals_map_[signal_id] = { OpenDAQSignal(signal, 5.0, 5000), PausedSignalData() };
+            signals_map_[signal_id] = { OpenDAQSignal(signal, 5.0, 5000), OpenDAQSignal() };
     };
 
     for (const auto& id : selected_component_ids_)
@@ -148,14 +148,7 @@ void SignalsWindow::Render()
         {
             for (auto& [_, signal] : signals_map_)
             {
-                signal.paused.values_avg = signal.live.plot_values_avg_;
-                signal.paused.values_min = signal.live.plot_values_min_;
-                signal.paused.values_max = signal.live.plot_values_max_;
-                signal.paused.times_seconds = signal.live.plot_times_seconds_;
-
-                signal.paused.points_in_buffer = signal.live.points_in_plot_buffer_;
-                signal.paused.pos_in_buffer = signal.live.pos_in_plot_buffer_;
-                signal.paused.end_time_seconds = signal.live.end_time_seconds_;
+                signal.paused = signal.live;
             }
         }
     }
@@ -186,7 +179,7 @@ void SignalsWindow::Render()
         for (auto& [_, signal] : signals_map_)
         {
             if (is_paused_)
-                max_end_time = ImMax(max_end_time, signal.paused.end_time_seconds);
+                max_end_time = ImMax(max_end_time, signal.paused.end_time_seconds_);
             else
                 max_end_time = ImMax(max_end_time, signal.live.end_time_seconds_);
         }
@@ -203,9 +196,9 @@ void SignalsWindow::Render()
             if (is_paused_)
             {
                 // ImPlot::SetNextFillStyle(ImColor(0xff66ffff), 0.3);
-                ImPlot::PlotShaded(label.c_str(), signal.paused.times_seconds.data(), signal.paused.values_min.data(), signal.paused.values_max.data(), (int)signal.paused.points_in_buffer, 0, signal.paused.pos_in_buffer);
+                ImPlot::PlotShaded(label.c_str(), signal.paused.plot_times_seconds_.data(), signal.paused.plot_values_min_.data(), signal.paused.plot_values_max_.data(), (int)signal.paused.points_in_plot_buffer_, 0, signal.paused.pos_in_plot_buffer_);
                 // ImPlot::SetNextLineStyle(ImColor(0xff66ffff));
-                ImPlot::PlotLine(label.c_str(), signal.paused.times_seconds.data(), signal.paused.values_avg.data(), (int)signal.paused.points_in_buffer, 0, signal.paused.pos_in_buffer);
+                ImPlot::PlotLine(label.c_str(), signal.paused.plot_times_seconds_.data(), signal.paused.plot_values_avg_.data(), (int)signal.paused.points_in_plot_buffer_, 0, signal.paused.pos_in_plot_buffer_);
             }
             else
             {
