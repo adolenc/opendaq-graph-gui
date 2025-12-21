@@ -1365,8 +1365,6 @@ void ImGuiNodes::ProcessNodes()
 
     const ImVec2 offset = nodes_imgui_window_pos_ + scroll_;
 
-    ImGui::SetWindowFontScale(scale_);
-
     if (HAS_ANY_FLAG(state_, ImGuiNodesState_HoveringNode | ImGuiNodesState_HoveringInput | ImGuiNodesState_HoveringOutput | ImGuiNodesState_HoveringAddButton | ImGuiNodesState_HoveringActiveButton | ImGuiNodesState_HoveringTrashButton | ImGuiNodesState_HoveringOutputActiveButton | ImGuiNodesState_Dragging | ImGuiNodesState_DraggingInput | ImGuiNodesState_DraggingOutput | ImGuiNodesState_DraggingParentConnection))
     {
         for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
@@ -1512,8 +1510,6 @@ void ImGuiNodes::ProcessNodes()
 
     RenderMinimap(draw_list);
 
-    ImGui::SetWindowFontScale(1.0f);
-
     if (state_ == ImGuiNodesState_Selecting)
     {
         // Use the theme's NavHighlight color (usually blue) for selection in both modes
@@ -1612,6 +1608,22 @@ ImGuiNodesInput::ImGuiNodesInput(const ImGuiNodesIdentifier& name)
     area_name_.Translate(offset);
 }
 
+static void DrawTextScaled(ImDrawList* draw_list, ImVec2 pos, float scale, ImU32 color, const char* text, float font_scale_multiplier = 1.0f)
+{
+    ImFont* font = ImGui::GetFont();
+    float font_size = ImGui::GetFontSize() * scale * font_scale_multiplier;
+    draw_list->AddText(font, font_size, pos, color, text);
+}
+
+static void DrawTextCenteredScaled(ImDrawList* draw_list, ImVec2 center, float scale, ImU32 color, const char* text, float font_scale_multiplier = 1.0f)
+{
+    ImFont* font = ImGui::GetFont();
+    float font_size = ImGui::GetFontSize() * scale * font_scale_multiplier;
+    ImVec2 text_size = font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, text);
+    ImVec2 pos = center - text_size * 0.5f;
+    draw_list->AddText(font, font_size, pos, color, text);
+}
+
 void ImGuiNodesInput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const
 {
     if (state != ImGuiNodesState_Dragging && IS_SET(state_, ImGuiNodesConnectorStateFlag_Hovered) && !IS_SET(state_, ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget))
@@ -1632,9 +1644,7 @@ void ImGuiNodesInput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, 
     if (consider_fill)
         draw_list->AddCircleFilled((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImColor(ImGui::GetStyle().Colors[ImGuiCol_Text]));
     draw_list->AddCircle((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImGuiNodes::text_color_);
-
-    ImGui::SetCursorScreenPos((area_name_.Min * scale) + offset);
-    ImGui::TextColored(ImGuiNodes::text_color_, "%s", name_.c_str());
+    DrawTextScaled(draw_list, (area_name_.Min * scale) + offset, scale, ImGui::GetColorU32(ImGuiNodes::text_color_.Value), name_.c_str());
 }
 
 void ImGuiNodesOutput::TranslateOutput(ImVec2 delta)
@@ -1698,12 +1708,7 @@ void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale,
         if (hovered) { btn_color_v.x *= 1.1f; btn_color_v.y *= 1.1f; btn_color_v.z *= 1.1f; }
         btn_color_v.w = 0.95f;
         draw_list->AddRectFilled(active_btn_rect.Min, active_btn_rect.Max, ImGui::GetColorU32(btn_color_v), 0.0f);
-        
-        ImGui::SetWindowFontScale(scale * 0.7f);
-        ImVec2 text_size = ImGui::CalcTextSize(ICON_FA_POWER_OFF);
-        ImGui::SetCursorScreenPos(active_btn_rect.GetCenter() - text_size * 0.5f);
-        ImGui::TextColored(ImGui::GetStyle().Colors[ImGuiCol_Text], ICON_FA_POWER_OFF);
-        ImGui::SetWindowFontScale(scale);
+        DrawTextCenteredScaled(draw_list, active_btn_rect.GetCenter(), scale, ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_Text]), ICON_FA_POWER_OFF, 0.7f);
     }
 
     bool consider_fill = false;
@@ -1714,9 +1719,8 @@ void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale,
         draw_list->AddCircleFilled((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImColor(ImGui::GetStyle().Colors[ImGuiCol_Text]));
     draw_list->AddCircle((pos_ * scale) + offset, (ImGuiNodesConnectorDotDiameter * 0.5f) * area_name_.GetHeight() * scale, ImGuiNodes::text_color_);
 
-    ImGui::SetCursorScreenPos((area_name_.Min * scale) + offset);
     ImColor text_color = IS_SET(state_, ImGuiNodesConnectorStateFlag_Inactive) ? ImColor(0.6f, 0.6f, 0.6f, 1.0f) : ImGuiNodes::text_color_;
-    ImGui::TextColored(text_color, "%s", name_.c_str());
+    DrawTextScaled(draw_list, (area_name_.Min * scale) + offset, scale, ImGui::GetColorU32(text_color.Value), name_.c_str());
 }
 
 void ImGuiNodesNode::TranslateNode(ImVec2 delta, bool selected_only)
@@ -1871,8 +1875,7 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
             outputs_[output_idx].Render(draw_list, offset, scale, state);
     }
 
-    ImGui::SetCursorScreenPos((area_name_.Min * scale) + offset);
-    ImGui::TextColored(ImGuiNodes::text_color_, "%s", name_.c_str());
+    DrawTextScaled(draw_list, (area_name_.Min * scale) + offset, scale, ImGui::GetColorU32(ImGuiNodes::text_color_.Value), name_.c_str());
 
     ImVec4 text_color = ImGui::GetStyle().Colors[ImGuiCol_Text];
     ImColor border_color = text_color;
@@ -1896,11 +1899,7 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
         if (hovered) { btn_color_v.x *= 1.1f; btn_color_v.y *= 1.1f; btn_color_v.z *= 1.1f; }
         btn_color_v.w = 0.95f;
         draw_list->AddRectFilled(active_btn_rect.Min, active_btn_rect.Max, ImGui::GetColorU32(btn_color_v), 0.0f);
-        ImGui::SetWindowFontScale(scale * 0.75f);
-        ImVec2 text_size = ImGui::CalcTextSize(ICON_FA_POWER_OFF);
-        ImGui::SetCursorScreenPos(active_btn_rect.GetCenter() - text_size * 0.5f);
-        ImGui::TextColored(ImGui::GetStyle().Colors[ImGuiCol_Text], ICON_FA_POWER_OFF);
-        ImGui::SetWindowFontScale(scale);
+        DrawTextCenteredScaled(draw_list, active_btn_rect.GetCenter(), scale, ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_Text]), ICON_FA_POWER_OFF, 0.75f);
 
         ImRect trash_btn_rect = area_trash_button_;
         trash_btn_rect.Min *= scale;
@@ -1911,11 +1910,7 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
         if (hovered) { btn_color_v.x *= 1.1f; btn_color_v.y *= 1.1f; btn_color_v.z *= 1.1f; }
         btn_color_v.w = 0.95f;
         draw_list->AddRectFilled(trash_btn_rect.Min, trash_btn_rect.Max, ImGui::GetColorU32(btn_color_v), 0.0f);
-        ImGui::SetWindowFontScale(scale * 0.75f);
-        text_size = ImGui::CalcTextSize(ICON_FA_TRASH);
-        ImGui::SetCursorScreenPos(trash_btn_rect.GetCenter() - text_size * 0.5f);
-        ImGui::TextColored(ImColor(0.8f, 0.1f, 0.1f, 1.0f), ICON_FA_TRASH);
-        ImGui::SetWindowFontScale(scale);
+        DrawTextCenteredScaled(draw_list, trash_btn_rect.GetCenter(), scale, ImGui::GetColorU32(ImVec4(0.8f, 0.1f, 0.1f, 1.0f)), ICON_FA_TRASH, 0.75f);
 
         ImRect add_button_rect = area_add_button_;
         add_button_rect.Min *= scale;
@@ -1926,11 +1921,7 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
         if (hovered) { btn_color_v.x *= 1.1f; btn_color_v.y *= 1.1f; btn_color_v.z *= 1.1f; }
         btn_color_v.w = 0.95f;
         draw_list->AddRectFilled(add_button_rect.Min, add_button_rect.Max, ImGui::GetColorU32(btn_color_v), 0.0f);
-        ImGui::SetWindowFontScale(scale * 1.2f);
-        text_size = ImGui::CalcTextSize(ICON_FA_PLUS);
-        ImGui::SetCursorScreenPos(add_button_rect.GetCenter() - text_size * 0.5f);
-        ImGui::TextColored(ImGui::GetStyle().Colors[ImGuiCol_Text], ICON_FA_PLUS);
-        ImGui::SetWindowFontScale(scale);
+        DrawTextCenteredScaled(draw_list, add_button_rect.GetCenter(), scale, ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_Text]), ICON_FA_PLUS, 1.2f);
     }
 }
 
