@@ -40,6 +40,7 @@ public:
 
     void RenderFunctionBlockOptions(daq::ComponentPtr parent_component, const std::string& parent_id, std::optional<ImVec2> position);
     void RenderDeviceOptions(daq::ComponentPtr parent_component, const std::string& parent_id, std::optional<ImVec2> position);
+    ImVec4 GetSignalColor(const std::string& signal_id);
 
     daq::InstancePtr instance_;
     std::unordered_map<std::string, std::unique_ptr<CachedComponent>> all_components_;
@@ -68,6 +69,8 @@ public:
     TreeViewWindow tree_view_window_;
 
     int next_color_index_ = 1;
+    int next_signal_color_index_ = 0;
+    std::unordered_map<std::string, ImVec4> signal_colors_;
 
     std::mutex event_mutex_;
     std::vector<std::pair<daq::ComponentPtr, daq::CoreEventArgsPtr>> event_id_queue_;

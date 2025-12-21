@@ -56,6 +56,10 @@ void OpenDAQNodeEditor::Init()
             nodes_->MoveSelectedNodesIntoView();
             OnSelectionChanged(ids);
         };
+
+    signals_window_.get_signal_color_callback_ = [this](const std::string& signal_id) {
+        return GetSignalColor(signal_id);
+    };
 }
 
 void OpenDAQNodeEditor::UpdateSignalsActiveState(CachedComponent* cached)
@@ -330,9 +334,12 @@ void OpenDAQNodeEditor::OnOutputHover(const ImGui::ImGuiNodesUid& id)
             ImPlot::SetupAxisLimits(ImAxis_Y1, -5, 5);
             ImPlot::SetupAxisLimits(ImAxis_X1, signal_preview.end_time_seconds_ - 2.0, signal_preview.end_time_seconds_, ImGuiCond_Always);
             ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
+            
+            ImVec4 color = GetSignalColor(id);
+
             if (signal_preview.signal_type_ == SignalType::DomainAndValue)
             {
-                ImPlot::SetNextFillStyle(ImColor(0xff66ffff), 0.3);
+                ImPlot::SetNextFillStyle(color, 0.3);
                 ImPlot::PlotShaded("Uncertain Data", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_min_.data(), signal_preview.plot_values_max_.data(), (int)signal_preview.points_in_plot_buffer_, 0, signal_preview.pos_in_plot_buffer_);
             }
             else
@@ -342,7 +349,7 @@ void OpenDAQNodeEditor::OnOutputHover(const ImGui::ImGuiNodesUid& id)
                 ImPlot::SetupAxis(ImAxis_Y1, "", ImPlotAxisFlags_AutoFit);
                 ImPlot::SetupAxisTicks(ImAxis_Y1, dummy_ticks, 1, dummy_labels, false);
             }
-            ImPlot::SetNextLineStyle(ImColor(0xff66ffff));
+            ImPlot::SetNextLineStyle(color);
             ImPlot::PlotLine("", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_avg_.data(), (int)signal_preview.points_in_plot_buffer_, 0, signal_preview.pos_in_plot_buffer_);
             ImPlot::EndPlot();
         }
@@ -992,4 +999,14 @@ void OpenDAQNodeEditor::Render()
             ++it;
     }
     tree_view_window_.Render(all_components_[instance_.getGlobalId().toStdString()].get(), all_components_);
+}
+
+ImVec4 OpenDAQNodeEditor::GetSignalColor(const std::string& signal_id)
+{
+    if (auto it = signal_colors_.find(signal_id); it != signal_colors_.end())
+        return it->second;
+
+    ImVec4 color = ImPlot::GetColormapColor(next_signal_color_index_++);
+    signal_colors_[signal_id] = color;
+    return color;
 }

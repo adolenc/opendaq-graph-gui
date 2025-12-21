@@ -22,6 +22,7 @@ SignalsWindow::SignalsWindow(const SignalsWindow& other)
     seconds_shown_ = other.seconds_shown_;
     plot_unique_id_ = other.plot_unique_id_;
     on_reselect_click_ = other.on_reselect_click_;
+    get_signal_color_callback_ = other.get_signal_color_callback_;
 }
 
 void SignalsWindow::OnSelectionChanged(const std::vector<std::string>& selected_ids, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
@@ -202,7 +203,11 @@ void SignalsWindow::Render()
             if (!signal.live.signal_unit_.empty())
                 label += " [" + signal.live.signal_unit_ + "]";
 
-            ImVec4 color = ImPlot::GetColormapColor(color_idx); // TODO: change to the signal color
+            ImVec4 color;
+            if (get_signal_color_callback_)
+                color = get_signal_color_callback_(signal.live.signal_id_);
+            else
+                color = ImPlot::GetColormapColor(color_idx);
 
             if (is_paused_)
             {

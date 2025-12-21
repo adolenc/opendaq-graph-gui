@@ -4,8 +4,8 @@
 #include <string>
 #include <functional>
 #include <memory>
-#include "signal.h"
 #include "component_cache.h"
+#include "signal.h"
 
 struct Signal
 {
@@ -26,6 +26,7 @@ public:
     
     std::function<void(SignalsWindow*)> on_clone_click_;
     std::function<void(const std::vector<std::string>&)> on_reselect_click_;
+    std::function<ImVec4(const std::string&)> get_signal_color_callback_;
     bool is_open_ = true;
 
 private:
