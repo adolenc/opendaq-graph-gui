@@ -15,8 +15,9 @@ class OpenDAQSignal
 {
 public:
     OpenDAQSignal() {};
-    OpenDAQSignal(daq::SignalPtr signal, float seconds_shown, int max_points);
+    OpenDAQSignal(daq::SignalPtr signal, float seconds_shown, int max_points = 2000);
     void Update();
+    void UpdateConfiguration(float seconds_shown, int max_points);
     void RebuildIfInvalid(daq::SignalPtr signal, float seconds_shown, int max_points);
     void RebuildIfInvalid(daq::SignalPtr signal);
     void RebuildIfInvalid();
@@ -36,6 +37,9 @@ public:
     float value_range_max_ = 5.0f;
     SignalType signal_type_;
     daq::SignalPtr signal_;
+
+    float seconds_shown_ = 5.0f;
+    int max_points_ = 2000;
 
 private:
     void ReadDomainAndValue();

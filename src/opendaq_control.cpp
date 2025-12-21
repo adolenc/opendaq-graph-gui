@@ -314,7 +314,7 @@ void OpenDAQNodeEditor::OnOutputHover(const ImGui::ImGuiNodesUid& id)
         // reinitialization with a new signal
         last_id = id;
         daq::SignalPtr signal = castTo<daq::ISignal>(signals_[id]->component_);
-        signal_preview = OpenDAQSignal(signal, 2.0, 1000);
+        signal_preview = OpenDAQSignal(signal, 2.0, 800);
     }
 
     signal_preview.Update();

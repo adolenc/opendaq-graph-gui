@@ -10,7 +10,7 @@ SignalsWindow::SignalsWindow(const SignalsWindow& other)
 {
     for (const auto& [id, signal] : other.signals_map_)
     {
-        signals_map_[id] = { OpenDAQSignal(signal.live.signal_, 5.0, 5000), OpenDAQSignal() };
+        signals_map_[id] = { OpenDAQSignal(signal.live.signal_, other.seconds_shown_), OpenDAQSignal() };
     }
 
     is_cloned_ = true;
@@ -19,6 +19,7 @@ SignalsWindow::SignalsWindow(const SignalsWindow& other)
 
     total_min_ = other.total_min_;
     total_max_ = other.total_max_;
+    seconds_shown_ = other.seconds_shown_;
     plot_unique_id_ = other.plot_unique_id_;
     on_reselect_click_ = other.on_reselect_click_;
 }
@@ -41,7 +42,7 @@ void SignalsWindow::RestoreSelection(const std::unordered_map<std::string, std::
         std::string signal_id = signal.getGlobalId().toStdString();
         selected_signal_ids.insert(signal_id);
         if (signals_map_.find(signal_id) == signals_map_.end())
-            signals_map_[signal_id] = { OpenDAQSignal(signal, 5.0, 5000), OpenDAQSignal() };
+            signals_map_[signal_id] = { OpenDAQSignal(signal, seconds_shown_), OpenDAQSignal() };
     };
 
     for (const auto& id : selected_component_ids_)
@@ -156,6 +157,11 @@ void SignalsWindow::Render()
         ImGui::SetTooltip(is_paused_ ? "Resume updating signals" : "Pause updating signals");
     ImGui::EndDisabled();
 
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(100);
+    if (ImGui::DragFloat("##SecondsShown", &seconds_shown_, 0.1f, 0.1f, 600.0f, "%.1f s"))
+        plot_unique_id_++;
+
     if (signals_map_.empty())
     {
         ImGui::Text("No signals available in selected components");
@@ -168,6 +174,10 @@ void SignalsWindow::Render()
 
     ImVec2 plot_size = ImGui::GetContentRegionAvail();
     plot_size.y = ImMax(plot_size.y, 400.0f);
+
+    int max_points = std::max((int)ImGui::GetIO().DisplaySize.x, 100);
+    for (auto& [_, signal] : signals_map_)
+        signal.live.UpdateConfiguration(seconds_shown_, max_points);
 
     static ImPlotAxisFlags flags = ImPlotAxisFlags_ShowEdgeLabels;
     if (ImPlot::BeginPlot(("##SignalsWindow" + std::to_string(plot_unique_id_)).c_str(), plot_size))
@@ -183,7 +193,7 @@ void SignalsWindow::Render()
             else
                 max_end_time = ImMax(max_end_time, signal.live.end_time_seconds_);
         }
-        ImPlot::SetupAxisLimits(ImAxis_X1, max_end_time - 5.0, max_end_time, ImGuiCond_Always);
+        ImPlot::SetupAxisLimits(ImAxis_X1, max_end_time - seconds_shown_, max_end_time, ImGuiCond_Always);
 
         ImPlot::SetupAxisLimits(ImAxis_Y1, total_min_, total_max_);
 

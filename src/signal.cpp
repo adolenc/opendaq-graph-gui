@@ -3,12 +3,25 @@
 
 
 OpenDAQSignal::OpenDAQSignal(daq::SignalPtr signal, float seconds_shown, int max_points)
+    : seconds_shown_(seconds_shown)
+    , max_points_(max_points)
 {
     RebuildIfInvalid(signal, seconds_shown, max_points);
 }
 
+void OpenDAQSignal::UpdateConfiguration(float seconds_shown, int max_points)
+{
+    if (std::abs(seconds_shown - seconds_shown_) < 1e-5 && max_points == max_points_)
+        return;
+
+    RebuildIfInvalid(signal_, seconds_shown, max_points);
+}
+
 void OpenDAQSignal::RebuildIfInvalid(daq::SignalPtr signal, float seconds_shown, int max_points)
 {
+    seconds_shown_ = seconds_shown;
+    max_points_ = max_points;
+
     signal_ = signal;
     reader_ = nullptr;
     pos_in_plot_buffer_ = 0;
@@ -36,7 +49,7 @@ void OpenDAQSignal::RebuildIfInvalid(daq::SignalPtr signal, float seconds_shown,
     tick_resolution_ = signal.getDomainSignal().assigned() ? signal.getDomainSignal().getDescriptor().getTickResolution() : signal.getDescriptor().getTickResolution();
     float samples_per_second;
     try { samples_per_second = std::max<daq::Int>(1, daq::reader::getSampleRate(signal.getDomainSignal().assigned() ? signal.getDomainSignal().getDescriptor() : signal.getDescriptor())); } catch (...) { samples_per_second = 1; }
-    samples_per_plot_sample_ = std::max<int>(1, std::floor(samples_per_second * seconds_shown / (float)max_points));
+    samples_per_plot_sample_ = std::max<int>(1, std::ceil(samples_per_second * seconds_shown / (float)max_points));
 
     if (auto value_range = signal.getDescriptor().getValueRange(); value_range.assigned())
     {
@@ -86,9 +99,7 @@ void OpenDAQSignal::RebuildIfInvalid(daq::SignalPtr signal)
     if (reader_ != nullptr && reader_.assigned())
         return;
 
-    float seconds_shown = 5.0;
-    int max_points = 5000; // TODO: should be removed
-    RebuildIfInvalid(signal, seconds_shown, max_points);
+    RebuildIfInvalid(signal, seconds_shown_, max_points_);
 }
 
 void OpenDAQSignal::Update()
