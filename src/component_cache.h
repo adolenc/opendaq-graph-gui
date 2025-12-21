@@ -61,6 +61,7 @@ struct CachedComponent
     std::vector<ImGui::ImGuiNodesIdentifier> children_;
 
     int color_index_ = 0;
+    std::optional<ImVec4> signal_color_;
 
     bool needs_refresh_ = false;
 };

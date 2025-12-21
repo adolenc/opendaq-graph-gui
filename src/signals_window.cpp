@@ -10,7 +10,7 @@ SignalsWindow::SignalsWindow(const SignalsWindow& other)
 {
     for (const auto& [id, signal] : other.signals_map_)
     {
-        signals_map_[id] = { OpenDAQSignal(signal.live.signal_, other.seconds_shown_), OpenDAQSignal() };
+        signals_map_[id] = { OpenDAQSignal(signal.live.signal_, other.seconds_shown_), OpenDAQSignal(), signal.color };
     }
 
     is_cloned_ = true;
@@ -43,7 +43,22 @@ void SignalsWindow::RestoreSelection(const std::unordered_map<std::string, std::
         std::string signal_id = signal.getGlobalId().toStdString();
         selected_signal_ids.insert(signal_id);
         if (signals_map_.find(signal_id) == signals_map_.end())
-            signals_map_[signal_id] = { OpenDAQSignal(signal, seconds_shown_), OpenDAQSignal() };
+        {
+            ImVec4 color = ImVec4(1,1,1,1);
+            if (auto it = all_components.find(signal_id); it != all_components.end())
+            {
+                if (it->second->signal_color_.has_value())
+                    color = it->second->signal_color_.value();
+                else if (get_signal_color_callback_)
+                    color = get_signal_color_callback_(signal_id);
+            }
+            else if (get_signal_color_callback_)
+            {
+                color = get_signal_color_callback_(signal_id);
+            }
+
+            signals_map_[signal_id] = { OpenDAQSignal(signal, seconds_shown_), OpenDAQSignal(), color };
+        }
     };
 
     for (const auto& id : selected_component_ids_)
@@ -149,9 +164,7 @@ void SignalsWindow::Render()
         if (is_paused_)
         {
             for (auto& [_, signal] : signals_map_)
-            {
                 signal.paused = signal.live;
-            }
         }
     }
     if (ImGui::IsItemHovered())
@@ -196,34 +209,26 @@ void SignalsWindow::Render()
         }
         ImPlot::SetupAxisLimits(ImAxis_X1, max_end_time - seconds_shown_, max_end_time, ImGuiCond_Always);
         ImPlot::SetupAxisLimits(ImAxis_Y1, total_min_, total_max_);
-        int color_idx = 0;
         for (auto& [_, signal] : signals_map_)
         {
             std::string label = signal.live.signal_name_;
             if (!signal.live.signal_unit_.empty())
                 label += " [" + signal.live.signal_unit_ + "]";
 
-            ImVec4 color;
-            if (get_signal_color_callback_)
-                color = get_signal_color_callback_(signal.live.signal_id_);
-            else
-                color = ImPlot::GetColormapColor(color_idx);
-
             if (is_paused_)
             {
-                ImPlot::SetNextLineStyle(color);
+                ImPlot::SetNextLineStyle(signal.color);
                 ImPlot::PlotLine(label.c_str(), signal.paused.plot_times_seconds_.data(), signal.paused.plot_values_avg_.data(), (int)signal.paused.points_in_plot_buffer_, 0, signal.paused.pos_in_plot_buffer_);
-                ImPlot::SetNextFillStyle(color, 0.25f);
+                ImPlot::SetNextFillStyle(signal.color, 0.25f);
                 ImPlot::PlotShaded(label.c_str(), signal.paused.plot_times_seconds_.data(), signal.paused.plot_values_min_.data(), signal.paused.plot_values_max_.data(), (int)signal.paused.points_in_plot_buffer_, (ImPlotShadedFlags)ImPlotItemFlags_NoLegend, signal.paused.pos_in_plot_buffer_);
             }
             else
             {
-                ImPlot::SetNextLineStyle(color);
+                ImPlot::SetNextLineStyle(signal.color);
                 ImPlot::PlotLine(label.c_str(), signal.live.plot_times_seconds_.data(), signal.live.plot_values_avg_.data(), (int)signal.live.points_in_plot_buffer_, 0, signal.live.pos_in_plot_buffer_);
-                ImPlot::SetNextFillStyle(color, 0.25f);
+                ImPlot::SetNextFillStyle(signal.color, 0.25f);
                 ImPlot::PlotShaded(label.c_str(), signal.live.plot_times_seconds_.data(), signal.live.plot_values_min_.data(), signal.live.plot_values_max_.data(), (int)signal.live.points_in_plot_buffer_, (ImPlotShadedFlags)ImPlotItemFlags_NoLegend, signal.live.pos_in_plot_buffer_);
             }
-            color_idx++;
         }
 
         ImPlot::EndPlot();

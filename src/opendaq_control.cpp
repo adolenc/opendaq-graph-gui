@@ -122,6 +122,7 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
         {
             std::string signal_id = signal.getGlobalId().toStdString();
             auto signal_cached = std::make_unique<CachedComponent>(signal);
+            signal_cached->signal_color_ = GetSignalColor(signal_id);
             signals_[signal_id] = signal_cached.get();
             signal_cached->parent_ = component;
             signal_cached->owner_ = component;
@@ -135,6 +136,7 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
         {
             std::string signal_id = signal.getGlobalId().toStdString();
             auto signal_cached = std::make_unique<CachedComponent>(signal);
+            signal_cached->signal_color_ = GetSignalColor(signal_id);
             signals_[signal_id] = signal_cached.get();
             signal_cached->parent_ = component;
             signal_cached->owner_ = component;
@@ -494,6 +496,7 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
                     {
                         std::string signal_id = signal.getGlobalId().toStdString();
                         auto signal_cached = std::make_unique<CachedComponent>(signal);
+                        signal_cached->signal_color_ = GetSignalColor(signal_id);
                         signal_cached->parent_ = fb;
                         signal_cached->owner_ = fb;
                         signals_[signal_id] = signal_cached.get();

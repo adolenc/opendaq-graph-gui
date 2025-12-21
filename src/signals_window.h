@@ -11,6 +11,7 @@ struct Signal
 {
     OpenDAQSignal live;
     OpenDAQSignal paused;
+    ImVec4 color;
 };
 
 class SignalsWindow

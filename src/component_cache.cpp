@@ -348,6 +348,9 @@ void CachedComponent::RefreshProperties()
     AddAttribute(attributes_, "@LocalID", "Local ID", component_.getLocalId().toStdString(), true, true);
     AddAttribute(attributes_, "@GlobalID", "Global ID", component_.getGlobalId().toStdString(), true, true);
 
+    if (signal_color_.has_value())
+        AddAttribute(attributes_, "@SignalColor", "Signal Color", (int64_t)ImGui::ColorConvertFloat4ToU32(signal_color_.value()), false, false, daq::ctInt);
+
     {
         daq::ListPtr<daq::IString> tags = component_.getTags().getList();
         std::stringstream tags_value;
@@ -513,6 +516,10 @@ void CachedProperty::SetValue(ValueType value)
                 assert(canCastTo<daq::ISignal>(component));
                 daq::SignalPtr signal = castTo<daq::ISignal>(component);
                 signal.setPublic(std::get<bool>(value));
+            }
+            else if (name_ == "@SignalColor")
+            {
+                owner_->signal_color_ = ImGui::ColorConvertU32ToFloat4((ImU32)std::get<int64_t>(value));
             }
             owner_->needs_refresh_ = true;
             return;

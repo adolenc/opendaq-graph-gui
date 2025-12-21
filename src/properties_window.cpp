@@ -46,7 +46,13 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
         case daq::ctInt:
             assert(std::holds_alternative<int64_t>(cached_prop.value_));
             {
-                if (cached_prop.selection_values_count_ > 0)
+                if (cached_prop.name_ == "@SignalColor")
+                {
+                    ImVec4 color = ImGui::ColorConvertU32ToFloat4((ImU32)std::get<int64_t>(cached_prop.value_));
+                    if (ImGui::ColorEdit4(cached_prop.display_name_.c_str(), (float*)&color, ImGuiColorEditFlags_NoInputs))
+                        cached_prop.SetValue((int64_t)ImGui::ColorConvertFloat4ToU32(color));
+                }
+                else if (cached_prop.selection_values_count_ > 0)
                 {
                     assert(cached_prop.selection_values_);
                     int value = std::get<int64_t>(cached_prop.value_);
