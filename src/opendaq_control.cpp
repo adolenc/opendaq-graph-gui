@@ -60,6 +60,16 @@ void OpenDAQNodeEditor::Init()
     signals_window_.get_signal_color_callback_ = [this](const std::string& signal_id) {
         return GetSignalColor(signal_id);
     };
+
+    properties_window_.on_property_changed_ = [this](const std::string& component_id, const std::string& property_name) {
+        if (property_name == "@SignalColor")
+        {
+            ImVec4 color = GetSignalColor(component_id);
+            signals_window_.UpdateSignalColor(component_id, color);
+            for (auto& w : cloned_signals_windows_)
+                w->UpdateSignalColor(component_id, color);
+        }
+    };
 }
 
 void OpenDAQNodeEditor::UpdateSignalsActiveState(CachedComponent* cached)
@@ -1006,6 +1016,12 @@ void OpenDAQNodeEditor::Render()
 
 ImVec4 OpenDAQNodeEditor::GetSignalColor(const std::string& signal_id)
 {
+    if (auto it = all_components_.find(signal_id); it != all_components_.end())
+    {
+        if (it->second->signal_color_.has_value())
+            return it->second->signal_color_.value();
+    }
+
     if (auto it = signal_colors_.find(signal_id); it != signal_colors_.end())
         return it->second;
 

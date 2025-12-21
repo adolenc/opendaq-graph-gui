@@ -24,6 +24,7 @@ public:
     void OnSelectionChanged(const std::vector<std::string>& selected_ids, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components);
     void RestoreSelection(const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components);
     void RebuildInvalidSignals();
+    void UpdateSignalColor(const std::string& signal_id, ImVec4 color);
     
     std::function<void(SignalsWindow*)> on_clone_click_;
     std::function<void(const std::vector<std::string>&)> on_reselect_click_;

@@ -19,6 +19,7 @@ public:
     
     std::function<void(PropertiesWindow*)> on_clone_click_;
     std::function<void(const std::vector<std::string>&)> on_reselect_click_;
+    std::function<void(const std::string&, const std::string&)> on_property_changed_;
     bool is_open_ = true;
 
 private:

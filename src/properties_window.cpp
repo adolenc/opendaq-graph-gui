@@ -16,6 +16,7 @@ PropertiesWindow::PropertiesWindow(const PropertiesWindow& other)
     show_debug_properties_ = other.show_debug_properties_;
     is_cloned_ = true;
     on_reselect_click_ = other.on_reselect_click_;
+    on_property_changed_ = other.on_property_changed_;
     all_components_ = other.all_components_;
 }
 
@@ -50,7 +51,11 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
                 {
                     ImVec4 color = ImGui::ColorConvertU32ToFloat4((ImU32)std::get<int64_t>(cached_prop.value_));
                     if (ImGui::ColorEdit4(cached_prop.display_name_.c_str(), (float*)&color, ImGuiColorEditFlags_NoInputs))
+                    {
                         cached_prop.SetValue((int64_t)ImGui::ColorConvertFloat4ToU32(color));
+                        if (on_property_changed_)
+                            on_property_changed_(cached_prop.owner_->component_.getGlobalId().toStdString(), cached_prop.name_);
+                    }
                 }
                 else if (cached_prop.selection_values_count_ > 0)
                 {

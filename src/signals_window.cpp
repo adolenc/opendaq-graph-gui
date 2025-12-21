@@ -252,3 +252,9 @@ void SignalsWindow::RebuildInvalidSignals()
     plot_unique_id_ += 1;
 }
 
+void SignalsWindow::UpdateSignalColor(const std::string& signal_id, ImVec4 color)
+{
+    if (auto it = signals_map_.find(signal_id); it != signals_map_.end())
+        it->second.color = color;
+}
+
