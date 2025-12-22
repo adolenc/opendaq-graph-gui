@@ -206,12 +206,23 @@ void PropertiesWindow::RenderChildren(CachedComponent& cached_component)
             if (child->name_.empty())
                 child->RefreshProperties();
 
-            ImGui::PushID(child_id.c_str());
-            if (ImGui::CollapsingHeader(child->name_.c_str()))
+            bool should_skip = child->name_ == "IO" || child->name_ == "AI" || child->name_ == "AO" || child->name_ == "Dev" || child->name_ == "FB";
+
+            if (should_skip)
             {
-                RenderCachedComponent(*child, false);
+                ImGui::Unindent();
+                RenderChildren(*child);
+                ImGui::Indent();
             }
-            ImGui::PopID();
+            else
+            {
+                ImGui::PushID(child_id.c_str());
+                if (ImGui::CollapsingHeader(child->name_.c_str()))
+                {
+                    RenderCachedComponent(*child, false);
+                }
+                ImGui::PopID();
+            }
         }
     }
     ImGui::Unindent();
@@ -247,6 +258,9 @@ void PropertiesWindow::RenderComponentWithParents(CachedComponent& cached_compon
     {
         if ((*it)->name_.empty())
             (*it)->RefreshProperties();
+
+        if ((*it)->name_ == "IO" || (*it)->name_ == "AI" || (*it)->name_ == "AO" || (*it)->name_ == "Dev" || (*it)->name_ == "FB")
+            continue;
 
         ImGui::PushID((*it)->component_.getGlobalId().toStdString().c_str());
         if (ImGui::CollapsingHeader((*it)->name_.c_str()))
