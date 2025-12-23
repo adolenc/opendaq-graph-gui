@@ -967,6 +967,10 @@ void OpenDAQNodeEditor::Render()
                                  SetNodeActiveRecursively(component_id);
                              }
                         }
+                        else if (attribute_name == "Visible")
+                        {
+                            RebuildStructure();
+                        }
                     }
                     break;
                 }
