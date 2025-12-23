@@ -46,7 +46,15 @@ void OpenDAQSignal::RebuildIfInvalid(daq::SignalPtr signal, float seconds_shown,
     else
         signal_type_ = SignalType::DomainOnly;
 
-    tick_resolution_ = signal.getDomainSignal().assigned() ? signal.getDomainSignal().getDescriptor().getTickResolution() : signal.getDescriptor().getTickResolution();
+    try
+    {
+        tick_resolution_ = signal.getDomainSignal().assigned()
+                         ? signal.getDomainSignal().getDescriptor().getTickResolution()
+                         : signal.getDescriptor().getTickResolution();
+    } catch (...)
+    {
+        return;
+    }
     float samples_per_second;
     try { samples_per_second = std::max<daq::Int>(1, daq::reader::getSampleRate(signal.getDomainSignal().assigned() ? signal.getDomainSignal().getDescriptor() : signal.getDescriptor())); } catch (...) { samples_per_second = 1; }
     samples_per_plot_sample_ = std::max<int>(1, std::ceil(samples_per_second * seconds_shown / (float)max_points));
