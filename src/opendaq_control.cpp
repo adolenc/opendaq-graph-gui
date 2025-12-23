@@ -967,8 +967,9 @@ void OpenDAQNodeEditor::Render()
                                  SetNodeActiveRecursively(component_id);
                              }
                         }
-                        else if (attribute_name == "Visible")
+                        else if (attribute_name == "Visible" || attribute_name == "Name")
                         {
+                            // yolo refresh, a massive overkill
                             RebuildStructure();
                         }
                     }
