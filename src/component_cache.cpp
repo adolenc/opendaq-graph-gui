@@ -342,7 +342,7 @@ void CachedComponent::RefreshProperties()
     }
 
     AddAttribute(attributes_, "@Name", "Name", component_.getName().toStdString(), false, false);
-    AddAttribute(attributes_, "@Description", "Description", component_.getDescription().toStdString(), false, false);
+    AddAttribute(attributes_, "@Description", "Description", component_.getDescription().toStdString(), false, true);
     AddAttribute(attributes_, "@Active", "Active", (bool)component_.getActive(), false, true, daq::ctBool);
     AddAttribute(attributes_, "@Visible", "Visible", (bool)component_.getVisible(), false, true, daq::ctBool);
     AddAttribute(attributes_, "@LocalID", "Local ID", component_.getLocalId().toStdString(), true, true);
