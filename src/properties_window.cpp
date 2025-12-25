@@ -167,7 +167,7 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
                 else
                 {
                     int value = std::get<int64_t>(cached_prop.value_);
-                    if (ImGui::InputInt(cached_prop.display_name_.c_str(), &value), ImGui::IsItemDeactivatedAfterEdit())
+                    if (ImGui::InputInt(cached_prop.display_name_.c_str(), &value, 0, 0), ImGui::IsItemDeactivatedAfterEdit())
                         SetValue((int64_t)value);
                 }
             }
