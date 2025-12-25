@@ -348,6 +348,12 @@ void CachedComponent::RefreshProperties()
     AddAttribute(attributes_, "@LocalID", "Local ID", component_.getLocalId().toStdString(), true, true);
     AddAttribute(attributes_, "@GlobalID", "Global ID", component_.getGlobalId().toStdString(), true, true);
 
+    if (canCastTo<daq::IRecorder>(component_))
+    {
+        daq::RecorderPtr recorder = castTo<daq::IRecorder>(component_);
+        auto& cached = AddAttribute(attributes_, "@Recording", "Recording", (bool)recorder.getIsRecording(), false, false, daq::ctBool);
+    }
+
     if (signal_color_.has_value())
         AddAttribute(attributes_, "@SignalColor", "Signal Color", (int64_t)ImGui::ColorConvertFloat4ToU32(signal_color_.value()), false, false, daq::ctInt);
 
@@ -485,6 +491,15 @@ void CachedProperty::SetValue(ValueType value)
                 assert(canCastTo<daq::IDevice>(component));
                 daq::DevicePtr device = castTo<daq::IDevice>(component);
                 device.setOperationMode(device.getAvailableOperationModes().getItemAt(std::get<int64_t>(value)));
+            }
+            else if (name_ == "@Recording")
+            {
+                assert(canCastTo<daq::IRecorder>(component));
+                daq::RecorderPtr recorder = castTo<daq::IRecorder>(component);
+                if (std::get<bool>(value))
+                    recorder.startRecording();
+                else
+                    recorder.stopRecording();
             }
             else if (name_ == "@Locked")
             {
