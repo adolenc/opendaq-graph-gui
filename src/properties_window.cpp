@@ -325,7 +325,7 @@ void PropertiesWindow::RenderChildren(SharedCachedComponent& shared_cached_compo
             {
                 SharedCachedComponent shared_child({child});
                 RenderComponent(shared_child, false);
-                if (show_parents_and_children_)
+                if (show_parents_and_children_ && !group_components_)
                     RenderChildren(shared_child);
             }
             ImGui::PopID();
@@ -336,24 +336,14 @@ void PropertiesWindow::RenderChildren(SharedCachedComponent& shared_cached_compo
 
 void PropertiesWindow::RenderComponentWithParents(SharedCachedComponent& shared_cached_component)
 {
-    if (shared_cached_component.source_components_.size() != 1)
+    if (!show_parents_and_children_ || group_components_ || !all_components_)
     {
         RenderComponent(shared_cached_component);
         return;
     }
 
-    CachedComponent* base = shared_cached_component.source_components_[0];
-
-    if (!show_parents_and_children_ || !all_components_)
-    {
-        RenderComponent(shared_cached_component);
-        if (show_parents_and_children_)
-            RenderChildren(shared_cached_component);
-        return;
-    }
-
-    std::vector<CachedComponent*> hierarchy;
-    daq::ComponentPtr current_parent_ptr = base->parent_;
+    std::vector<CachedComponent*> parent_components;
+    daq::ComponentPtr current_parent_ptr = shared_cached_component.source_components_[0]->parent_;
     while (current_parent_ptr.assigned())
     {
         std::string id = current_parent_ptr.getGlobalId().toStdString();
@@ -361,11 +351,11 @@ void PropertiesWindow::RenderComponentWithParents(SharedCachedComponent& shared_
         if (it == all_components_->end())
             break;
 
-        hierarchy.push_back(it->second.get());
+        parent_components.push_back(it->second.get());
         current_parent_ptr = it->second->parent_;
     }
-    
-    for (auto it = hierarchy.rbegin(); it != hierarchy.rend(); ++it)
+
+    for (auto it = parent_components.rbegin(); it != parent_components.rend(); ++it)
     {
         if ((*it)->name_.empty())
             (*it)->RefreshProperties();
@@ -376,12 +366,12 @@ void PropertiesWindow::RenderComponentWithParents(SharedCachedComponent& shared_
         ImGui::PushID((*it)->component_.getGlobalId().toStdString().c_str());
         if (ImGui::CollapsingHeader((*it)->name_.c_str()))
         {
-             SharedCachedComponent shared_parent({*it});
-             RenderComponent(shared_parent, false);
+             SharedCachedComponent parent_component({*it});
+             RenderComponent(parent_component, false);
         }
         ImGui::PopID();
     }
-    
+
     RenderComponent(shared_cached_component);
     RenderChildren(shared_cached_component);
 }
@@ -459,7 +449,7 @@ void PropertiesWindow::Render()
         }
 
         ImGui::BeginDisabled(group_components_);
-        if (ImGui::Button(show_parents_and_children_ ? ICON_FA_SITEMAP " " ICON_FA_TOGGLE_ON : ICON_FA_SITEMAP " " ICON_FA_TOGGLE_OFF))
+        if (ImGui::Button((show_parents_and_children_ && !group_components_) ? ICON_FA_SITEMAP " " ICON_FA_TOGGLE_ON : ICON_FA_SITEMAP " " ICON_FA_TOGGLE_OFF))
             show_parents_and_children_ = !show_parents_and_children_;
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip(show_parents_and_children_ ? "Hide parents and children" : "Show parents and children");
