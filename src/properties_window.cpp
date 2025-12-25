@@ -286,7 +286,11 @@ void PropertiesWindow::RenderComponent(SharedCachedComponent& shared_cached_comp
     }
 
     if (shared_cached_component.needs_refresh_)
+    {
+        for (CachedComponent* component : shared_cached_component.source_components_)
+            component->RefreshProperties();
         RebuildComponents();
+    }
 }
 
 void PropertiesWindow::RenderChildren(SharedCachedComponent& shared_cached_component)
