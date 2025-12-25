@@ -4,11 +4,98 @@
 #include <string>
 #include "imgui.h"
 #include "imgui_stdlib.h"
+#include <map>
+
+
+SharedCachedComponent::SharedCachedComponent(const std::vector<CachedComponent*>& components, const std::string& group_name)
+{
+    source_components_ = components;
+    if (components.empty())
+        return;
+
+    if (group_name.empty())
+    {
+        if (components.size() == 1)
+            name_ = components[0]->name_;
+        else
+            name_ = "Unknown";
+    }
+    else
+        name_ = group_name;
+    name_ += ((components.size() > 1) ? " (" + std::to_string(components.size()) + ")" : "");
+
+    CachedComponent* base = components[0];
+
+    auto merge_list = [&](std::vector<CachedProperty> CachedComponent::* list, std::vector<SharedCachedProperty>& target_list)
+    {
+        std::vector<CachedProperty>& base_list = base->*list;
+        for (CachedProperty& base_prop : base_list)
+        {
+            bool found_in_all_components = true;
+            bool same_value_in_all_components = true;
+
+            std::optional<double> final_min = base_prop.min_value_;
+            std::optional<double> final_max = base_prop.max_value_;
+
+            std::vector<CachedProperty*> targets;
+            targets.push_back(&base_prop);
+
+            for (size_t i = 1; i < components.size(); ++i)
+            {
+                bool matching_property_found = false;
+                std::vector<CachedProperty>& other_list = components[i]->*list;
+                for (CachedProperty& prop : other_list)
+                {
+                    if (!(prop.name_ == base_prop.name_ && prop.type_ == base_prop.type_))
+                        continue;
+
+                    matching_property_found = true;
+                    if (prop.value_ != base_prop.value_)
+                        same_value_in_all_components = false;
+
+                    if (prop.min_value_.has_value())
+                    {
+                        if (!final_min.has_value() || prop.min_value_.value() > final_min.value())
+                            final_min = prop.min_value_;
+                    }
+                    if (prop.max_value_.has_value())
+                    {
+                        if (!final_max.has_value() || prop.max_value_.value() < final_max.value())
+                            final_max = prop.max_value_;
+                    }
+                    targets.push_back(&prop);
+                    break;
+                }
+                if (!matching_property_found)
+                {
+                    found_in_all_components = false;
+                    break;
+                }
+            }
+
+            if (found_in_all_components)
+            {
+                SharedCachedProperty new_prop;
+                static_cast<CachedProperty&>(new_prop) = base_prop;
+                new_prop.min_value_ = final_min;
+                new_prop.max_value_ = final_max;
+                new_prop.target_properties_ = targets;
+                new_prop.is_multi_value_ = !same_value_in_all_components;
+                target_list.push_back(new_prop);
+            }
+        }
+    };
+
+    merge_list(&CachedComponent::attributes_, attributes_);
+    merge_list(&CachedComponent::properties_, properties_);
+    merge_list(&CachedComponent::signal_descriptor_properties_, signal_descriptor_properties_);
+    merge_list(&CachedComponent::signal_domain_descriptor_properties_, signal_domain_descriptor_properties_);
+}
 
 
 PropertiesWindow::PropertiesWindow(const PropertiesWindow& other)
 {
-    selected_cached_components_ = other.selected_cached_components_;
+    // grouped_selected_components_ are not copied, they will be regenerated
     selected_component_ids_ = other.selected_component_ids_;
     freeze_selection_ = true;
     show_parents_and_children_ = other.show_parents_and_children_;
@@ -18,14 +105,20 @@ PropertiesWindow::PropertiesWindow(const PropertiesWindow& other)
     on_reselect_click_ = other.on_reselect_click_;
     on_property_changed_ = other.on_property_changed_;
     all_components_ = other.all_components_;
+    group_components_ = other.group_components_;
+
+    RebuildComponents();
 }
 
-void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
+void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedCachedComponent* owner)
 {
     if (!show_debug_properties_ && cached_prop.is_debug_property_)
         return;
 
     ImGui::PushID(cached_prop.uid_.c_str());
+
+    if (cached_prop.is_multi_value_)
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.0f, 1.0f));
 
     bool is_disabled = cached_prop.is_read_only_ && cached_prop.type_ != daq::ctProc && cached_prop.type_ != daq::ctFunc;
     if (is_disabled)
@@ -34,6 +127,13 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
     if (cached_prop.depth_ > 0)
         ImGui::Indent(cached_prop.depth_ * 10.0f);
 
+    auto SetValue = [&](const CachedProperty::ValueType& val) {
+        for (CachedProperty* target : cached_prop.target_properties_)
+            target->SetValue(val);
+        if (owner)
+            owner->needs_refresh_ = true;
+    };
+
     switch (cached_prop.type_)
     {
         case daq::ctBool:
@@ -41,7 +141,7 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
             {
                 bool value = std::get<bool>(cached_prop.value_);
                 if (ImGui::Checkbox(cached_prop.display_name_.c_str(), &value))
-                    cached_prop.SetValue(value);
+                    SetValue(value);
             }
             break;
         case daq::ctInt:
@@ -52,7 +152,7 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
                     ImVec4 color = ImGui::ColorConvertU32ToFloat4((ImU32)std::get<int64_t>(cached_prop.value_));
                     if (ImGui::ColorEdit4(cached_prop.display_name_.c_str(), (float*)&color, ImGuiColorEditFlags_NoInputs))
                     {
-                        cached_prop.SetValue((int64_t)ImGui::ColorConvertFloat4ToU32(color));
+                        SetValue((int64_t)ImGui::ColorConvertFloat4ToU32(color));
                         if (on_property_changed_)
                             on_property_changed_(cached_prop.owner_->component_.getGlobalId().toStdString(), cached_prop.name_);
                     }
@@ -62,13 +162,13 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
                     assert(cached_prop.selection_values_);
                     int value = std::get<int64_t>(cached_prop.value_);
                     if (ImGui::Combo(cached_prop.display_name_.c_str(), &value, cached_prop.selection_values_->c_str(), cached_prop.selection_values_count_))
-                        cached_prop.SetValue((int64_t)value);
+                        SetValue((int64_t)value);
                 }
                 else
                 {
                     int value = std::get<int64_t>(cached_prop.value_);
-                    if (ImGui::InputInt(cached_prop.display_name_.c_str(), &value))
-                        cached_prop.SetValue((int64_t)value);
+                    if (ImGui::InputInt(cached_prop.display_name_.c_str(), &value), ImGui::IsItemDeactivatedAfterEdit())
+                        SetValue((int64_t)value);
                 }
             }
             break;
@@ -76,16 +176,16 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
             assert(std::holds_alternative<double>(cached_prop.value_));
             {
                 double value = std::get<double>(cached_prop.value_);
-                if (ImGui::InputDouble(cached_prop.display_name_.c_str(), &value))
-                    cached_prop.SetValue(value);
+                if (ImGui::InputDouble(cached_prop.display_name_.c_str(), &value, 0.0, 0.0, "%.6f"), ImGui::IsItemDeactivatedAfterEdit())
+                    SetValue(value);
             }
             break;
         case daq::ctString:
             assert(std::holds_alternative<std::string>(cached_prop.value_));
             {
                 std::string value = std::get<std::string>(cached_prop.value_);
-                if (ImGui::InputText(cached_prop.display_name_.c_str(), &value))
-                    cached_prop.SetValue(value);
+                if (ImGui::InputText(cached_prop.display_name_.c_str(), &value), ImGui::IsItemDeactivatedAfterEdit())
+                    SetValue(value);
                 if (is_disabled && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone | ImGuiHoveredFlags_AllowWhenDisabled) && ImGui::BeginTooltip())
                 {
                     ImGui::Text("%s", value.c_str());
@@ -95,11 +195,11 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
             break;
         case daq::ctProc:
             if (ImGui::Button(cached_prop.display_name_.c_str()))
-                cached_prop.SetValue({});
+                SetValue({});
             break;
         case daq::ctFunc:
             if (ImGui::Button(cached_prop.display_name_.c_str()))
-                cached_prop.SetValue({});
+                SetValue({});
             break;
         case daq::ctObject:
             ImGui::Text("%s", cached_prop.display_name_.c_str());
@@ -121,137 +221,152 @@ void PropertiesWindow::RenderCachedProperty(CachedProperty& cached_prop)
     if (is_disabled)
         ImGui::EndDisabled();
 
+    if (cached_prop.is_multi_value_)
+        ImGui::PopStyleColor();
+
     ImGui::PopID();
 }
 
-void PropertiesWindow::RenderCachedComponent(CachedComponent& cached_component, bool draw_header, bool render_children)
+void PropertiesWindow::RenderComponent(SharedCachedComponent& shared_cached_component, bool draw_header)
 {
     if (draw_header)
     {
         ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(5.0f, 5.0f));
         ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-        ImGui::SeparatorText(("[" + cached_component.name_ + "]").c_str());
+        ImGui::SeparatorText(("[" + shared_cached_component.name_ + "]").c_str());
         ImGui::PopStyleColor();
         ImGui::PopStyleVar(2);
     }
 
-    if (!cached_component.error_message_.empty())
+    if (shared_cached_component.source_components_.size() == 1)
     {
-        ImGui::PushStyleColor(ImGuiCol_Text, COLOR_ERROR);
-        ImGui::TextWrapped("%s", cached_component.error_message_.c_str());
-        ImGui::PopStyleColor();
+        CachedComponent* comp = shared_cached_component.source_components_[0];
+        if (!comp->error_message_.empty())
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, COLOR_ERROR);
+            ImGui::TextWrapped("%s", comp->error_message_.c_str());
+            ImGui::PopStyleColor();
+        }
+        else if (!comp->warning_message_.empty())
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, COLOR_WARNING);
+            ImGui::TextWrapped("%s", comp->warning_message_.c_str());
+            ImGui::PopStyleColor();
+        }
     }
-    else if (!cached_component.warning_message_.empty())
-    {
-        ImGui::PushStyleColor(ImGuiCol_Text, COLOR_WARNING);
-        ImGui::TextWrapped("%s", cached_component.warning_message_.c_str());
-        ImGui::PopStyleColor();
-    }
 
-    for (auto& cached_attr : cached_component.attributes_)
-        RenderCachedProperty(cached_attr);
+    for (SharedCachedProperty& cached_attr : shared_cached_component.attributes_)
+        RenderProperty(cached_attr, &shared_cached_component);
 
-    for (auto& cached_prop : cached_component.properties_)
-        RenderCachedProperty(cached_prop);
+    for (SharedCachedProperty& cached_prop : shared_cached_component.properties_)
+        RenderProperty(cached_prop, &shared_cached_component);
 
-    if (!cached_component.signal_descriptor_properties_.empty() || !cached_component.signal_domain_descriptor_properties_.empty())
+    if (!shared_cached_component.signal_descriptor_properties_.empty() || !shared_cached_component.signal_domain_descriptor_properties_.empty())
     {
         if (ImGui::BeginTabBar("SignalDescriptors"))
         {
-            if (!cached_component.signal_descriptor_properties_.empty())
+            if (!shared_cached_component.signal_descriptor_properties_.empty())
             {
                 if (ImGui::BeginTabItem("Signal Descriptor"))
                 {
-                    for (auto& cached_prop : cached_component.signal_descriptor_properties_)
-                        RenderCachedProperty(cached_prop);
+                    for (SharedCachedProperty& cached_prop : shared_cached_component.signal_descriptor_properties_)
+                        RenderProperty(cached_prop, &shared_cached_component);
                     ImGui::EndTabItem();
                 }
             }
             
-            if (!cached_component.signal_domain_descriptor_properties_.empty())
+            if (!shared_cached_component.signal_domain_descriptor_properties_.empty())
             {
                 if (ImGui::BeginTabItem("Domain Signal Descriptor"))
                 {
-                    for (auto& cached_prop : cached_component.signal_domain_descriptor_properties_)
-                        RenderCachedProperty(cached_prop);
+                    for (SharedCachedProperty& cached_prop : shared_cached_component.signal_domain_descriptor_properties_)
+                        RenderProperty(cached_prop, &shared_cached_component);
                     ImGui::EndTabItem();
                 }
             }
             ImGui::EndTabBar();
         }
     }
-    
-    if (cached_component.needs_refresh_)
-        cached_component.RefreshProperties();
 
-    if (show_parents_and_children_ && render_children)
-        RenderChildren(cached_component);
+    if (shared_cached_component.needs_refresh_)
+        RebuildComponents();
 }
 
-void PropertiesWindow::RenderChildren(CachedComponent& cached_component)
+void PropertiesWindow::RenderChildren(SharedCachedComponent& shared_cached_component)
 {
-    if (!all_components_ || cached_component.children_.empty())
+    if (shared_cached_component.source_components_.size() != 1)
+        return;
+
+    CachedComponent* base = shared_cached_component.source_components_[0];
+    if (!all_components_ || base->children_.empty())
         return;
 
     ImGui::Indent();
-    for (const auto& child_id_struct : cached_component.children_)
+    for (const ImGui::ImGuiNodesIdentifier& child_id_struct : base->children_)
     {
         std::string child_id = child_id_struct.id_;
         auto it = all_components_->find(child_id);
-        if (it != all_components_->end())
+        if (it == all_components_->end())
+            continue;
+
+        CachedComponent* child = it->second.get();
+        if (child->name_.empty())
+            child->RefreshProperties();
+
+        // skip folders that are just for structure
+        if (child->name_ == "IO" || child->name_ == "AI" || child->name_ == "AO" || child->name_ == "Dev" || child->name_ == "FB")
         {
-            CachedComponent* child = it->second.get();
-            
-            if (child->name_.empty())
-                child->RefreshProperties();
-
-            bool should_skip = child->name_ == "IO" || child->name_ == "AI" || child->name_ == "AO" || child->name_ == "Dev" || child->name_ == "FB";
-
-            if (should_skip)
+            ImGui::Unindent();
+            SharedCachedComponent shared_child({child});
+            RenderChildren(shared_child);
+            ImGui::Indent();
+        }
+        else
+        {
+            ImGui::PushID(child_id.c_str());
+            if (ImGui::CollapsingHeader(child->name_.c_str()))
             {
-                ImGui::Unindent();
-                RenderChildren(*child);
-                ImGui::Indent();
+                SharedCachedComponent shared_child({child});
+                RenderComponent(shared_child, false);
+                if (show_parents_and_children_)
+                    RenderChildren(shared_child);
             }
-            else
-            {
-                ImGui::PushID(child_id.c_str());
-                if (ImGui::CollapsingHeader(child->name_.c_str()))
-                {
-                    RenderCachedComponent(*child, false);
-                }
-                ImGui::PopID();
-            }
+            ImGui::PopID();
         }
     }
     ImGui::Unindent();
 }
 
-void PropertiesWindow::RenderComponentWithParents(CachedComponent& cached_component)
+void PropertiesWindow::RenderComponentWithParents(SharedCachedComponent& shared_cached_component)
 {
+    if (shared_cached_component.source_components_.size() != 1)
+    {
+        RenderComponent(shared_cached_component);
+        return;
+    }
+
+    CachedComponent* base = shared_cached_component.source_components_[0];
+
     if (!show_parents_and_children_ || !all_components_)
     {
-        RenderCachedComponent(cached_component);
+        RenderComponent(shared_cached_component);
+        if (show_parents_and_children_)
+            RenderChildren(shared_cached_component);
         return;
     }
 
     std::vector<CachedComponent*> hierarchy;
-    daq::ComponentPtr current_parent_ptr = cached_component.parent_;
-    
+    daq::ComponentPtr current_parent_ptr = base->parent_;
     while (current_parent_ptr.assigned())
     {
         std::string id = current_parent_ptr.getGlobalId().toStdString();
         auto it = all_components_->find(id);
-        if (it != all_components_->end())
-        {
-            hierarchy.push_back(it->second.get());
-            current_parent_ptr = it->second->parent_;
-        }
-        else
-        {
+        if (it == all_components_->end())
             break;
-        }
+
+        hierarchy.push_back(it->second.get());
+        current_parent_ptr = it->second->parent_;
     }
     
     for (auto it = hierarchy.rbegin(); it != hierarchy.rend(); ++it)
@@ -265,12 +380,14 @@ void PropertiesWindow::RenderComponentWithParents(CachedComponent& cached_compon
         ImGui::PushID((*it)->component_.getGlobalId().toStdString().c_str());
         if (ImGui::CollapsingHeader((*it)->name_.c_str()))
         {
-             RenderCachedComponent(**it, false, false);
+             SharedCachedComponent shared_parent({*it});
+             RenderComponent(shared_parent, false);
         }
         ImGui::PopID();
     }
     
-    RenderCachedComponent(cached_component);
+    RenderComponent(shared_cached_component);
+    RenderChildren(shared_cached_component);
 }
 
 void PropertiesWindow::OnSelectionChanged(const std::vector<std::string>& selected_ids, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
@@ -285,24 +402,16 @@ void PropertiesWindow::OnSelectionChanged(const std::vector<std::string>& select
 void PropertiesWindow::RestoreSelection(const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
 {
     all_components_ = &all_components;
-    selected_cached_components_.clear();
-    for (const auto& id : selected_component_ids_)
-    {
-        if (auto it = all_components.find(id); it != all_components.end())
-            selected_cached_components_.push_back(it->second.get());
-    }
-    
-    for (auto* cached : selected_cached_components_)
-    {
-        if (cached)
-            cached->RefreshProperties();
-    }
+    RebuildComponents();
 }
 
 void PropertiesWindow::RefreshComponents()
 {
-    for (auto* cached : selected_cached_components_)
-        cached->needs_refresh_ = true;
+    for (SharedCachedComponent& group : grouped_selected_components_)
+    {
+        for (CachedComponent* component : group.source_components_)
+            component->needs_refresh_ = true;
+    }
 }
 
 void PropertiesWindow::Render()
@@ -340,7 +449,7 @@ void PropertiesWindow::Render()
 
             ImGui::SameLine();
 
-            ImGui::BeginDisabled(selected_cached_components_.empty());
+            ImGui::BeginDisabled(grouped_selected_components_.empty());
             if (ImGui::Button(ICON_FA_CLONE))
             {
                 if (on_clone_click_)
@@ -353,17 +462,22 @@ void PropertiesWindow::Render()
             ImGui::SameLine();
         }
 
+        ImGui::BeginDisabled(group_components_);
         if (ImGui::Button(show_parents_and_children_ ? ICON_FA_SITEMAP " " ICON_FA_TOGGLE_ON : ICON_FA_SITEMAP " " ICON_FA_TOGGLE_OFF))
             show_parents_and_children_ = !show_parents_and_children_;
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip(show_parents_and_children_ ? "Hide parents and children" : "Show parents and children");
+        ImGui::EndDisabled();
 
         ImGui::SameLine();
 
-        if (ImGui::Button(show_debug_properties_ ? ICON_FA_BUG " " ICON_FA_TOGGLE_ON : ICON_FA_BUG " " ICON_FA_TOGGLE_OFF))
-            show_debug_properties_ = !show_debug_properties_;
+        if (ImGui::Button(group_components_ ? ICON_FA_OBJECT_GROUP " " ICON_FA_TOGGLE_ON : ICON_FA_OBJECT_GROUP " " ICON_FA_TOGGLE_OFF))
+        {
+            group_components_ = !group_components_;
+            RebuildComponents();
+        }
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip(show_debug_properties_ ? "Hide debug properties" : "Show debug properties");
+            ImGui::SetTooltip(group_components_ ? "Disable component grouping" : "Group components by type");
 
         ImGui::SameLine();
 
@@ -372,43 +486,123 @@ void PropertiesWindow::Render()
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip(tabbed_interface_ ? "Disable tabs for multiple components" : "Use tabs for multiple components");
 
-        if (selected_cached_components_.empty())
+        ImGui::SameLine();
+
+        if (ImGui::Button(show_debug_properties_ ? ICON_FA_BUG " " ICON_FA_TOGGLE_ON : ICON_FA_BUG " " ICON_FA_TOGGLE_OFF))
+            show_debug_properties_ = !show_debug_properties_;
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip(show_debug_properties_ ? "Hide debug properties" : "Show debug properties");
+
+
+        if (grouped_selected_components_.empty())
         {
             ImGui::Text("No component selected");
         }
-        else if (selected_cached_components_.size() == 1)
-        {
-            RenderComponentWithParents(*selected_cached_components_[0]);
-        }
-        else if (tabbed_interface_)
-        {
-            if (ImGui::BeginTabBar("Selected components"))
-            {
-                int uid = 0;
-                for (auto& cached_component : selected_cached_components_)
-                {
-                    if (ImGui::BeginTabItem((cached_component->name_ + "###" + std::to_string(uid++)).c_str()))
-                    {
-                        RenderComponentWithParents(*cached_component);
-                        ImGui::EndTabItem();
-                    }
-                }
-                ImGui::EndTabBar();
-            }
-        }
         else
         {
-            int uid = 0;
-            for (auto& cached_component : selected_cached_components_)
+            bool needs_rebuild = false;
+            for (auto& comp : grouped_selected_components_)
             {
-                ImGui::BeginChild((cached_component->name_ + "##" + std::to_string(uid++)).c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
+                for (auto* source : comp.source_components_)
+                {
+                    if (source->needs_refresh_)
+                    {
+                        source->RefreshProperties();
+                        needs_rebuild = true;
+                    }
+                }
+            }
+            if (needs_rebuild)
+                RebuildComponents();
 
-                RenderComponentWithParents(*cached_component);
-
-                ImGui::EndChild();
-                ImGui::SameLine();
+            if (grouped_selected_components_.size() == 1)
+            {
+                RenderComponentWithParents(grouped_selected_components_[0]);
+            }
+            else if (tabbed_interface_ && grouped_selected_components_.size() > 1)
+            {
+                if (ImGui::BeginTabBar("Components"))
+                {
+                    int uid = 0;
+                    for (auto& comp : grouped_selected_components_)
+                    {
+                        if (ImGui::BeginTabItem((comp.name_ + "###" + std::to_string(uid++)).c_str()))
+                        {
+                            RenderComponentWithParents(comp);
+                            ImGui::EndTabItem();
+                        }
+                    }
+                    ImGui::EndTabBar();
+                }
+            }
+            else
+            {
+                int uid = 0;
+                for (auto& comp : grouped_selected_components_)
+                {
+                    ImGui::BeginChild((comp.name_ + "##" + std::to_string(uid++)).c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
+                    RenderComponentWithParents(comp);
+                    ImGui::EndChild();
+                    ImGui::SameLine();
+                }
             }
         }
     }
     ImGui::End();
+}
+
+void PropertiesWindow::RebuildComponents()
+{
+    grouped_selected_components_.clear();
+    if (selected_component_ids_.empty() || !all_components_)
+        return;
+
+    std::vector<CachedComponent*> all_selected_components;
+    for (const std::string& id : selected_component_ids_)
+    {
+        if (auto it = all_components_->find(id); it != all_components_->end())
+        {
+            CachedComponent* comp = it->second.get();
+            if (comp->properties_.empty() && comp->attributes_.empty())
+                comp->RefreshProperties();
+            all_selected_components.push_back(comp);
+        }
+    }
+
+    if (all_selected_components.empty())
+        return;
+
+    std::map<std::string, std::vector<CachedComponent*>> component_groups;
+    if (group_components_)
+    {
+        for (CachedComponent* comp : all_selected_components)
+        {
+            std::string type_id = "";
+            for (const CachedProperty& attr : comp->attributes_)
+            {
+                if (attr.name_ == "@TypeID" && std::holds_alternative<std::string>(attr.value_))
+                {
+                    type_id = std::get<std::string>(attr.value_);
+                    break;
+                }
+            }
+            component_groups[type_id].push_back(comp);
+        }
+    }
+    else
+    {
+        for (CachedComponent* comp : all_selected_components)
+            component_groups[comp->component_.getGlobalId().toStdString()].push_back(comp);
+    }
+
+    for (auto& [type_id, components] : component_groups)
+    {
+        if (components.empty())
+            continue;
+
+        if (components.size() == 1)
+            grouped_selected_components_.push_back(SharedCachedComponent({components[0]}, group_components_ ? type_id : components[0]->name_));
+        else
+            grouped_selected_components_.push_back(SharedCachedComponent(components, type_id));
+    }
 }

@@ -6,6 +6,28 @@
 #include <memory>
 #include "component_cache.h"
 
+
+struct SharedCachedProperty : public CachedProperty
+{
+    bool is_multi_value_ = false;
+    std::vector<CachedProperty*> target_properties_;
+};
+
+struct SharedCachedComponent
+{
+    explicit SharedCachedComponent(const std::vector<CachedComponent*>& components, const std::string& group_name = "");
+
+    std::string name_;
+    std::vector<SharedCachedProperty> attributes_;
+    std::vector<SharedCachedProperty> properties_;
+    std::vector<SharedCachedProperty> signal_descriptor_properties_;
+    std::vector<SharedCachedProperty> signal_domain_descriptor_properties_;
+
+    std::vector<CachedComponent*> source_components_;
+    bool needs_refresh_ = false;
+};
+
+
 class PropertiesWindow
 {
 public:
@@ -23,12 +45,15 @@ public:
     bool is_open_ = true;
 
 private:
-    void RenderCachedProperty(CachedProperty& cached_prop);
-    void RenderCachedComponent(CachedComponent& cached_component, bool draw_header = true, bool render_children = true);
-    void RenderComponentWithParents(CachedComponent& cached_component);
-    void RenderChildren(CachedComponent& cached_component);
+    void RebuildComponents();
     
-    std::vector<CachedComponent*> selected_cached_components_;
+    void RenderProperty(SharedCachedProperty& cached_prop, SharedCachedComponent* owner);
+
+    void RenderComponent(SharedCachedComponent& component, bool draw_header = true);
+    void RenderComponentWithParents(SharedCachedComponent& component);
+    void RenderChildren(SharedCachedComponent& component);
+    
+    std::vector<SharedCachedComponent> grouped_selected_components_;
     std::vector<std::string> selected_component_ids_;
     const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>* all_components_ = nullptr;
     bool freeze_selection_ = false;
@@ -36,4 +61,5 @@ private:
     bool tabbed_interface_ = true;
     bool show_debug_properties_ = false;
     bool is_cloned_ = false;
+    bool group_components_ = false;
 };
