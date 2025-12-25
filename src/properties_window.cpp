@@ -231,12 +231,8 @@ void PropertiesWindow::RenderComponent(SharedCachedComponent& shared_cached_comp
 {
     if (draw_header)
     {
-        ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextBorderSize, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(5.0f, 5.0f));
-        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-        ImGui::SeparatorText(("[" + shared_cached_component.name_ + "]").c_str());
-        ImGui::PopStyleColor();
-        ImGui::PopStyleVar(2);
+        ImGui::SetNextItemOpen(true);
+        ImGui::CollapsingHeader(shared_cached_component.name_.c_str(), ImGuiTreeNodeFlags_Leaf);
     }
 
     if (shared_cached_component.source_components_.size() == 1)
