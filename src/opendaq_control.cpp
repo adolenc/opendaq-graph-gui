@@ -475,104 +475,112 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
         return;
     }
 
-    for (const auto [fb_id, desc] : cached_available_fbs_)
+    if (ImSearch::BeginSearch())
     {
-        if (ImGui::MenuItem(fb_id.toStdString().c_str()))
+        ImSearch::SearchBar();
+        for (const auto [fb_id, desc] : cached_available_fbs_)
         {
-            try
-            {
-                daq::FunctionBlockPtr fb;
-                if (canCastTo<daq::IInstance>(parent_component))
+            std::string fb_id_str = fb_id.toStdString();
+            ImSearch::SearchableItem(fb_id_str.c_str(), [=](const char*) {
+                if (ImGui::MenuItem(fb_id_str.c_str()))
                 {
-                    daq::InstancePtr instance = castTo<daq::IInstance>(parent_component);
-                    fb = instance.addFunctionBlock(fb_id);
+                    try
+                    {
+                        daq::FunctionBlockPtr fb;
+                        if (canCastTo<daq::IInstance>(parent_component))
+                        {
+                            daq::InstancePtr instance = castTo<daq::IInstance>(parent_component);
+                            fb = instance.addFunctionBlock(fb_id);
+                        }
+                        else if (canCastTo<daq::IDevice>(parent_component))
+                        {
+                            daq::DevicePtr device = castTo<daq::IDevice>(parent_component);
+                            fb = device.addFunctionBlock(fb_id);
+                        }
+                        else if (canCastTo<daq::IFunctionBlock>(parent_component))
+                        {
+                            daq::FunctionBlockPtr function_block = castTo<daq::IFunctionBlock>(parent_component);
+                            fb = function_block.addFunctionBlock(fb_id);
+                        }
+
+                        if (fb.assigned())
+                        {
+                            std::string fb_id_str = fb.getGlobalId().toStdString();
+
+                            auto fb_cached = std::make_unique<CachedComponent>(fb);
+                            fb_cached->parent_ = parent_component;
+                            fb_cached->owner_ = parent_component;
+                            fb_cached->color_index_ = parent_id.empty() ? 0 : folders_[parent_id]->color_index_;
+                            fb_cached->RefreshStructure();
+
+                            for (const daq::InputPortPtr& input_port : fb.getInputPorts())
+                            {
+                                std::string input_id = input_port.getGlobalId().toStdString();
+                                auto input_cached = std::make_unique<CachedComponent>(input_port);
+                                input_cached->parent_ = fb;
+                                input_cached->owner_ = fb;
+                                input_ports_[input_id] = input_cached.get();
+                                all_components_[input_id] = std::move(input_cached);
+                            }
+
+                            for (const daq::SignalPtr& signal : fb.getSignals())
+                            {
+                                std::string signal_id = signal.getGlobalId().toStdString();
+                                auto signal_cached = std::make_unique<CachedComponent>(signal);
+                                signal_cached->signal_color_ = GetSignalColor(signal_id);
+                                signal_cached->parent_ = fb;
+                                signal_cached->owner_ = fb;
+                                signals_[signal_id] = signal_cached.get();
+                                all_components_[signal_id] = std::move(signal_cached);
+                            }
+
+                            if (position.has_value())
+                            {
+                                nodes_->AddNode({fb.getName().toStdString(), fb_id_str},
+                                                fb_cached->color_index_,
+                                                position.value(),
+                                                fb_cached->input_ports_,
+                                                fb_cached->output_signals_,
+                                                parent_id);
+                            }
+                            else
+                            {
+                                nodes_->AddNode({fb.getName().toStdString(), fb_id_str},
+                                                fb_cached->color_index_,
+                                                fb_cached->input_ports_,
+                                                fb_cached->output_signals_,
+                                                parent_id);
+                            }
+
+                            if (!fb.getActive())
+                                nodes_->SetActive(fb_id_str, false);
+
+                            UpdateSignalsActiveState(fb_cached.get());
+
+                            folders_[fb_id_str] = fb_cached.get();
+                            all_components_[fb_id_str] = std::move(fb_cached);
+                        }
+                    }
+                    catch (const std::exception& e)
+                    {
+                        ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to add function block: %s", e.what()});
+                    }
+                    catch (...)
+                    {
+                        ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to add function block: Unknown error"});
+                    }
                 }
-                else if (canCastTo<daq::IDevice>(parent_component))
+
+                if (ImGui::BeginItemTooltip())
                 {
-                    daq::DevicePtr device = castTo<daq::IDevice>(parent_component);
-                    fb = device.addFunctionBlock(fb_id);
+                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+                    ImGui::TextUnformatted(desc.getDescription().toStdString().c_str());
+                    ImGui::PopTextWrapPos();
+                    ImGui::EndTooltip();
                 }
-                else if (canCastTo<daq::IFunctionBlock>(parent_component))
-                {
-                    daq::FunctionBlockPtr function_block = castTo<daq::IFunctionBlock>(parent_component);
-                    fb = function_block.addFunctionBlock(fb_id);
-                }
-
-                if (fb.assigned())
-                {
-                    std::string fb_id_str = fb.getGlobalId().toStdString();
-
-                    auto fb_cached = std::make_unique<CachedComponent>(fb);
-                    fb_cached->parent_ = parent_component;
-                    fb_cached->owner_ = parent_component;
-                    fb_cached->color_index_ = parent_id.empty() ? 0 : folders_[parent_id]->color_index_;
-                    fb_cached->RefreshStructure();
-                    
-                    for (const daq::InputPortPtr& input_port : fb.getInputPorts())
-                    {
-                        std::string input_id = input_port.getGlobalId().toStdString();
-                        auto input_cached = std::make_unique<CachedComponent>(input_port);
-                        input_cached->parent_ = fb;
-                        input_cached->owner_ = fb;
-                        input_ports_[input_id] = input_cached.get();
-                        all_components_[input_id] = std::move(input_cached);
-                    }
-
-                    for (const daq::SignalPtr& signal : fb.getSignals())
-                    {
-                        std::string signal_id = signal.getGlobalId().toStdString();
-                        auto signal_cached = std::make_unique<CachedComponent>(signal);
-                        signal_cached->signal_color_ = GetSignalColor(signal_id);
-                        signal_cached->parent_ = fb;
-                        signal_cached->owner_ = fb;
-                        signals_[signal_id] = signal_cached.get();
-                        all_components_[signal_id] = std::move(signal_cached);
-                    }
-
-                    if (position.has_value())
-                    {
-                        nodes_->AddNode({fb.getName().toStdString(), fb_id_str},
-                                        fb_cached->color_index_,
-                                        position.value(),
-                                        fb_cached->input_ports_,
-                                        fb_cached->output_signals_,
-                                        parent_id);
-                    }
-                    else
-                    {
-                        nodes_->AddNode({fb.getName().toStdString(), fb_id_str},
-                                        fb_cached->color_index_,
-                                        fb_cached->input_ports_,
-                                        fb_cached->output_signals_,
-                                        parent_id);
-                    }
-
-                    if (!fb.getActive())
-                        nodes_->SetActive(fb_id_str, false);
-
-                    UpdateSignalsActiveState(fb_cached.get());
-
-                    folders_[fb_id_str] = fb_cached.get();
-                    all_components_[fb_id_str] = std::move(fb_cached);
-                }
-            }
-            catch (const std::exception& e)
-            {
-                ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to add function block: %s", e.what()});
-            }
-            catch (...)
-            {
-                ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to add function block: Unknown error"});
-            }
+            });
         }
-
-        if (ImGui::BeginItemTooltip())
-        {
-            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-            ImGui::TextUnformatted(desc.getDescription().toStdString().c_str());
-            ImGui::PopTextWrapPos();
-            ImGui::EndTooltip();
-        }
+        ImSearch::EndSearch();
     }
 }
 
