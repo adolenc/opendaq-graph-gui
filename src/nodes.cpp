@@ -1909,7 +1909,7 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
         if (hovered) { btn_color_v.x *= 1.1f; btn_color_v.y *= 1.1f; btn_color_v.z *= 1.1f; }
         btn_color_v.w = 0.95f;
         draw_list->AddRectFilled(trash_btn_rect.Min, trash_btn_rect.Max, ImGui::GetColorU32(btn_color_v), 0.0f);
-        DrawTextCenteredScaled(draw_list, trash_btn_rect.GetCenter(), scale, ImGui::GetColorU32(ImVec4(0.8f, 0.1f, 0.1f, 1.0f)), ICON_FA_TRASH, 0.75f);
+        DrawTextCenteredScaled(draw_list, trash_btn_rect.GetCenter(), scale, ImGui::GetColorU32(ImVec4(0.8f, 0.1f, 0.1f, 1.0f)), ICON_FA_XMARK, 0.95f);
 
         ImRect add_button_rect = area_add_button_;
         add_button_rect.Min *= scale;
