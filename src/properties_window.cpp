@@ -118,7 +118,7 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
     ImGui::PushID(cached_prop.uid_.c_str());
 
     if (cached_prop.is_multi_value_)
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.0f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_NavHighlight]);
 
     bool is_disabled = cached_prop.is_read_only_ && cached_prop.type_ != daq::ctProc && cached_prop.type_ != daq::ctFunc;
     if (is_disabled)
@@ -271,7 +271,6 @@ void PropertiesWindow::RenderComponent(SharedCachedComponent& shared_cached_comp
                     ImGui::EndTabItem();
                 }
             }
-            
             if (!shared_cached_component.signal_domain_descriptor_properties_.empty())
             {
                 if (ImGui::BeginTabItem("Domain Signal Descriptor"))

@@ -1512,7 +1512,6 @@ void ImGuiNodes::ProcessNodes()
 
     if (state_ == ImGuiNodesState_Selecting)
     {
-        // Use the theme's NavHighlight color (usually blue) for selection in both modes
         ImVec4 base_color = ImGui::GetStyle().Colors[ImGuiCol_NavHighlight];
         
         ImColor fill_color = base_color;
