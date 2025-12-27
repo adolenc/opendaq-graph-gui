@@ -156,18 +156,22 @@ void CachedComponent::AddDescriptorProperties(daq::DataDescriptorPtr descriptor,
             auto dimensions = descriptor.getDimensions();
             try
             {
-                std::string text = "[";
+                std::string text = "{";
                 for (int i = 0; i < dimensions.getCount(); i++)
                 {
                     if (i > 0) text += ", ";
-                    text += std::to_string((long long)dimensions.getItemAt(i).asPtr<daq::IInteger>());
+
+                    daq::DimensionPtr dim = dimensions.getItemAt(i);
+                    text += (dim.getName().assigned()) ? dim.getName().toStdString() : std::to_string(i);
+                    text += (dim.getUnit().assigned() && dim.getUnit().getSymbol().assigned()) ? " [" + dim.getUnit().getSymbol().toStdString() + "]: " : ": ";
+                    text += std::to_string((long long)dim.getSize());
                 }
-                text += "]";
+                text += "}";
                 value = text;
             } catch (...) { value = "<error>"; }
         }
         else value = "None";
-        AddAttribute(properties, prefix + "Dimensions", "Dimensions", value, true, false);
+        AddAttribute(properties, prefix + "Dimensions", "Dimensions", value, true, is_domain_signal);
     }
     {
         std::string value = descriptor.getOrigin().assigned() ? descriptor.getOrigin().toStdString() : "None";
