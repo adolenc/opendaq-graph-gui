@@ -209,13 +209,14 @@ void CachedComponent::AddDescriptorProperties(daq::DataDescriptorPtr descriptor,
     }
     {
         std::string value;
-        try {
-            if (auto range = descriptor.getValueRange(); range.assigned())
+        try
+        {
+            if (daq::RangePtr range = descriptor.getValueRange(); range.assigned())
             {
-                auto low = range.getLowValue();
-                auto high = range.getHighValue();
-                std::string low_str = low.assigned() ? std::to_string((double)low.asPtr<daq::IFloat>()) : "None";
-                std::string high_str = high.assigned() ? std::to_string((double)high.asPtr<daq::IFloat>()) : "None";
+                daq::NumberPtr low = range.getLowValue();
+                daq::NumberPtr high = range.getHighValue();
+                std::string low_str = low.assigned() ? std::to_string((double)low) : "None";
+                std::string high_str = high.assigned() ? std::to_string((double)high) : "None";
                 value = "[" + low_str + ", " + high_str + "]";
             }
             else value = "None";
