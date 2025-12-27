@@ -70,8 +70,13 @@ int main(int argc, char** argv)
         a.addFunctionBlock("RefFBModuleTrigger");
         dev.addFunctionBlock("RefFBModulePower");
         stat.getInputPorts()[0].connect(power.getSignals()[0]);
+        daq::DevicePtr dev2 = dev.addDevice("daqref://device1");
+        auto fft = dev2.addFunctionBlock("RefFBModuleFFT");
+        fft.getInputPorts()[0].connect(dev.getSignalsRecursive()[1]);
         auto power2 = dev.addFunctionBlock("RefFBModulePower");
         power2.getInputPorts()[0].connect(stat.getSignals()[0]);
+        auto csv = opendaq_editor.instance_.addFunctionBlock("BasicCsvRecorder");
+        csv.getInputPorts()[0].connect(dev.getSignalsRecursive()[0]);
     }
     else if (!connection_string.empty())
     {
