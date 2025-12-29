@@ -186,13 +186,12 @@ void SignalsWindow::Render()
     for (auto& [_, signal] : signals_map_)
         signal.live.Update();
 
-    ImVec2 plot_size = ImGui::GetContentRegionAvail();
-    plot_size.y = ImMax(plot_size.y, 400.0f);
-
     int max_points = std::max((int)ImGui::GetIO().DisplaySize.x, 100);
     for (auto& [_, signal] : signals_map_)
         signal.live.UpdateConfiguration(seconds_shown_, max_points);
 
+    ImVec2 plot_size = ImGui::GetContentRegionAvail();
+    plot_size.y = ImMax(plot_size.y, 100.0f);
     static ImPlotAxisFlags flags = ImPlotAxisFlags_ShowEdgeLabels;
     if (ImPlot::BeginPlot(("##SignalsWindow" + std::to_string(plot_unique_id_)).c_str(), plot_size))
     {
