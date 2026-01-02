@@ -649,6 +649,25 @@ void ImGuiNodes::Update()
     ImGuiNodesUid previous_active_output_uid = active_output_ ? active_output_->uid_ : "";
     ImGuiNodesUid previous_active_input_uid = active_input_ ? active_input_->uid_ : "";
 
+    if (rebuild_cache_.needs_rebuild_)
+    {
+        if (active_node_ == NULL && !rebuild_cache_.active_node_uid_.empty())
+            if (nodes_by_uid_.count(rebuild_cache_.active_node_uid_)) active_node_ = nodes_by_uid_[rebuild_cache_.active_node_uid_];
+
+        if (active_output_ == NULL && !rebuild_cache_.active_output_uid_.empty())
+            if (outputs_by_uid_.count(rebuild_cache_.active_output_uid_)) active_output_ = outputs_by_uid_[rebuild_cache_.active_output_uid_].output;
+
+        if (active_input_ == NULL && !rebuild_cache_.active_input_uid_.empty())
+            if (inputs_by_uid_.count(rebuild_cache_.active_input_uid_)) active_input_ = inputs_by_uid_[rebuild_cache_.active_input_uid_];
+
+        if (state_ == ImGuiNodesState_DraggingOutput && active_output_ == NULL) state_ = ImGuiNodesState_Default;
+        if (state_ == ImGuiNodesState_DraggingInput && active_input_ == NULL) state_ = ImGuiNodesState_Default;
+        if (state_ == ImGuiNodesState_DraggingParentConnection && active_node_ == NULL) state_ = ImGuiNodesState_Default;
+        if (state_ == ImGuiNodesState_Dragging && active_node_ == NULL) state_ = ImGuiNodesState_Default;
+
+        rebuild_cache_.needs_rebuild_ = false;
+    }
+
     ProcessInteractions();
 
     if (performing_manual_interaction)
@@ -2031,6 +2050,17 @@ void ImGuiNodes::ClearNodeConnections(const ImGuiNodesUid& node_uid)
 
 void ImGuiNodes::Clear()
 {
+    if (active_node_) rebuild_cache_.active_node_uid_ = active_node_->uid_;
+    else rebuild_cache_.active_node_uid_.clear();
+
+    if (active_input_) rebuild_cache_.active_input_uid_ = active_input_->uid_;
+    else rebuild_cache_.active_input_uid_.clear();
+
+    if (active_output_) rebuild_cache_.active_output_uid_ = active_output_->uid_;
+    else rebuild_cache_.active_output_uid_.clear();
+
+    rebuild_cache_.needs_rebuild_ = true;
+
     active_node_ = NULL;
     active_input_ = NULL;
     active_output_ = NULL;

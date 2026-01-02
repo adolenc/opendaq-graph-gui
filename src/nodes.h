@@ -226,6 +226,15 @@ private:
     ImGuiNodesInput* active_input_ = NULL;
     ImGuiNodesOutput* active_output_ = NULL;
 
+    struct
+    {
+        ImGuiNodesUid active_node_uid_;
+        ImGuiNodesUid active_input_uid_;
+        ImGuiNodesUid active_output_uid_;
+
+        bool needs_rebuild_ = false;
+    } rebuild_cache_;
+
     ImGuiNodesInteractionHandler* interaction_handler_ = nullptr;
 
     struct OutputWithOwner
