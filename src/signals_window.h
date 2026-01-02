@@ -32,12 +32,23 @@ public:
     bool is_open_ = true;
 
 private:
+    struct Subplot {
+        std::vector<std::string> signal_ids;
+        int uid;
+
+        Subplot(std::vector<std::string> ids = {}) : signal_ids(std::move(ids)) {
+            static int next_uid = 0;
+            uid = next_uid++;
+        }
+    };
+
     bool freeze_selection_ = false;
     bool is_cloned_ = false;
     bool is_paused_ = false;
 
     std::vector<std::string> selected_component_ids_;
     std::unordered_map<std::string, Signal> signals_map_;
+    std::vector<Subplot> subplots_;
     float total_min_ = 0.0f;
     float total_max_ = 0.0f;
     float seconds_shown_ = 5.0f;
