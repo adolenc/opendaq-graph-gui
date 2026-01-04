@@ -163,74 +163,108 @@ static void RenderFunctionProperty(SharedCachedProperty& cached_prop)
 
         if (ImGui::Button("Execute"))
         {
-            try
+            daq::ListPtr<daq::IBaseObject> args = daq::List<daq::IBaseObject>();
+            for (const auto& param : fn_info.parameters)
             {
-                daq::BaseObjectPtr value = cached_prop.property_.getValue();
-                daq::ListPtr<daq::IBaseObject> args = daq::List<daq::IBaseObject>();
-                for (const auto& param : fn_info.parameters)
-                {
-                    if (std::holds_alternative<std::string>(param.value))
-                        args.pushBack(daq::String(std::get<std::string>(param.value)));
-                    else if (std::holds_alternative<int64_t>(param.value))
-                        args.pushBack(daq::Integer(std::get<int64_t>(param.value)));
-                    else if (std::holds_alternative<double>(param.value))
-                        args.pushBack(daq::Float(std::get<double>(param.value)));
-                    else if (std::holds_alternative<bool>(param.value))
-                        args.pushBack(daq::Boolean(std::get<bool>(param.value)));
-                }
+                if (std::holds_alternative<std::string>(param.value))
+                    args.pushBack(daq::String(std::get<std::string>(param.value)));
+                else if (std::holds_alternative<int64_t>(param.value))
+                    args.pushBack(daq::Integer(std::get<int64_t>(param.value)));
+                else if (std::holds_alternative<double>(param.value))
+                    args.pushBack(daq::Float(std::get<double>(param.value)));
+                else if (std::holds_alternative<bool>(param.value))
+                    args.pushBack(daq::Boolean(std::get<bool>(param.value)));
+            }
 
-                daq::BaseObjectPtr result;
-                if (cached_prop.type_ == daq::ctFunc)
+            std::vector<CachedProperty*> targets = cached_prop.target_properties_;
+            if (targets.empty())
+                targets.push_back(&cached_prop);
+
+            for (CachedProperty* target : targets)
+            {
+                target->EnsureFunctionInfoCached();
+                std::string& execution_result = target->function_info_->last_execution_result;
+
+                try
                 {
-                    daq::FunctionPtr func = value.asPtrOrNull<daq::IFunction>();
-                    if (func.assigned())
-                        result = func.call(args);
-                    else
-                        fn_info.last_execution_result = "Error: Not a function";
-                }
-                else
-                {
-                    daq::ProcedurePtr proc = value.asPtrOrNull<daq::IProcedure>();
-                    if (proc.assigned())
+                    daq::BaseObjectPtr value = target->property_.getValue();
+                    daq::BaseObjectPtr result;
+
+                    if (cached_prop.type_ == daq::ctFunc)
                     {
+                        daq::FunctionPtr func = value.asPtrOrNull<daq::IFunction>();
+                        result = func.call(args);
+                    }
+                    else
+                    {
+                        daq::ProcedurePtr proc = value.asPtrOrNull<daq::IProcedure>();
                         proc.dispatch(args);
                         result = nullptr;
                     }
-                    else
-                        fn_info.last_execution_result = "Error: Not a procedure";
-                }
 
-                if (result.assigned())
-                {
-                     if (result.getCoreType() == daq::ctString)
-                         fn_info.last_execution_result = (std::string)result;
-                     else if (result.getCoreType() == daq::ctInt)
-                         fn_info.last_execution_result = std::to_string((int64_t)result);
-                     else if (result.getCoreType() == daq::ctFloat)
-                         fn_info.last_execution_result = std::to_string((double)result);
-                     else if (result.getCoreType() == daq::ctBool)
-                         fn_info.last_execution_result = (bool)result ? "True" : "False";
-                     else
-                         fn_info.last_execution_result = "Complex result";
+                    if (result.assigned())
+                    {
+                         if (result.getCoreType() == daq::ctString)
+                             execution_result = (std::string)result;
+                         else if (result.getCoreType() == daq::ctInt)
+                             execution_result = std::to_string((int64_t)result);
+                         else if (result.getCoreType() == daq::ctFloat)
+                             execution_result = std::to_string((double)result);
+                         else if (result.getCoreType() == daq::ctBool)
+                             execution_result = (bool)result ? "True" : "False";
+                         else
+                             execution_result = "Complex result";
+                    }
+                    else
+                    {
+                        execution_result = "Success";
+                    }
                 }
-                else
+                catch (const std::exception& e)
                 {
-                    if (fn_info.last_execution_result.find("Error:") == std::string::npos)
-                        fn_info.last_execution_result = "Success";
+                    execution_result = std::string("Error: ") + e.what();
                 }
-            }
-            catch (const std::exception& e)
-            {
-                fn_info.last_execution_result = std::string("Error: ") + e.what();
-            }
-            catch (...)
-            {
-                fn_info.last_execution_result = "Unknown error";
+                catch (...)
+                {
+                    execution_result = "Unknown error";
+                }
             }
         }
 
-        ImGui::SameLine();
-        ImGui::InputText("##ExecutionResult", &fn_info.last_execution_result, ImGuiInputTextFlags_ReadOnly);
+        std::vector<CachedProperty*> targets = cached_prop.target_properties_;
+        if (targets.empty())
+            targets.push_back(&cached_prop);
+
+        if (targets.size() == 1)
+        {
+            CachedProperty* target = targets[0];
+            if (target->function_info_.has_value())
+            {
+                ImGui::SameLine();
+                ImGui::InputText("##ExecutionResult", &target->function_info_->last_execution_result, ImGuiInputTextFlags_ReadOnly);
+            }
+        }
+        else
+        {
+            for (size_t i = 0; i < targets.size(); ++i)
+            {
+                CachedProperty* target = targets[i];
+                if (!target->function_info_.has_value())
+                    continue;
+
+                if (target->owner_)
+                {
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::Text("%s:", target->owner_->name_.c_str());
+                    ImGui::SameLine();
+                }
+                
+                std::string label = "##ExecutionResult" + std::to_string(i);
+                ImGui::PushItemWidth(-1);
+                ImGui::InputText(label.c_str(), &target->function_info_->last_execution_result, ImGuiInputTextFlags_ReadOnly);
+                ImGui::PopItemWidth();
+            }
+        }
 
         ImGui::Unindent();
     }
