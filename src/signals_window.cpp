@@ -189,8 +189,12 @@ void SignalsWindow::Render()
 
     ImGui::SameLine();
     ImGui::SetNextItemWidth(100);
-    if (ImGui::DragFloat("##SecondsShown", &seconds_shown_, 0.1f, 0.1f, 600.0f, "%.1f s"))
+    float temp_seconds_shown = seconds_shown_;
+    if (ImGui::InputFloat("##SecondsShown", &temp_seconds_shown, 0, 0, "%.1f s"), ImGui::IsItemDeactivatedAfterEdit())
+    {
+        seconds_shown_ = ImClamp(temp_seconds_shown, 0.1f, 3600.0f);
         plot_unique_id_++;
+    }
 
     if (signals_map_.empty())
     {
