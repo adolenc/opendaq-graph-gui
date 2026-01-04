@@ -151,6 +151,8 @@ int main(int argc, char** argv)
     }
     ImPlot::GetStyle().UseISO8601 = true;
 
+    ImGui::GetStyle().Colors[ImGuiCol_DragDropTarget] = ImGui::GetStyle().Colors[ImGuiCol_NavHighlight];
+
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
