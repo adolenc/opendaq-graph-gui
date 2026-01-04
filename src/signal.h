@@ -1,6 +1,7 @@
 #pragma once
 
 #include <opendaq/opendaq.h>
+#include <variant>
 #include <vector>
 #include <string>
 
@@ -41,8 +42,22 @@ public:
     float seconds_shown_ = 5.0f;
     int max_points_ = 2000;
 
+    struct Axis
+    {
+        std::string name_;
+        std::string unit_;
+        std::variant<
+            std::vector<double>,
+            std::vector<std::string>
+        > values_;
+    };
+    std::vector<Axis> axes_;
+
+    size_t data_size_ = 1;
+
 private:
     void ReadDomainAndValue();
+    void ReadMultiDimensional();
     void ReadDomainOnly();
 
     daq::ReaderPtr reader_;

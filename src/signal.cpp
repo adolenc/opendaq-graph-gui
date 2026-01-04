@@ -25,7 +25,7 @@ void OpenDAQSignal::RebuildIfInvalid(daq::SignalPtr signal, float seconds_shown,
     signal_ = signal;
     reader_ = nullptr;
     pos_in_plot_buffer_ = 0;
-    int64_t start_time_ = -1;
+    start_time_ = -1;
     points_in_plot_buffer_ = 0;
     end_time_seconds_ = 0;
 
@@ -37,14 +37,54 @@ void OpenDAQSignal::RebuildIfInvalid(daq::SignalPtr signal, float seconds_shown,
         signal_unit_ = "";
 
     if (!signal.getDescriptor().assigned())
-    {
         return;
-    }
     
     if (signal.getDomainSignal().assigned())
         signal_type_ = SignalType::DomainAndValue;
     else
         signal_type_ = SignalType::DomainOnly;
+
+    data_size_ = 1;
+    axes_.clear();
+    for (const daq::DimensionPtr& dimension : signal.getDescriptor().getDimensions())
+    {
+        Axis axis;
+        axis.name_ = dimension.getName().toStdString();
+        if (dimension.getUnit().assigned() && dimension.getUnit().getSymbol().assigned())
+            axis.unit_ = dimension.getUnit().getSymbol().toStdString();
+        else
+            axis.unit_ = "";
+        daq::ListPtr<daq::IBaseObject> labels = dimension.getLabels();
+        size_t dim_size = labels.getCount();
+
+        if (dim_size > 0)
+        {
+            data_size_ *= dim_size;
+            auto first_label = labels[0];
+            if (first_label.getCoreType() == daq::CoreType::ctString)
+            {
+                std::vector<std::string> label_strs;
+                for (const auto& label : labels)
+                    label_strs.push_back(daq::StringPtr(label).toStdString());
+                axis.values_ = label_strs;
+            }
+            else
+            {
+                std::vector<double> label_floats;
+                for (const auto& label : labels)
+                {
+                     if (label.getCoreType() == daq::CoreType::ctFloat)
+                        label_floats.push_back((double)daq::FloatPtr(label));
+                     else if (label.getCoreType() == daq::CoreType::ctInt)
+                        label_floats.push_back((double)daq::IntegerPtr(label));
+                     else
+                        label_floats.push_back(0.0);
+                }
+                axis.values_ = label_floats;
+            }
+        }
+        axes_.push_back(axis);
+    }
 
     try
     {
@@ -55,8 +95,15 @@ void OpenDAQSignal::RebuildIfInvalid(daq::SignalPtr signal, float seconds_shown,
     {
         return;
     }
-    float samples_per_second;
-    try { samples_per_second = std::max<daq::Int>(1, daq::reader::getSampleRate(signal.getDomainSignal().assigned() ? signal.getDomainSignal().getDescriptor() : signal.getDescriptor())); } catch (...) { samples_per_second = 1; }
+    float samples_per_second = 1;
+    try
+    {
+        samples_per_second = std::max<daq::Int>(
+            1,
+            daq::reader::getSampleRate(signal.getDomainSignal().assigned() ? signal.getDomainSignal().getDescriptor() : signal.getDescriptor()));
+    } catch (...)
+    {
+    }
     samples_per_plot_sample_ = std::max<int>(1, std::ceil(samples_per_second * seconds_shown / (float)max_points));
 
     if (auto value_range = signal.getDescriptor().getValueRange(); value_range.assigned())
@@ -64,37 +111,51 @@ void OpenDAQSignal::RebuildIfInvalid(daq::SignalPtr signal, float seconds_shown,
         value_range_min_ = value_range.getLowValue();
         value_range_max_ = value_range.getHighValue();
     }
-    if (signal_type_ == SignalType::DomainAndValue)
+
+    if (!axes_.empty())
     {
+        // we are only reading the last sample for multi-dimensional signals, but we use the stream reader
+        // because TailReader keeps thinking it has 1 sample available so it is just mindlessly rewriting
+        // the read array over and over again
+        plot_values_avg_ = std::vector<double>(data_size_);
         reader_ = daq::StreamReaderBuilder()
             .setSignal(signal)
-            .setSkipEvents(true)
+            .setSkipEvents(false)
             .setValueReadType(daq::SampleType::Float64)
-            .setDomainReadType(daq::SampleType::Int64)
             .build();
     }
     else
     {
-        // for now we only read the last sample for domain-only signals
-        reader_ = daq::TailReaderBuilder()
-            .setHistorySize(1)
-            .setSignal(signal)
-            .setSkipEvents(true)
-            .setValueReadType(daq::SampleType::Int64)
-            .build();
+        read_values = std::vector<double>(READ_BUFFER_SIZE);
+        read_times = std::vector<int64_t>(READ_BUFFER_SIZE);
+
+        plot_values_avg_ = std::vector<double>(max_points);
+        plot_values_min_ = std::vector<double>(max_points);
+        plot_values_max_ = std::vector<double>(max_points);
+        plot_times_seconds_ = std::vector<double>(max_points);
+
+        leftover_samples_ = 0;
+
+        if (signal_type_ == SignalType::DomainAndValue)
+        {
+            reader_ = daq::StreamReaderBuilder()
+                .setSignal(signal)
+                .setSkipEvents(true)
+                .setValueReadType(daq::SampleType::Float64)
+                .setDomainReadType(daq::SampleType::Int64)
+                .build();
+        }
+        else
+        {
+            // for now we also only read the last sample for domain-only signals
+            reader_ = daq::TailReaderBuilder()
+                .setHistorySize(1)
+                .setSignal(signal)
+                .setSkipEvents(true)
+                .setValueReadType(daq::SampleType::Int64)
+                .build();
+        }
     }
-
-    read_values = std::vector<double>(READ_BUFFER_SIZE);
-    read_times = std::vector<int64_t>(READ_BUFFER_SIZE);
-
-    plot_values_avg_ = std::vector<double>(max_points);
-    plot_values_min_ = std::vector<double>(max_points);
-    plot_values_max_ = std::vector<double>(max_points);
-    plot_times_seconds_ = std::vector<double>(max_points);
-
-    leftover_samples_ = 0;
-    
-    start_time_ = -1;
 }
 
 void OpenDAQSignal::RebuildIfInvalid()
@@ -115,13 +176,38 @@ void OpenDAQSignal::Update()
     if (reader_ == nullptr || !reader_.assigned())
         return;
 
-    if (signal_type_ == SignalType::DomainAndValue)
+    if (!axes_.empty())
+    {
+        ReadMultiDimensional();
+    }
+    else if (signal_type_ == SignalType::DomainAndValue)
     {
         ReadDomainAndValue();
     }
     else
     {
         ReadDomainOnly();
+    }
+}
+
+void OpenDAQSignal::ReadMultiDimensional()
+{
+    while (true)
+    {
+        daq::SizeT read_count = 1;
+        daq::ReaderStatusPtr status = daq::StreamReaderPtr(reader_).read(plot_values_avg_.data(), &read_count);
+        // The first event is gonna be descriptor changed so we ignore it and just naively assume we already have the correct descriptor,
+        // but we have to rebuild the reader on subsequent events
+        if (status.getReadStatus() == daq::ReadStatus::Event && start_time_ != -1)
+        {
+            reader_.release();
+            reader_ = nullptr;
+            RebuildIfInvalid();
+            return;
+        }
+        start_time_ = 0;
+        if (read_count == 0)
+            break;
     }
 }
 

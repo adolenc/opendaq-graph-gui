@@ -222,8 +222,23 @@ void SignalsWindow::Render()
     {
         if (ImPlot::BeginPlot(("##SignalsWindow" + std::to_string(plot_unique_id_) + "_" + std::to_string(subplot.uid)).c_str(), ImVec2(-1, plot_height)))
         {
-            ImPlot::SetupAxes("Time", nullptr, flags, flags);
-            ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
+            bool is_multi_dim = false;
+            std::string x_label = "Time";
+            for (const auto& id : subplot.signal_ids)
+            {
+                if (signals_map_.count(id) && !signals_map_[id].live.axes_.empty())
+                {
+                    is_multi_dim = true;
+                    x_label = signals_map_[id].live.axes_[0].name_;
+                    if (!signals_map_[id].live.axes_[0].unit_.empty())
+                        x_label += " [" + signals_map_[id].live.axes_[0].unit_ + "]";
+                    break;
+                }
+            }
+
+            ImPlot::SetupAxes(x_label.c_str(), nullptr, flags, flags);
+            if (!is_multi_dim)
+                ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
 
             double max_end_time = 0;
             float sub_min = std::numeric_limits<float>::max();
@@ -246,7 +261,8 @@ void SignalsWindow::Render()
 
             if (!has_signals) { sub_min = 0; sub_max = 1; }
 
-            ImPlot::SetupAxisLimits(ImAxis_X1, max_end_time - seconds_shown_, max_end_time, ImGuiCond_Always);
+            if (!is_multi_dim)
+                ImPlot::SetupAxisLimits(ImAxis_X1, max_end_time - seconds_shown_, max_end_time, ImGuiCond_Always);
             ImPlot::SetupAxisLimits(ImAxis_Y1, sub_min, sub_max);
 
             for (const auto& id : subplot.signal_ids)
@@ -259,19 +275,27 @@ void SignalsWindow::Render()
                     label += " [" + signal.live.signal_unit_ + "]";
                 label += "##" + signal.live.signal_id_;
 
-                if (is_paused_)
+                if (!signal.live.axes_.empty())
                 {
+                    auto& axis = signal.live.axes_[0];
                     ImPlot::SetNextLineStyle(signal.color);
-                    ImPlot::PlotLine(label.c_str(), signal.paused.plot_times_seconds_.data(), signal.paused.plot_values_avg_.data(), (int)signal.paused.points_in_plot_buffer_, 0, signal.paused.pos_in_plot_buffer_);
-                    ImPlot::SetNextFillStyle(signal.color, 0.25f);
-                    ImPlot::PlotShaded(label.c_str(), signal.paused.plot_times_seconds_.data(), signal.paused.plot_values_min_.data(), signal.paused.plot_values_max_.data(), (int)signal.paused.points_in_plot_buffer_, (ImPlotShadedFlags)ImPlotItemFlags_NoLegend, signal.paused.pos_in_plot_buffer_);
+                    if (std::holds_alternative<std::vector<double>>(axis.values_))
+                    {
+                        const auto& x_values = std::get<std::vector<double>>(axis.values_);
+                        ImPlot::PlotLine(label.c_str(), x_values.data(), signal.live.plot_values_avg_.data(), std::min(x_values.size(), signal.live.plot_values_avg_.size()));
+                    }
+                    else
+                    {
+                        ImPlot::PlotLine(label.c_str(), signal.live.plot_values_avg_.data(), signal.live.plot_values_avg_.size());
+                    }
                 }
                 else
                 {
+                    OpenDAQSignal& to_plot = is_paused_ ? signal.paused : signal.live;
                     ImPlot::SetNextLineStyle(signal.color);
-                    ImPlot::PlotLine(label.c_str(), signal.live.plot_times_seconds_.data(), signal.live.plot_values_avg_.data(), (int)signal.live.points_in_plot_buffer_, 0, signal.live.pos_in_plot_buffer_);
+                    ImPlot::PlotLine(label.c_str(), to_plot.plot_times_seconds_.data(), to_plot.plot_values_avg_.data(), (int)to_plot.points_in_plot_buffer_, 0, to_plot.pos_in_plot_buffer_);
                     ImPlot::SetNextFillStyle(signal.color, 0.25f);
-                    ImPlot::PlotShaded(label.c_str(), signal.live.plot_times_seconds_.data(), signal.live.plot_values_min_.data(), signal.live.plot_values_max_.data(), (int)signal.live.points_in_plot_buffer_, (ImPlotShadedFlags)ImPlotItemFlags_NoLegend, signal.live.pos_in_plot_buffer_);
+                    ImPlot::PlotShaded(label.c_str(), to_plot.plot_times_seconds_.data(), to_plot.plot_values_min_.data(), to_plot.plot_values_max_.data(), (int)to_plot.points_in_plot_buffer_, (ImPlotShadedFlags)ImPlotItemFlags_NoLegend, to_plot.pos_in_plot_buffer_);
                 }
 
                 if (ImPlot::BeginDragDropSourceItem(label.c_str()))
