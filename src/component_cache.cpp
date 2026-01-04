@@ -577,3 +577,35 @@ void CachedProperty::SetValue(ValueType value)
         ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to set property value: Unknown error"});
     }
 }
+
+void CachedProperty::EnsureFunctionInfoCached()
+{
+    if (function_info_.has_value())
+        return;
+
+    if (!property_.assigned())
+        return;
+
+    function_info_ = FunctionInfo();
+    auto callable_info = property_.getCallableInfo();
+    if (!callable_info.assigned())
+        return;
+
+    function_info_->return_type = callable_info.getReturnType();
+    auto args = callable_info.getArguments();
+    if (!args.assigned())
+        return;
+    for (const daq::ArgumentInfoPtr& arg : args)
+    {
+        ValueType default_val;
+        switch (arg.getType())
+        {
+            case daq::ctBool:   default_val = false; break;
+            case daq::ctInt:    default_val = (int64_t)0; break;
+            case daq::ctFloat:  default_val = 0.0; break;
+            case daq::ctString: default_val = std::string(""); break;
+            default:            default_val = std::string(""); break;
+        }
+        function_info_->parameters.push_back({arg.getName(), arg.getType(), default_val});
+    }
+}

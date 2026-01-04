@@ -5,6 +5,7 @@
 #include "imgui.h"
 #include "imgui_stdlib.h"
 #include <map>
+#include <set>
 
 
 SharedCachedComponent::SharedCachedComponent(const std::vector<CachedComponent*>& components, const std::string& group_name)
@@ -110,6 +111,131 @@ PropertiesWindow::PropertiesWindow(const PropertiesWindow& other)
     RebuildComponents();
 }
 
+static void RenderFunctionProperty(SharedCachedProperty& cached_prop)
+{
+    if (ImGui::CollapsingHeader(cached_prop.display_name_.c_str(), ImGuiTreeNodeFlags_SpanLabelWidth | ImGuiTreeNodeFlags_Framed))
+    {
+        cached_prop.EnsureFunctionInfoCached();
+        ImGui::Indent();
+
+        CachedProperty::FunctionInfo& fn_info = *cached_prop.function_info_;
+        for (size_t i = 0; i < fn_info.parameters.size(); ++i)
+        {
+            auto& param = fn_info.parameters[i];
+            ImGui::PushID(i);
+            switch (param.type)
+            {
+                case daq::ctBool:
+                {
+                    bool v = std::get<bool>(param.value);
+                    if (ImGui::Checkbox(param.name.c_str(), &v))
+                        param.value = v;
+                    break;
+                }
+                case daq::ctInt:
+                {
+                    int64_t v = std::get<int64_t>(param.value);
+                    int temp = (int)v;
+                    if (ImGui::InputInt(param.name.c_str(), &temp))
+                        param.value = (int64_t)temp;
+                    break;
+                }
+                case daq::ctFloat:
+                {
+                    double v = std::get<double>(param.value);
+                    if (ImGui::InputDouble(param.name.c_str(), &v))
+                        param.value = v;
+                    break;
+                }
+                case daq::ctString:
+                {
+                    std::string v = std::get<std::string>(param.value);
+                    if (ImGui::InputText(param.name.c_str(), &v))
+                        param.value = v;
+                    break;
+                }
+                default:
+                    ImGui::Text("Unsupported type for %s", param.name.c_str());
+                    break;
+            }
+            ImGui::PopID();
+        }
+
+        if (ImGui::Button("Execute"))
+        {
+            try
+            {
+                daq::BaseObjectPtr value = cached_prop.property_.getValue();
+                daq::ListPtr<daq::IBaseObject> args = daq::List<daq::IBaseObject>();
+                for (const auto& param : fn_info.parameters)
+                {
+                    if (std::holds_alternative<std::string>(param.value))
+                        args.pushBack(daq::String(std::get<std::string>(param.value)));
+                    else if (std::holds_alternative<int64_t>(param.value))
+                        args.pushBack(daq::Integer(std::get<int64_t>(param.value)));
+                    else if (std::holds_alternative<double>(param.value))
+                        args.pushBack(daq::Float(std::get<double>(param.value)));
+                    else if (std::holds_alternative<bool>(param.value))
+                        args.pushBack(daq::Boolean(std::get<bool>(param.value)));
+                }
+
+                daq::BaseObjectPtr result;
+                if (cached_prop.type_ == daq::ctFunc)
+                {
+                    daq::FunctionPtr func = value.asPtrOrNull<daq::IFunction>();
+                    if (func.assigned())
+                        result = func.call(args);
+                    else
+                        fn_info.last_execution_result = "Error: Not a function";
+                }
+                else
+                {
+                    daq::ProcedurePtr proc = value.asPtrOrNull<daq::IProcedure>();
+                    if (proc.assigned())
+                    {
+                        proc.dispatch(args);
+                        result = nullptr;
+                    }
+                    else
+                        fn_info.last_execution_result = "Error: Not a procedure";
+                }
+
+                if (result.assigned())
+                {
+                     if (result.getCoreType() == daq::ctString)
+                         fn_info.last_execution_result = (std::string)result;
+                     else if (result.getCoreType() == daq::ctInt)
+                         fn_info.last_execution_result = std::to_string((int64_t)result);
+                     else if (result.getCoreType() == daq::ctFloat)
+                         fn_info.last_execution_result = std::to_string((double)result);
+                     else if (result.getCoreType() == daq::ctBool)
+                         fn_info.last_execution_result = (bool)result ? "True" : "False";
+                     else
+                         fn_info.last_execution_result = "Complex result";
+                }
+                else
+                {
+                    if (fn_info.last_execution_result.find("Error:") == std::string::npos)
+                        fn_info.last_execution_result = "Success";
+                }
+            }
+            catch (const std::exception& e)
+            {
+                fn_info.last_execution_result = std::string("Error: ") + e.what();
+            }
+            catch (...)
+            {
+                fn_info.last_execution_result = "Unknown error";
+            }
+        }
+
+        ImGui::SameLine();
+        ImGui::InputText("##ExecutionResult", &fn_info.last_execution_result, ImGuiInputTextFlags_ReadOnly);
+
+        ImGui::Unindent();
+    }
+}
+
 void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedCachedComponent* owner)
 {
     if (!show_debug_properties_ && cached_prop.is_debug_property_)
@@ -194,12 +320,8 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
             }
             break;
         case daq::ctProc:
-            if (ImGui::Button(cached_prop.display_name_.c_str()))
-                SetValue({});
-            break;
         case daq::ctFunc:
-            if (ImGui::Button(cached_prop.display_name_.c_str()))
-                SetValue({});
+            RenderFunctionProperty(cached_prop);
             break;
         case daq::ctObject:
             ImGui::Text("%s", cached_prop.display_name_.c_str());

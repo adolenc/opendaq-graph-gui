@@ -31,6 +31,22 @@ struct CachedProperty
     std::optional<double> max_value_;
     std::optional<std::string> selection_values_;
     int selection_values_count_ = 0;
+
+    struct FunctionInfo
+    {
+        struct Parameter
+        {
+            std::string name;
+            daq::CoreType type;
+            ValueType value;
+        };
+        std::vector<Parameter> parameters;
+        daq::CoreType return_type;
+        std::string last_execution_result;
+    };
+    std::optional<FunctionInfo> function_info_;
+
+    void EnsureFunctionInfoCached();
 };
 
 struct CachedComponent
@@ -49,6 +65,7 @@ struct CachedComponent
     daq::ComponentPtr owner_; // the component that can delete this one
 
     std::string name_;
+    std::string uid_;
     std::string warning_message_;
     std::string error_message_;
     std::vector<CachedProperty> attributes_;
