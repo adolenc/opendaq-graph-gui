@@ -12,6 +12,67 @@ OpenDAQNodeEditor::OpenDAQNodeEditor()
 {
 }
 
+#include "imgui_internal.h"
+
+static void* PropertiesWindowSettingsHandler_ReadOpen(ImGuiContext*, ImGuiSettingsHandler*, const char* name)
+{
+    return (void*)name;
+}
+
+static void PropertiesWindowSettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* entry, const char* line)
+{
+    OpenDAQNodeEditor* editor = (OpenDAQNodeEditor*)handler->UserData;
+    editor->properties_window_.LoadSettings(line);
+}
+
+static void PropertiesWindowSettingsHandler_WriteAll(ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buf)
+{
+    OpenDAQNodeEditor* editor = (OpenDAQNodeEditor*)handler->UserData;
+    buf->appendf("[%s][Settings]\n", handler->TypeName);
+    editor->properties_window_.SaveSettings(buf);
+    buf->append("\n");
+}
+
+static void* SignalsWindowSettingsHandler_ReadOpen(ImGuiContext*, ImGuiSettingsHandler*, const char* name)
+{
+    return (void*)name;
+}
+
+static void SignalsWindowSettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* entry, const char* line)
+{
+    OpenDAQNodeEditor* editor = (OpenDAQNodeEditor*)handler->UserData;
+    editor->signals_window_.LoadSettings(line);
+}
+
+static void SignalsWindowSettingsHandler_WriteAll(ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buf)
+{
+    OpenDAQNodeEditor* editor = (OpenDAQNodeEditor*)handler->UserData;
+    buf->appendf("[%s][Settings]\n", handler->TypeName);
+    editor->signals_window_.SaveSettings(buf);
+    buf->append("\n");
+}
+
+void OpenDAQNodeEditor::InitImGui()
+{
+    ImGuiSettingsHandler ini_handler;
+    ini_handler.TypeName = "PropertiesWindow";
+    ini_handler.TypeHash = ImHashStr("PropertiesWindow");
+    ini_handler.ReadOpenFn = PropertiesWindowSettingsHandler_ReadOpen;
+    ini_handler.ReadLineFn = PropertiesWindowSettingsHandler_ReadLine;
+    ini_handler.WriteAllFn = PropertiesWindowSettingsHandler_WriteAll;
+    ini_handler.UserData = this;
+    ImGui::GetCurrentContext()->SettingsHandlers.push_back(ini_handler);
+
+    ImGuiSettingsHandler ini_handler2;
+    ini_handler2.TypeName = "SignalsWindow";
+    ini_handler2.TypeHash = ImHashStr("SignalsWindow");
+    ini_handler2.ReadOpenFn = SignalsWindowSettingsHandler_ReadOpen;
+    ini_handler2.ReadLineFn = SignalsWindowSettingsHandler_ReadLine;
+    ini_handler2.WriteAllFn = SignalsWindowSettingsHandler_WriteAll;
+    ini_handler2.UserData = this;
+    ImGui::GetCurrentContext()->SettingsHandlers.push_back(ini_handler2);
+}
+
 void OpenDAQNodeEditor::Init()
 {
     instance_.getContext().getOnCoreEvent() += [&](const daq::ComponentPtr& comp, const daq::CoreEventArgsPtr& args)

@@ -31,6 +31,17 @@ public:
     std::function<ImVec4(const std::string&)> get_signal_color_callback_;
     bool is_open_ = true;
 
+    void SaveSettings(ImGuiTextBuffer* buf)
+    {
+        buf->appendf("SecondsShown=%f\n", seconds_shown_);
+    }
+
+    void LoadSettings(const char* line)
+    {
+        float f;
+        if (sscanf(line, "SecondsShown=%f", &f) == 1) seconds_shown_ = f;
+    }
+
 private:
     struct Subplot {
         std::vector<std::string> signal_ids;

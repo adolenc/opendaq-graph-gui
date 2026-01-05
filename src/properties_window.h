@@ -44,6 +44,23 @@ public:
     std::function<void(const std::string&, const std::string&)> on_property_changed_;
     bool is_open_ = true;
 
+    void SaveSettings(ImGuiTextBuffer* buf)
+    {
+        buf->appendf("ShowParentsAndChildren=%d\n", show_parents_and_children_);
+        buf->appendf("TabbedInterface=%d\n", tabbed_interface_);
+        buf->appendf("ShowDebugProperties=%d\n", show_debug_properties_);
+        buf->appendf("GroupComponents=%d\n", group_components_);
+    }
+
+    void LoadSettings(const char* line)
+    {
+        int i;
+        if (sscanf(line, "ShowParentsAndChildren=%d", &i) == 1) show_parents_and_children_ = (bool)i;
+        else if (sscanf(line, "TabbedInterface=%d", &i) == 1) tabbed_interface_ = (bool)i;
+        else if (sscanf(line, "ShowDebugProperties=%d", &i) == 1) show_debug_properties_ = (bool)i;
+        else if (sscanf(line, "GroupComponents=%d", &i) == 1) group_components_ = (bool)i;
+    }
+
 private:
     void RebuildComponents();
     

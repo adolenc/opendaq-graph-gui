@@ -112,6 +112,7 @@ int main(int argc, char** argv)
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    opendaq_editor.InitImGui();
     ImPlot::CreateContext();
     ImSearch::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
