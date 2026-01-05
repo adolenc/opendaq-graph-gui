@@ -890,10 +890,13 @@ void ImGuiNodes::ProcessInteractions()
             {
                 if (active_input_->source_node_)
                 {
-                    RemoveConnection(active_input_->uid_);
-                    if (interaction_handler_)
-                        interaction_handler_->OnConnectionRemoved(active_input_->uid_);
-                    state_ = ImGuiNodesState_DraggingInput;
+                    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+                        CLEAR_FLAG(nodes_[node_idx]->state_, ImGuiNodesNodeStateFlag_Selected);
+                    ClearAllConnectorSelections();
+
+                    SET_FLAG(active_input_->source_node_->state_, ImGuiNodesNodeStateFlag_Selected);
+                    SortSelectedNodesOrder();
+                    MoveSelectedNodesIntoView();
                 }
 
                 return;
@@ -1098,7 +1101,8 @@ void ImGuiNodes::ProcessInteractions()
             if (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold) &&
                 !OtherImGuiWindowIsBlockingInteraction() &&
                 !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId) &&
-                !minimap_rect_.Contains(mouse_))
+                !minimap_rect_.Contains(mouse_) &&
+                io.MouseClickedCount[0] == 1)
             {
                 if (interaction_handler_)
                 {
