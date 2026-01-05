@@ -192,28 +192,29 @@ int main(int argc, char** argv)
         ImGui::PopStyleVar(3);
 
         ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
-        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
-
         static bool first_time = true;
         if (first_time)
         {
+            if (ImGui::DockBuilderGetNode(dockspace_id) == NULL)
+            {
+                ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
+                ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
+
+                ImGuiID dock_main_id = dockspace_id;
+                ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.16f, nullptr, &dock_main_id);
+                ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.30f, nullptr, &dock_main_id);
+                ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.25f, nullptr, &dock_main_id);
+
+                ImGui::DockBuilderDockWindow("Node editor", dock_main_id);
+                ImGui::DockBuilderDockWindow("Tree view", dock_id_left);
+                ImGui::DockBuilderDockWindow("Property editor", dock_id_right);
+                ImGui::DockBuilderDockWindow("Signal viewer", dock_id_bottom);
+                ImGui::DockBuilderFinish(dockspace_id);
+            }
             first_time = false;
-
-            ImGui::DockBuilderRemoveNode(dockspace_id);
-            ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
-            ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
-
-            ImGuiID dock_main_id = dockspace_id;
-            ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.16f, nullptr, &dock_main_id);
-            ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.30f, nullptr, &dock_main_id);
-            ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.25f, nullptr, &dock_main_id);
-
-            ImGui::DockBuilderDockWindow("Node editor", dock_main_id);
-            ImGui::DockBuilderDockWindow("Tree view", dock_id_left);
-            ImGui::DockBuilderDockWindow("Property editor", dock_id_right);
-            ImGui::DockBuilderDockWindow("Signal viewer", dock_id_bottom);
-            ImGui::DockBuilderFinish(dockspace_id);
         }
+
+        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
         ImGui::End();
 
         opendaq_editor.Render();
