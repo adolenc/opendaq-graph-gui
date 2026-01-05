@@ -584,128 +584,128 @@ void PropertiesWindow::Render()
         return;
     }
 
+    ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyleColorVec4(ImGuiCol_TabSelected));
+    if (is_cloned_)
     {
-        if (is_cloned_)
+        if (ImGui::Button(ICON_FA_ARROWS_ROTATE))
         {
-            if (ImGui::Button(ICON_FA_ARROWS_ROTATE))
-            {
-                if (on_reselect_click_)
-                    on_reselect_click_(selected_component_ids_);
-            }
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Reapply selection");
-            
-            ImGui::SameLine();
+            if (on_reselect_click_)
+                on_reselect_click_(selected_component_ids_);
         }
-
-        if (!is_cloned_)
-        {
-            if (ImGui::Button(freeze_selection_ ? " " ICON_FA_LOCK " ": " " ICON_FA_LOCK_OPEN))
-                freeze_selection_ = !freeze_selection_;
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip(freeze_selection_ ? "Unlock selection" : "Lock selection");
-
-            ImGui::SameLine();
-
-            ImGui::BeginDisabled(grouped_selected_components_.empty());
-            if (ImGui::Button(ICON_FA_CLONE))
-            {
-                if (on_clone_click_)
-                    on_clone_click_(this);
-            }
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Clone into a new window");
-            ImGui::EndDisabled();
-
-            ImGui::SameLine();
-        }
-
-        ImGui::BeginDisabled(group_components_);
-        if (ImGui::Button((show_parents_and_children_ && !group_components_) ? ICON_FA_SITEMAP " " ICON_FA_TOGGLE_ON : ICON_FA_SITEMAP " " ICON_FA_TOGGLE_OFF))
-            show_parents_and_children_ = !show_parents_and_children_;
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip(show_parents_and_children_ ? "Hide parents and children" : "Show parents and children");
+            ImGui::SetTooltip("Reapply selection");
+
+        ImGui::SameLine();
+    }
+
+    if (!is_cloned_)
+    {
+        if (ImGui::Button(freeze_selection_ ? " " ICON_FA_LOCK " ": " " ICON_FA_LOCK_OPEN))
+            freeze_selection_ = !freeze_selection_;
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip(freeze_selection_ ? "Unlock selection" : "Lock selection");
+
+        ImGui::SameLine();
+
+        ImGui::BeginDisabled(grouped_selected_components_.empty());
+        if (ImGui::Button(ICON_FA_CLONE))
+        {
+            if (on_clone_click_)
+                on_clone_click_(this);
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Clone into a new window");
         ImGui::EndDisabled();
 
         ImGui::SameLine();
+    }
 
-        if (ImGui::Button(group_components_ ? ICON_FA_OBJECT_GROUP " " ICON_FA_TOGGLE_ON : ICON_FA_OBJECT_GROUP " " ICON_FA_TOGGLE_OFF))
+    ImGui::BeginDisabled(group_components_);
+    if (ImGui::Button((show_parents_and_children_ && !group_components_) ? ICON_FA_SITEMAP " " ICON_FA_TOGGLE_ON : ICON_FA_SITEMAP " " ICON_FA_TOGGLE_OFF))
+        show_parents_and_children_ = !show_parents_and_children_;
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip(show_parents_and_children_ ? "Hide parents and children" : "Show parents and children");
+    ImGui::EndDisabled();
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(group_components_ ? ICON_FA_OBJECT_GROUP " " ICON_FA_TOGGLE_ON : ICON_FA_OBJECT_GROUP " " ICON_FA_TOGGLE_OFF))
+    {
+        group_components_ = !group_components_;
+        RebuildComponents();
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip(group_components_ ? "Disable component grouping" : "Group components by type");
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(tabbed_interface_ ? ICON_FA_TABLE_COLUMNS " " ICON_FA_TOGGLE_ON : ICON_FA_TABLE_COLUMNS " " ICON_FA_TOGGLE_OFF))
+        tabbed_interface_ = !tabbed_interface_;
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip(tabbed_interface_ ? "Disable tabs for multiple components" : "Use tabs for multiple components");
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(show_debug_properties_ ? ICON_FA_BUG " " ICON_FA_TOGGLE_ON : ICON_FA_BUG " " ICON_FA_TOGGLE_OFF))
+        show_debug_properties_ = !show_debug_properties_;
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip(show_debug_properties_ ? "Hide debug properties" : "Show debug properties");
+
+
+    if (grouped_selected_components_.empty())
+    {
+        ImGui::Text("No component selected");
+    }
+    else
+    {
+        bool needs_rebuild = false;
+        for (auto& comp : grouped_selected_components_)
         {
-            group_components_ = !group_components_;
+            for (auto* source : comp.source_components_)
+            {
+                if (source->needs_refresh_)
+                {
+                    source->RefreshProperties();
+                    needs_rebuild = true;
+                }
+            }
+        }
+        if (needs_rebuild)
             RebuildComponents();
-        }
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip(group_components_ ? "Disable component grouping" : "Group components by type");
 
-        ImGui::SameLine();
-
-        if (ImGui::Button(tabbed_interface_ ? ICON_FA_TABLE_COLUMNS " " ICON_FA_TOGGLE_ON : ICON_FA_TABLE_COLUMNS " " ICON_FA_TOGGLE_OFF))
-            tabbed_interface_ = !tabbed_interface_;
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip(tabbed_interface_ ? "Disable tabs for multiple components" : "Use tabs for multiple components");
-
-        ImGui::SameLine();
-
-        if (ImGui::Button(show_debug_properties_ ? ICON_FA_BUG " " ICON_FA_TOGGLE_ON : ICON_FA_BUG " " ICON_FA_TOGGLE_OFF))
-            show_debug_properties_ = !show_debug_properties_;
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip(show_debug_properties_ ? "Hide debug properties" : "Show debug properties");
-
-
-        if (grouped_selected_components_.empty())
+        if (grouped_selected_components_.size() == 1)
         {
-            ImGui::Text("No component selected");
+            RenderComponentWithParents(grouped_selected_components_[0]);
         }
-        else
+        else if (tabbed_interface_ && grouped_selected_components_.size() > 1)
         {
-            bool needs_rebuild = false;
-            for (auto& comp : grouped_selected_components_)
-            {
-                for (auto* source : comp.source_components_)
-                {
-                    if (source->needs_refresh_)
-                    {
-                        source->RefreshProperties();
-                        needs_rebuild = true;
-                    }
-                }
-            }
-            if (needs_rebuild)
-                RebuildComponents();
-
-            if (grouped_selected_components_.size() == 1)
-            {
-                RenderComponentWithParents(grouped_selected_components_[0]);
-            }
-            else if (tabbed_interface_ && grouped_selected_components_.size() > 1)
-            {
-                if (ImGui::BeginTabBar("Components"))
-                {
-                    int uid = 0;
-                    for (auto& comp : grouped_selected_components_)
-                    {
-                        if (ImGui::BeginTabItem((comp.name_ + "###" + std::to_string(uid++)).c_str()))
-                        {
-                            RenderComponentWithParents(comp);
-                            ImGui::EndTabItem();
-                        }
-                    }
-                    ImGui::EndTabBar();
-                }
-            }
-            else
+            if (ImGui::BeginTabBar("Components"))
             {
                 int uid = 0;
                 for (auto& comp : grouped_selected_components_)
                 {
-                    ImGui::BeginChild((comp.name_ + "##" + std::to_string(uid++)).c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
-                    RenderComponentWithParents(comp);
-                    ImGui::EndChild();
-                    ImGui::SameLine();
+                    if (ImGui::BeginTabItem((comp.name_ + "###" + std::to_string(uid++)).c_str()))
+                    {
+                        RenderComponentWithParents(comp);
+                        ImGui::EndTabItem();
+                    }
                 }
+                ImGui::EndTabBar();
+            }
+        }
+        else
+        {
+            int uid = 0;
+            for (auto& comp : grouped_selected_components_)
+            {
+                ImGui::BeginChild((comp.name_ + "##" + std::to_string(uid++)).c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
+                RenderComponentWithParents(comp);
+                ImGui::EndChild();
+                ImGui::SameLine();
             }
         }
     }
+    ImGui::PopStyleColor(1);
     ImGui::End();
 }
 
