@@ -169,7 +169,7 @@ static void RenderFunctionProperty(SharedCachedProperty& cached_prop)
                 if (std::holds_alternative<std::string>(param.value))
                     args.pushBack(daq::String(std::get<std::string>(param.value)));
                 else if (std::holds_alternative<int64_t>(param.value))
-                    args.pushBack(daq::Integer(std::get<int64_t>(param.value)));
+                    args.pushBack(daq::Int(std::get<int64_t>(param.value)));
                 else if (std::holds_alternative<double>(param.value))
                     args.pushBack(daq::Float(std::get<double>(param.value)));
                 else if (std::holds_alternative<bool>(param.value))
@@ -193,12 +193,23 @@ static void RenderFunctionProperty(SharedCachedProperty& cached_prop)
                     if (cached_prop.type_ == daq::ctFunc)
                     {
                         daq::FunctionPtr func = value.asPtrOrNull<daq::IFunction>();
-                        result = func.call(args);
+                        // There is no way this is the way to properly call functions in openDAQ... Huh??
+                        if (args.getCount() == 0)
+                            result = func.call();
+                        else if (args.getCount() == 1)
+                            result = func.call(args[0]);
+                        else
+                            result = func.call(args);
                     }
                     else
                     {
                         daq::ProcedurePtr proc = value.asPtrOrNull<daq::IProcedure>();
-                        proc.dispatch(args);
+                        if (args.getCount() == 0)
+                            proc.dispatch();
+                        else if (args.getCount() == 1)
+                            proc.dispatch(args[0]);
+                        else
+                            proc.dispatch(args);
                         result = nullptr;
                     }
 
