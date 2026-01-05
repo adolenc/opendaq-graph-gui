@@ -719,6 +719,7 @@ void ImGuiNodes::Update()
 void ImGuiNodes::ProcessInteractions()
 {
     static bool blocked_by_imgui_interaction = false;
+    static int last_double_click_frame = -1;
 
     const ImGuiIO& io = ImGui::GetIO();
     
@@ -897,6 +898,7 @@ void ImGuiNodes::ProcessInteractions()
                     SET_FLAG(active_input_->source_node_->state_, ImGuiNodesNodeStateFlag_Selected);
                     SortSelectedNodesOrder();
                     MoveSelectedNodesIntoView();
+                    last_double_click_frame = ImGui::GetFrameCount();
                 }
 
                 return;
@@ -1101,9 +1103,11 @@ void ImGuiNodes::ProcessInteractions()
             if (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold) &&
                 !OtherImGuiWindowIsBlockingInteraction() &&
                 !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId) &&
-                !minimap_rect_.Contains(mouse_) &&
-                io.MouseClickedCount[0] == 1)
+                !minimap_rect_.Contains(mouse_))
             {
+                if (ImGui::GetFrameCount() - last_double_click_frame < 10)
+                    return;
+
                 if (interaction_handler_)
                 {
                     ImVec2 position = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
