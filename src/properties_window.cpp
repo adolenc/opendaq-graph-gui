@@ -621,7 +621,7 @@ void PropertiesWindow::Render()
     }
 
     ImGui::BeginDisabled(group_components_);
-    if (ImGui::Button((show_parents_and_children_ && !group_components_) ? ICON_FA_SITEMAP " " ICON_FA_TOGGLE_ON : ICON_FA_SITEMAP " " ICON_FA_TOGGLE_OFF))
+    if (ImGui::Button((show_parents_and_children_ && !group_components_) ? ICON_FA_FOLDER_TREE " " ICON_FA_TOGGLE_ON : ICON_FA_FOLDER_TREE " " ICON_FA_TOGGLE_OFF))
         show_parents_and_children_ = !show_parents_and_children_;
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip(show_parents_and_children_ ? "Hide parents and children" : "Show parents and children");
