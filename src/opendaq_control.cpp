@@ -52,6 +52,25 @@ static void SignalsWindowSettingsHandler_WriteAll(ImGuiContext*, ImGuiSettingsHa
     buf->append("\n");
 }
 
+static void* NodeEditorSettingsHandler_ReadOpen(ImGuiContext*, ImGuiSettingsHandler*, const char* name)
+{
+    return (void*)name;
+}
+
+static void NodeEditorSettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* entry, const char* line)
+{
+    OpenDAQNodeEditor* editor = (OpenDAQNodeEditor*)handler->UserData;
+    editor->nodes_->LoadSettings(line);
+}
+
+static void NodeEditorSettingsHandler_WriteAll(ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buf)
+{
+    OpenDAQNodeEditor* editor = (OpenDAQNodeEditor*)handler->UserData;
+    buf->appendf("[%s][Settings]\n", handler->TypeName);
+    editor->nodes_->SaveSettings(buf);
+    buf->append("\n");
+}
+
 void OpenDAQNodeEditor::InitImGui()
 {
     ImGuiSettingsHandler ini_handler;
@@ -71,6 +90,15 @@ void OpenDAQNodeEditor::InitImGui()
     ini_handler2.WriteAllFn = SignalsWindowSettingsHandler_WriteAll;
     ini_handler2.UserData = this;
     ImGui::GetCurrentContext()->SettingsHandlers.push_back(ini_handler2);
+
+    ImGuiSettingsHandler ini_handler3;
+    ini_handler3.TypeName = "NodeEditor";
+    ini_handler3.TypeHash = ImHashStr("NodeEditor");
+    ini_handler3.ReadOpenFn = NodeEditorSettingsHandler_ReadOpen;
+    ini_handler3.ReadLineFn = NodeEditorSettingsHandler_ReadLine;
+    ini_handler3.WriteAllFn = NodeEditorSettingsHandler_WriteAll;
+    ini_handler3.UserData = this;
+    ImGui::GetCurrentContext()->SettingsHandlers.push_back(ini_handler3);
 }
 
 void OpenDAQNodeEditor::Init()

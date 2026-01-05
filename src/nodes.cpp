@@ -2141,6 +2141,33 @@ void ImGuiNodes::ClearAllConnectorSelections()
     }
 }
 
+void ImGuiNodes::SaveSettings(ImGuiTextBuffer* buf)
+{
+    for (const auto* node : nodes_)
+    {
+        ImVec2 pos = node->area_node_.GetCenter();
+        buf->appendf("Node=%s,%.0f,%.0f,%d\n", node->uid_.c_str(), pos.x, pos.y, node->color_index_);
+    }
+    for (const auto& [uid, entry] : node_cache_)
+    {
+        if (nodes_by_uid_.find(uid) == nodes_by_uid_.end())
+        {
+             buf->appendf("Node=%s,%.0f,%.0f,%d\n", uid.c_str(), entry.pos.x, entry.pos.y, entry.color_index);
+        }
+    }
+}
+
+void ImGuiNodes::LoadSettings(const char* line)
+{
+    char uid[256];
+    float x, y;
+    int color_index;
+    if (sscanf(line, "Node=%[^,],%f,%f,%d", uid, &x, &y, &color_index) == 4)
+    {
+        node_cache_[uid] = { ImVec2(x, y), color_index, false };
+    }
+}
+
 void ImGuiNodes::BeginBatchAdd()
 {
     batch_add_mode_ = true;

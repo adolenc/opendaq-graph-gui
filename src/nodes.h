@@ -195,6 +195,9 @@ public:
     void ClearNodeConnections(const ImGuiNodesUid& node_uid);
     void Clear();
 
+    void SaveSettings(ImGuiTextBuffer* buf);
+    void LoadSettings(const char* line);
+
     static constexpr ImColor text_color_ = ImColor(0xff000000);
     static constexpr ImColor connection_color_ = ImColor(0xffffffff);
     static constexpr ImColor parent_connection_color_ = ImColor(0x20ffffff);
