@@ -113,7 +113,8 @@ PropertiesWindow::PropertiesWindow(const PropertiesWindow& other)
 
 static void RenderFunctionProperty(SharedCachedProperty& cached_prop)
 {
-    if (ImGui::CollapsingHeader(cached_prop.display_name_.c_str(), ImGuiTreeNodeFlags_SpanLabelWidth | ImGuiTreeNodeFlags_Framed))
+    ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+    if (ImGui::CollapsingHeader(cached_prop.display_name_.c_str(), ImGuiTreeNodeFlags_SpanLabelWidth))
     {
         cached_prop.EnsureFunctionInfoCached();
         ImGui::Indent();
@@ -279,6 +280,7 @@ static void RenderFunctionProperty(SharedCachedProperty& cached_prop)
 
         ImGui::Unindent();
     }
+    ImGui::PopStyleColor(1);
 }
 
 void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedCachedComponent* owner)
