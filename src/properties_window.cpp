@@ -258,24 +258,15 @@ static void RenderFunctionProperty(SharedCachedProperty& cached_prop)
         }
         else
         {
+            ImGui::Indent();
             for (size_t i = 0; i < targets.size(); ++i)
             {
                 CachedProperty* target = targets[i];
                 if (!target->function_info_.has_value())
                     continue;
-
-                if (target->owner_)
-                {
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::Text("%s:", target->owner_->name_.c_str());
-                    ImGui::SameLine();
-                }
-                
-                std::string label = "##ExecutionResult" + std::to_string(i);
-                ImGui::PushItemWidth(-1);
-                ImGui::InputText(label.c_str(), &target->function_info_->last_execution_result, ImGuiInputTextFlags_ReadOnly);
-                ImGui::PopItemWidth();
+                ImGui::InputText((target->owner_->name_ + "##ExecutionResult" + std::to_string(i)).c_str(), &target->function_info_->last_execution_result, ImGuiInputTextFlags_ReadOnly);
             }
+            ImGui::Unindent();
         }
 
         ImGui::Unindent();
