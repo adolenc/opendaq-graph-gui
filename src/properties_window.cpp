@@ -214,23 +214,7 @@ static void RenderFunctionProperty(SharedCachedProperty& cached_prop)
                         result = nullptr;
                     }
 
-                    if (result.assigned())
-                    {
-                         if (result.getCoreType() == daq::ctString)
-                             execution_result = (std::string)result;
-                         else if (result.getCoreType() == daq::ctInt)
-                             execution_result = std::to_string((int64_t)result);
-                         else if (result.getCoreType() == daq::ctFloat)
-                             execution_result = std::to_string((double)result);
-                         else if (result.getCoreType() == daq::ctBool)
-                             execution_result = (bool)result ? "True" : "False";
-                         else
-                             execution_result = "Complex result";
-                    }
-                    else
-                    {
-                        execution_result = "Success";
-                    }
+                     execution_result = result.assigned() ? ValueToString(result) : "Success";
                 }
                 catch (const std::exception& e)
                 {

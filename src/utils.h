@@ -125,6 +125,22 @@ inline std::string ValueToString(daq::BaseObjectPtr value)
             result += "}";
             return result;
         }
+        else if (value.getCoreType() == daq::ctString)
+        {
+            return static_cast<std::string>(value);
+        }
+        else if (value.getCoreType() == daq::ctInt)
+        {
+            return std::to_string(static_cast<int64_t>(value));
+        }
+        else if (value.getCoreType() == daq::ctFloat)
+        {
+            return std::to_string(static_cast<double>(value));
+        }
+        else if (value.getCoreType() == daq::ctBool)
+        {
+            return static_cast<bool>(value) ? "True" : "False";
+        }
         else
         {
             return static_cast<std::string>(value.asPtr<daq::IBaseObject>().toString());
@@ -132,7 +148,7 @@ inline std::string ValueToString(daq::BaseObjectPtr value)
     }
     catch (...)
     {
-        return "<error>";
+        return "<error converting value to string>";
     }
 }
 
