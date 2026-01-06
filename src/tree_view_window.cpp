@@ -28,7 +28,7 @@ void TreeViewWindow::Render(const CachedComponent* root, const std::unordered_ma
 
 void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components, const CachedComponent* parent)
 {
-    std::string name = component->component_.getName().toStdString();
+    std::string name = component->name_;
     std::string component_guid = component->component_.getGlobalId().toStdString();
     
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DrawLinesToNodes;
@@ -64,7 +64,12 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
                     local_flags |= ImGuiTreeNodeFlags_Selected;
 
                 bool has_color = false;
-                if (!component->error_message_.empty())
+                if (!component->is_active_)
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                    has_color = true;
+                }
+                else if (!component->error_message_.empty())
                 {
                     ImGui::PushStyleColor(ImGuiCol_Text, COLOR_ERROR);
                     has_color = true;
@@ -84,7 +89,7 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
                 {
                     if (!component->error_message_.empty())
                         ImGui::SetTooltip("%s", component->error_message_.c_str());
-                    else
+                    else if (!component->warning_message_.empty())
                         ImGui::SetTooltip("%s", component->warning_message_.c_str());
                 }
 
@@ -150,7 +155,12 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
         flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
         ImSearch::SearchableItem(name.c_str(), [this, component_guid, flags, component](const char* label) {
             bool has_color = false;
-            if (!component->error_message_.empty())
+            if (!component->is_active_)
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+                has_color = true;
+            }
+            else if (!component->error_message_.empty())
             {
                 ImGui::PushStyleColor(ImGuiCol_Text, COLOR_ERROR);
                 has_color = true;
@@ -170,7 +180,7 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
             {
                 if (!component->error_message_.empty())
                     ImGui::SetTooltip("%s", component->error_message_.c_str());
-                else
+                else if (!component->warning_message_.empty())
                     ImGui::SetTooltip("%s", component->warning_message_.c_str());
             }
 

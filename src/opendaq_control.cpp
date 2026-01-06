@@ -381,8 +381,8 @@ void OpenDAQNodeEditor::SetNodeActiveRecursively(const std::string& node_id)
         if (!cached->component_.assigned())
             return;
 
-        bool active = cached->component_.getActive();
-        nodes_->SetActive(node_id, active);
+        cached->is_active_ = cached->component_.getActive();
+        nodes_->SetActive(node_id, cached->is_active_);
 
         UpdateSignalsActiveState(cached);
 

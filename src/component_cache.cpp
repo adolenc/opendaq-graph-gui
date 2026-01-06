@@ -6,6 +6,8 @@
 CachedComponent::CachedComponent(daq::ComponentPtr component)
     : component_(component)
 {
+    name_ = component_.getName().toStdString();
+    is_active_ = (bool)component_.getActive();
 }
 
 void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr property_holder, int depth, const std::string& parent_uid)
@@ -322,6 +324,7 @@ void CachedComponent::RefreshProperties()
     signal_domain_descriptor_properties_.clear();
 
     name_ = component_.getName().toStdString();
+    is_active_ = (bool)component_.getActive();
     RefreshStatus();
 
     if (canCastTo<daq::IDevice>(component_))

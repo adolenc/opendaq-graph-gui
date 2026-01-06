@@ -68,6 +68,7 @@ struct CachedComponent
     std::string uid_;
     std::string warning_message_;
     std::string error_message_;
+    bool is_active_;
     std::vector<CachedProperty> attributes_;
     std::vector<CachedProperty> properties_;
     std::vector<CachedProperty> signal_descriptor_properties_;
