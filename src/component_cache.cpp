@@ -314,8 +314,6 @@ void CachedComponent::RefreshStatus()
 
 void CachedComponent::RefreshProperties()
 {
-    needs_refresh_ = false;
-
     assert(component_.assigned());
 
     properties_.clear();

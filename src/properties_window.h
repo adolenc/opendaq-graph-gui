@@ -38,7 +38,7 @@ public:
     void OnSelectionChanged(const std::vector<std::string>& selected_ids, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components);
     void RefreshComponents();
     void RestoreSelection(const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components);
-    
+
     std::function<void(PropertiesWindow*)> on_clone_click_;
     std::function<void(const std::vector<std::string>&)> on_reselect_click_;
     std::function<void(const std::string&, const std::string&)> on_property_changed_;
