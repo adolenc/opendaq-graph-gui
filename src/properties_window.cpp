@@ -5,7 +5,7 @@
 #include "imgui.h"
 #include "imgui_stdlib.h"
 #include <map>
-#include <set>
+#include <sstream>
 
 
 SharedCachedComponent::SharedCachedComponent(const std::vector<CachedComponent*>& components, const std::string& group_name)
@@ -396,6 +396,18 @@ void PropertiesWindow::RenderComponent(SharedCachedComponent& shared_cached_comp
     {
         ImGui::SetNextItemOpen(true);
         ImGui::CollapsingHeader(shared_cached_component.name_.c_str(), ImGuiTreeNodeFlags_Leaf);
+        if (group_components_ && ImGui::IsItemHovered())
+        {
+            std::stringstream names;
+            names << "Grouped components:\n";
+            for (size_t i = 0; i < shared_cached_component.source_components_.size(); ++i)
+            {
+                if (i > 0)
+                    names << "\n";
+                names << " - " << shared_cached_component.source_components_[i]->name_;
+            }
+            ImGui::SetTooltip("%s", names.str().c_str());
+        }
     }
 
     if (shared_cached_component.source_components_.size() == 1)
