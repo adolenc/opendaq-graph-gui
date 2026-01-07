@@ -1,6 +1,5 @@
 #include "nodes.h"
 #include "IconsFontAwesome6.h"
-#include "im_anim.h"
 #include <algorithm>
 
 using namespace ImGui;
@@ -621,29 +620,6 @@ bool ImGuiNodes::SortSelectedNodesOrder()
 
 void ImGuiNodes::Update()
 {
-    const ImGuiIO& io = ImGui::GetIO();
-
-    bool performing_manual_interaction = (state_ == ImGuiNodesState_Dragging ||
-                                          state_ == ImGuiNodesState_Selecting ||
-                                          state_ == ImGuiNodesState_DraggingInput ||
-                                          state_ == ImGuiNodesState_DraggingOutput);
-    ImRect canvas(nodes_imgui_window_pos_, nodes_imgui_window_pos_ + nodes_imgui_window_size_);
-    if (canvas.Contains(mouse_) && !minimap_rect_.Contains(mouse_) && ImGui::IsMouseDragging(1))
-        performing_manual_interaction = true;
-
-    static bool first_frame = true;
-    int policy = (performing_manual_interaction || first_frame) ? iam_policy_cut : iam_policy_crossfade;
-    first_frame = false;
-
-    ImGuiID id = ImGui::GetID("NodesCanvas");
-    ImVec2 animated_scroll = iam_tween_vec2(id, ImHashStr("scroll"), scroll_, 0.3f, iam_ease_preset(iam_ease_out_cubic), policy, io.DeltaTime);
-    float animated_scale = std::max(0.1f, iam_tween_float(id, ImHashStr("scale"), scale_, 0.3f, iam_ease_preset(iam_ease_out_cubic), policy, io.DeltaTime));
-
-    ImVec2 target_scroll = scroll_;
-    float target_scale = scale_;
-    scroll_ = animated_scroll;
-    scale_ = animated_scale;
-
     bool was_hovering_output = (state_ == ImGuiNodesState_HoveringOutput);
     bool was_hovering_input = (state_ == ImGuiNodesState_HoveringInput);
     ImGuiNodesUid previous_active_output_uid = active_output_ ? active_output_->uid_ : "";
@@ -670,50 +646,31 @@ void ImGuiNodes::Update()
 
     ProcessInteractions();
 
-    if (performing_manual_interaction)
+    if (state_ == ImGuiNodesState_HoveringOutput)
     {
-        target_scroll += (scroll_ - animated_scroll);
-        target_scale += (scale_ - animated_scale);
-    }
-    else
-    {
-        if (scroll_.x != animated_scroll.x || scroll_.y != animated_scroll.y)
-        {
-            target_scroll = scroll_;
-            scroll_ = animated_scroll;
-        }
-        if (scale_ != animated_scale)
-        {
-            target_scale = scale_;
-            scale_ = animated_scale;
-        }
-    }
-
-    if (interaction_handler_)
-    {
-        if (state_ == ImGuiNodesState_HoveringOutput && active_output_)
+        if (interaction_handler_ && active_output_)
         {
             if (previous_active_output_uid != active_output_->uid_)
                 interaction_handler_->OnOutputHover("");
             interaction_handler_->OnOutputHover(active_output_->uid_);
         }
-        else if (was_hovering_output)
-            interaction_handler_->OnOutputHover("");
+    }
+    else if (was_hovering_output && interaction_handler_)
+        interaction_handler_->OnOutputHover("");
 
-        if (state_ == ImGuiNodesState_HoveringInput && active_input_)
+    if (state_ == ImGuiNodesState_HoveringInput)
+    {
+        if (interaction_handler_ && active_input_)
         {
             if (previous_active_input_uid != active_input_->uid_)
                 interaction_handler_->OnInputHover("");
             interaction_handler_->OnInputHover(active_input_->uid_);
         }
-        else if (was_hovering_input)
-            interaction_handler_->OnInputHover("");
     }
+    else if (was_hovering_input && interaction_handler_)
+        interaction_handler_->OnInputHover("");
 
     ProcessNodes();
-
-    scroll_ = target_scroll;
-    scale_ = target_scale;
 }
 
 void ImGuiNodes::ProcessInteractions()

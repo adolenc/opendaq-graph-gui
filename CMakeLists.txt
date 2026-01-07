@@ -101,19 +101,6 @@ add_library(imsearch STATIC
 )
 target_include_directories(imsearch PUBLIC ${imsearch_SOURCE_DIR} ${imgui_SOURCE_DIR})
 
-# imanim
-FetchContent_Declare(
-  imanim
-  GIT_REPOSITORY https://github.com/soufianekhiat/ImAnim.git
-  GIT_TAG 1.0.0
-)
-FetchContent_MakeAvailable(imanim)
-add_library(imanim STATIC
-  ${imanim_SOURCE_DIR}/im_anim.cpp
-  ${imanim_SOURCE_DIR}/im_anim_demo.cpp
-)
-target_include_directories(imanim PUBLIC ${imanim_SOURCE_DIR} ${imgui_SOURCE_DIR})
-
 # imgui-notify
 FetchContent_Declare(
   imgui_notify
@@ -145,7 +132,7 @@ target_link_libraries(imgui PUBLIC SDL2::SDL2 SDL2::SDL2main OpenGL::GL)
 
 add_executable(${PROJECT_NAME} src/main.cpp src/nodes.cpp src/opendaq_control.cpp src/properties_window.cpp src/component_cache.cpp src/signals_window.cpp src/signal.cpp src/tree_view_window.cpp)
 target_include_directories(${PROJECT_NAME} PUBLIC ${openDAQ_INCLUDE_DIRS} src ${iconfontcppheaders_SOURCE_DIR})
-target_link_libraries(${PROJECT_NAME} PUBLIC daq::opendaq imgui implot imsearch imanim imgui_notify)
+target_link_libraries(${PROJECT_NAME} PUBLIC daq::opendaq imgui implot imsearch imgui_notify)
 
 add_custom_command(
   TARGET ${PROJECT_NAME} POST_BUILD
