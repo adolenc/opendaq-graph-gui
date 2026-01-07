@@ -1134,7 +1134,10 @@ void OpenDAQNodeEditor::Render()
     tree_view_window_.Render(all_components_[instance_.getGlobalId().toStdString()].get(), all_components_);
 
     for (auto& [id, component] : all_components_)
-        component->needs_refresh_ = false;
+    {
+        if (component)
+            component->needs_refresh_ = false;
+    }
 }
 
 ImVec4 OpenDAQNodeEditor::GetSignalColor(const std::string& signal_id)
