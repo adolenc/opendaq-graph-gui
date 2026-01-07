@@ -5,6 +5,9 @@
 #include "implot.h"
 #include "imsearch.h"
 #include "signal.h"
+#include "IconsFontAwesome6.h"
+#include <cstdlib>
+#include <ctime>
 
 
 OpenDAQNodeEditor::OpenDAQNodeEditor()
@@ -680,7 +683,7 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
 
     daq::DevicePtr parent_device = castTo<daq::IDevice>(parent_component);
 
-    if (ImGui::Button(available_devices_.assigned() && available_devices_.getCount() > 0 ? "Refresh devices" : "Discover devices"))
+    if (ImGui::Button(available_devices_.assigned() && available_devices_.getCount() > 0 ? "Refresh device list" : "Discover devices"))
     {
         try
         {
@@ -698,7 +701,7 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
         }
     }
 
-    auto add_device = [&](const std::string& device_connection_string)
+    auto add_device = [&](const std::string& device_connection_string) -> bool
         {
             try
             {
@@ -736,14 +739,17 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
 
                 folders_[dev_id] = dev_cached.get();
                 all_components_[dev_id] = std::move(dev_cached);
+                return true;
             }
             catch (const std::exception& e)
             {
                 ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to add device: %s", e.what()});
+                return false;
             }
             catch (...)
             {
                 ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to add device: Unknown error"});
+                return false;
             }
         };
 
@@ -755,18 +761,21 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
             std::string device_connection_string = device_info.getConnectionString();
             if (ImGui::MenuItem((device_connection_name + " (" + device_connection_string + ")").c_str()))
             {
-                add_device(device_connection_string);
-                ImGui::CloseCurrentPopup();
+                if (add_device(device_connection_string))
+                    ImGui::CloseCurrentPopup();
             }
         }
     }
 
-    std::string device_connection_string = "daq.nd://";
+    static std::string device_connection_string = "daq.nd://";
     ImGui::InputText("##w", &device_connection_string);
     if (ImGui::IsItemDeactivatedAfterEdit() || (ImGui::SameLine(), ImGui::Button("Connect")))
     {
-        add_device(device_connection_string);
-        ImGui::CloseCurrentPopup();
+        if (add_device(device_connection_string))
+        {
+            device_connection_string = "daq.nd://";
+            ImGui::CloseCurrentPopup();
+        }
     }
 }
 
@@ -892,23 +901,67 @@ void OpenDAQNodeEditor::RenderNestedNodePopup()
 void OpenDAQNodeEditor::ShowStartupPopup()
 {
     static bool show_startup_popup_ = true;
+    static int current_hint_index = 0;
+    static std::vector<std::string> hints;
+
     if (show_startup_popup_)
     {
         show_startup_popup_ = false;
         ImGui::OpenPopup("Startup");
+
+        hints = {
+            "Did you know? You can auto-connect to a device on startup by using the --connection-string command line argument.",
+            "Pro tip: Right-clicking in the tree view allows you to quickly collapse all items or select all children of a node.",
+            "Double-clicking an input port in the node editor will focus the connected source node.",
+            "Double-clicking any node in the tree view window will focus the node editor on that specific node.",
+            "Holding ctrl while clicking will select multiple components at once.",
+            "Left-click and drag the mouse cursor to create a box selection of multiple components in the node editor.",
+        };
+        srand(time(nullptr));
+        current_hint_index = rand() % hints.size();
     }
-    
+
     ImGui::SetNextWindowPos(ImGui::GetIO().DisplaySize * 0.5f, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
     if (ImGui::BeginPopupModal("Startup", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
     {
-        ImGui::Text("Connect to a device or add a function block to get started.");
-        ImGui::Separator();
+        const char* welcome_text = "openDAQ graph GUI";
+        float window_width = ImGui::GetWindowSize().x;
+        float text_width = ImGui::CalcTextSize(welcome_text).x;
+        ImGui::SetCursorPosX((window_width - text_width) * 0.5f);
+        ImGui::Text("%s", welcome_text);
 
-        RenderPopupMenu(nodes_, ImVec2(0,0));
-        ImGui::Separator();
+        ImGui::Dummy(ImVec2(0.0f, 10.0f));
 
-        if (ImGui::Button("Dismiss"))
-            ImGui::CloseCurrentPopup();
+        ImGui::Text("Getting started:");
+        ImGui::Text("- Use the list below to connect to an automatically discovered device, or manually enter a connection string.");
+        ImGui::Text("- Once connected, the device structure will appear in the tree view on the left, and in the node canvas.");
+        ImGui::Text("- Click on components to view and edit their properties in the properties panel.");
+        ImGui::Text("- Click on empty space in the node canvas to add new devices or function blocks.");
+        ImGui::Text("- Connect signals to input ports by dragging connections between nodes.");
+        ImGui::Text("- Add nested function blocks by clicking the '+' button on device or function block nodes in the node canvas.");
+        ImGui::Text("- Signals from selected components are drawn in the signals panel.");
+
+        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+        ImGui::Separator();
+        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+        ImGui::Text("Connect to device");
+        RenderDeviceOptions(instance_, "", ImVec2(0,0));
+
+        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+        ImGui::Separator();
+        ImGui::Dummy(ImVec2(0.0f, 5.0f));
+
+        ImGui::TextColored(COLOR_WARNING, "%s Hint:", ICON_FA_LIGHTBULB);
+        ImGui::SameLine();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::TextUnformatted(hints[current_hint_index].c_str());
+        ImGui::PopTextWrapPos();
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("One more"))
+            current_hint_index = (current_hint_index + 1) % hints.size();
+
         ImGui::EndPopup();
     }
 }
