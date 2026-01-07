@@ -67,6 +67,7 @@ private:
     void RenderProperty(SharedCachedProperty& cached_prop, SharedCachedComponent* owner);
 
     void RenderComponent(SharedCachedComponent& component, bool draw_header = true);
+    void AddGroupedComponentsTooltip(SharedCachedComponent& shared_cached_component);
     void RenderComponentWithParents(SharedCachedComponent& component);
     void RenderChildren(SharedCachedComponent& component);
     

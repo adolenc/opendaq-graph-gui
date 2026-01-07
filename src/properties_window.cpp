@@ -390,24 +390,29 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
     ImGui::PopID();
 }
 
+void PropertiesWindow::AddGroupedComponentsTooltip(SharedCachedComponent& shared_cached_component)
+{
+    if (!group_components_ || !ImGui::IsItemHovered())
+        return;
+
+    std::stringstream names;
+    names << "Grouped components:\n";
+    for (size_t i = 0; i < shared_cached_component.source_components_.size(); ++i)
+    {
+        if (i > 0)
+            names << "\n";
+        names << " - " << shared_cached_component.source_components_[i]->name_;
+    }
+    ImGui::SetTooltip("%s", names.str().c_str());
+}
+
 void PropertiesWindow::RenderComponent(SharedCachedComponent& shared_cached_component, bool draw_header)
 {
-    if (draw_header)
+    if (draw_header && (!tabbed_interface_ || (show_parents_and_children_ && !group_components_)))
     {
         ImGui::SetNextItemOpen(true);
         ImGui::CollapsingHeader(shared_cached_component.name_.c_str(), ImGuiTreeNodeFlags_Leaf);
-        if (group_components_ && ImGui::IsItemHovered())
-        {
-            std::stringstream names;
-            names << "Grouped components:\n";
-            for (size_t i = 0; i < shared_cached_component.source_components_.size(); ++i)
-            {
-                if (i > 0)
-                    names << "\n";
-                names << " - " << shared_cached_component.source_components_[i]->name_;
-            }
-            ImGui::SetTooltip("%s", names.str().c_str());
-        }
+        AddGroupedComponentsTooltip(shared_cached_component);
     }
 
     if (shared_cached_component.source_components_.size() == 1)
@@ -690,7 +695,9 @@ void PropertiesWindow::Render()
                 int uid = 0;
                 for (auto& comp : grouped_selected_components_)
                 {
-                    if (ImGui::BeginTabItem((comp.name_ + "###" + std::to_string(uid++)).c_str()))
+                    bool open = ImGui::BeginTabItem((comp.name_ + "###" + std::to_string(uid++)).c_str());
+                    AddGroupedComponentsTooltip(comp);
+                    if (open)
                     {
                         RenderComponentWithParents(comp);
                         ImGui::EndTabItem();
