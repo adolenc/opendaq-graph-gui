@@ -9,6 +9,8 @@
 #include <optional>
 #include <string>
 #include <memory>
+#include <future>
+#include <atomic>
 
 
 class OpenDAQNodeEditor : public ImGui::ImGuiNodesInteractionHandler
@@ -57,6 +59,8 @@ public:
     daq::ComponentPtr dragged_input_port_component_;
 
     daq::ListPtr<daq::IDeviceInfo> available_devices_;
+    std::future<daq::ListPtr<daq::IDeviceInfo>> device_discovery_future_;
+    bool is_device_discovery_initialized_ = false;
 
     bool fb_options_cache_valid_ = false;
     daq::DictPtr<daq::IString, daq::IFunctionBlockType> cached_available_fbs_;

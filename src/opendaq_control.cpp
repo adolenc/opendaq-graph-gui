@@ -8,6 +8,7 @@
 #include "IconsFontAwesome6.h"
 #include <cstdlib>
 #include <ctime>
+#include <chrono>
 
 
 OpenDAQNodeEditor::OpenDAQNodeEditor()
@@ -683,21 +684,45 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
 
     daq::DevicePtr parent_device = castTo<daq::IDevice>(parent_component);
 
-    if (ImGui::Button(available_devices_.assigned() && available_devices_.getCount() > 0 ? "Refresh device list" : "Discover devices"))
+    if (device_discovery_future_.valid())
     {
-        try
+        if (device_discovery_future_.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
         {
-            available_devices_ = parent_device.getAvailableDevices();
+            try
+            {
+                available_devices_ = device_discovery_future_.get();
+            }
+            catch (const std::exception& e)
+            {
+                ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to discover devices: %s", e.what()});
+                available_devices_ = nullptr;
+            }
+            catch (...)
+            {
+                ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to discover devices: Unknown error"});
+                available_devices_ = nullptr;
+            }
         }
-        catch (const std::exception& e)
+    }
+
+    bool is_discovering = device_discovery_future_.valid();
+
+    if (is_discovering)
+    {
+        ImGui::BeginDisabled();
+        ImGui::Button("Discovering devices...");
+        ImGui::EndDisabled();
+        ImGui::SameLine();
+        float progress = (float)(sin(ImGui::GetTime() * 3.0f) * 0.5f + 0.5f);
+        ImGui::ProgressBar(progress, ImVec2(0.0f, 0.0f), "");
+    }
+    else
+    {
+        if (ImGui::Button(available_devices_.assigned() && available_devices_.getCount() > 0 ? "Refresh device list" : "Discover devices"))
         {
-            ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to discover devices: %s", e.what()});
-            available_devices_ = nullptr;
-        }
-        catch (...)
-        {
-            ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to discover devices: Unknown error"});
-            available_devices_ = nullptr;
+            device_discovery_future_ = std::async(std::launch::async, [parent_device]() {
+                return parent_device.getAvailableDevices();
+            });
         }
     }
 
@@ -919,6 +944,15 @@ void OpenDAQNodeEditor::ShowStartupPopup()
         };
         srand(time(nullptr));
         current_hint_index = rand() % hints.size();
+
+        if (!is_device_discovery_initialized_)
+        {
+             is_device_discovery_initialized_ = true;
+             daq::DevicePtr parent_device = castTo<daq::IDevice>(instance_);
+             device_discovery_future_ = std::async(std::launch::async, [parent_device]() {
+                 return parent_device.getAvailableDevices();
+             });
+        }
     }
 
     ImGui::SetNextWindowPos(ImGui::GetIO().DisplaySize * 0.5f, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
