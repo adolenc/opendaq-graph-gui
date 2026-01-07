@@ -309,13 +309,30 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
                 {
                     assert(cached_prop.selection_values_);
                     int value = std::get<int64_t>(cached_prop.value_);
-                    if (ImGui::Combo(cached_prop.display_name_.c_str(), &value, cached_prop.selection_values_->c_str(), cached_prop.selection_values_count_))
-                        SetValue((int64_t)value);
+
+                    // We need to do create a combo manually because otherwise shared component properties
+                    // do not correctly call SetValue when changed.
+                    const char* items = cached_prop.selection_values_->c_str();
+                    const char* preview = items;
+                    for (int i = 0; i < value && *preview; ++i)
+                        preview += strlen(preview) + 1;
+                    if (ImGui::BeginCombo(cached_prop.display_name_.c_str(), *preview ? preview : ""))
+                    {
+                        const char* item = items;
+                        for (int i = 0; i < cached_prop.selection_values_count_ && *item; ++i)
+                        {
+                            if (ImGui::Selectable(item, i == value))
+                                SetValue((int64_t)i);
+                            item += strlen(item) + 1;
+                        }
+                        ImGui::EndCombo();
+                    }
                 }
                 else
                 {
                     int value = std::get<int64_t>(cached_prop.value_);
-                    if (ImGui::InputInt(cached_prop.display_name_.c_str(), &value, 0, 0), ImGui::IsItemDeactivatedAfterEdit())
+                    ImGui::InputInt(cached_prop.display_name_.c_str(), &value, 0, 0);
+                    if (ImGui::IsItemDeactivatedAfterEdit() || (cached_prop.is_multi_value_ && ImGui::IsItemFocused() && ImGui::IsKeyPressed(ImGuiKey_Enter)))
                         SetValue((int64_t)value);
                 }
             }
@@ -324,7 +341,8 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
             assert(std::holds_alternative<double>(cached_prop.value_));
             {
                 double value = std::get<double>(cached_prop.value_);
-                if (ImGui::InputDouble(cached_prop.display_name_.c_str(), &value, 0.0, 0.0, "%.6f"), ImGui::IsItemDeactivatedAfterEdit())
+                ImGui::InputDouble(cached_prop.display_name_.c_str(), &value, 0.0, 0.0, "%.6f");
+                if (ImGui::IsItemDeactivatedAfterEdit() || (cached_prop.is_multi_value_ && ImGui::IsItemFocused() && ImGui::IsKeyPressed(ImGuiKey_Enter)))
                     SetValue(value);
             }
             break;
@@ -332,7 +350,8 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
             assert(std::holds_alternative<std::string>(cached_prop.value_));
             {
                 std::string value = std::get<std::string>(cached_prop.value_);
-                if (ImGui::InputText(cached_prop.display_name_.c_str(), &value), ImGui::IsItemDeactivatedAfterEdit())
+                bool entered = ImGui::InputText(cached_prop.display_name_.c_str(), &value, cached_prop.is_multi_value_ ? ImGuiInputTextFlags_EnterReturnsTrue : 0);
+                if (entered || (!cached_prop.is_multi_value_ && ImGui::IsItemDeactivatedAfterEdit()))
                     SetValue(value);
                 if (is_disabled && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone | ImGuiHoveredFlags_AllowWhenDisabled) && ImGui::BeginTooltip())
                 {
