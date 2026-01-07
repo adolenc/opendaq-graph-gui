@@ -462,7 +462,8 @@ void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, int color_index,
     if (auto it = node_cache_.find(name.id_); it != node_cache_.end())
     {
         pos = it->second.pos;
-        color_index = it->second.color_index;
+        if (it->second.color_index >= 0)
+            color_index = it->second.color_index;
         AddNode(name, color_index, pos, inputs, outputs, parent_uid);
 
         if (it->second.is_selected)
@@ -2108,13 +2109,13 @@ void ImGuiNodes::SaveSettings(ImGuiTextBuffer* buf)
     for (const auto* node : nodes_)
     {
         ImVec2 pos = node->area_node_.GetCenter();
-        buf->appendf("Node=%s,%.0f,%.0f,%d\n", node->uid_.c_str(), pos.x, pos.y, node->color_index_);
+        buf->appendf("Node=%s,%.0f,%.0f\n", node->uid_.c_str(), pos.x, pos.y);
     }
     for (const auto& [uid, entry] : node_cache_)
     {
         if (nodes_by_uid_.find(uid) == nodes_by_uid_.end())
         {
-             buf->appendf("Node=%s,%.0f,%.0f,%d\n", uid.c_str(), entry.pos.x, entry.pos.y, entry.color_index);
+             buf->appendf("Node=%s,%.0f,%.0f\n", uid.c_str(), entry.pos.x, entry.pos.y);
         }
     }
 }
@@ -2123,10 +2124,9 @@ void ImGuiNodes::LoadSettings(const char* line)
 {
     char uid[256];
     float x, y;
-    int color_index;
-    if (sscanf(line, "Node=%[^,],%f,%f,%d", uid, &x, &y, &color_index) == 4)
+    if (sscanf(line, "Node=%[^,],%f,%f", uid, &x, &y) == 3)
     {
-        node_cache_[uid] = { ImVec2(x, y), color_index, false };
+        node_cache_[uid] = { ImVec2(x, y), -1, false };
     }
 }
 
