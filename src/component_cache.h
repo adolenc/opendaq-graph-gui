@@ -82,4 +82,5 @@ struct CachedComponent
     std::optional<ImVec4> signal_color_;
 
     bool needs_refresh_ = false;
+    bool initial_properties_loaded_ = false;
 };

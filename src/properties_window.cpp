@@ -529,7 +529,7 @@ void PropertiesWindow::RenderChildren(SharedCachedComponent& shared_cached_compo
             continue;
 
         CachedComponent* child = it->second.get();
-        if (child->name_.empty())
+        if (!child->initial_properties_loaded_)
             child->RefreshProperties();
 
         // skip folders that are just for structure
@@ -579,7 +579,7 @@ void PropertiesWindow::RenderComponentWithParents(SharedCachedComponent& shared_
 
     for (auto it = parent_components.rbegin(); it != parent_components.rend(); ++it)
     {
-        if ((*it)->name_.empty())
+        if (!(*it)->initial_properties_loaded_)
             (*it)->RefreshProperties();
 
         if ((*it)->name_ == "IO" || (*it)->name_ == "AI" || (*it)->name_ == "AO" || (*it)->name_ == "Dev" || (*it)->name_ == "FB")

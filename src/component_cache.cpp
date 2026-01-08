@@ -320,6 +320,7 @@ void CachedComponent::RefreshProperties()
     attributes_.clear();
     signal_descriptor_properties_.clear();
     signal_domain_descriptor_properties_.clear();
+    initial_properties_loaded_ = true;
 
     name_ = component_.getName().toStdString();
     is_active_ = (bool)component_.getActive();
