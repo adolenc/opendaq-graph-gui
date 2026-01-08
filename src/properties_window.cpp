@@ -747,14 +747,16 @@ void PropertiesWindow::Render()
         }
         else
         {
+            ImGui::BeginChild("##ContentScrollRegion", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar);
             int uid = 0;
             for (auto& comp : grouped_selected_components_)
             {
-                ImGui::BeginChild((comp.name_ + "##" + std::to_string(uid++)).c_str(), ImVec2(0, 0), ImGuiChildFlags_None | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
+                ImGui::BeginChild((comp.name_ + "##" + std::to_string(uid++)).c_str(), ImVec2(0, 0), ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY);
                 RenderComponentWithParents(comp);
                 ImGui::EndChild();
                 ImGui::SameLine();
             }
+            ImGui::EndChild();
         }
     }
     ImGui::PopStyleColor(1);
