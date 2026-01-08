@@ -353,7 +353,7 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
                 bool entered = ImGui::InputText(cached_prop.display_name_.c_str(), &value, cached_prop.is_multi_value_ ? ImGuiInputTextFlags_EnterReturnsTrue : 0);
                 if (entered || (!cached_prop.is_multi_value_ && ImGui::IsItemDeactivatedAfterEdit()))
                     SetValue(value);
-                if (is_disabled && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone | ImGuiHoveredFlags_AllowWhenDisabled) && ImGui::BeginTooltip())
+                if (is_disabled && !cached_prop.is_multi_value_ && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone | ImGuiHoveredFlags_AllowWhenDisabled) && ImGui::BeginTooltip())
                 {
                     ImGui::Text("%s", value.c_str());
                     ImGui::EndTooltip();
@@ -385,7 +385,46 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
         ImGui::EndDisabled();
 
     if (cached_prop.is_multi_value_)
+    {
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        {
+            if (ImGui::BeginTooltip())
+            {
+                for (CachedProperty* target : cached_prop.target_properties_)
+                {
+                    std::string val_str;
+                    if (target->type_ == daq::ctInt && target->selection_values_count_ > 0 && std::holds_alternative<int64_t>(target->value_))
+                    {
+                        int64_t v = std::get<int64_t>(target->value_);
+                        if (target->selection_values_.has_value())
+                        {
+                            const char* items = target->selection_values_->c_str();
+                            const char* preview = items;
+                            for (int i = 0; i < v && *preview; ++i)
+                                preview += strlen(preview) + 1;
+                            val_str = preview;
+                        }
+                        else
+                        {
+                             val_str = std::to_string(v);
+                        }
+                    }
+                    else if (std::holds_alternative<bool>(target->value_))
+                        val_str = std::get<bool>(target->value_) ? "True" : "False";
+                    else if (std::holds_alternative<int64_t>(target->value_))
+                        val_str = std::to_string(std::get<int64_t>(target->value_));
+                    else if (std::holds_alternative<double>(target->value_))
+                        val_str = std::to_string(std::get<double>(target->value_));
+                    else if (std::holds_alternative<std::string>(target->value_))
+                        val_str = std::get<std::string>(target->value_);
+
+                    ImGui::Text("%s: %s", target->owner_->name_.c_str(), val_str.c_str());
+                }
+                ImGui::EndTooltip();
+            }
+        }
         ImGui::PopStyleColor();
+    }
 
     ImGui::PopID();
 }
