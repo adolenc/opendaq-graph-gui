@@ -324,6 +324,7 @@ void CachedComponent::RefreshProperties()
 
     name_ = component_.getName().toStdString();
     is_active_ = (bool)component_.getActive();
+    is_locked_ = false;
     RefreshStatus();
 
     if (canCastTo<daq::IDevice>(component_))
@@ -345,7 +346,8 @@ void CachedComponent::RefreshProperties()
             cached.selection_values_count_ = available_modes.getCount();
         }
 
-        AddAttribute(attributes_, "@Locked", "Locked", (bool)device.isLocked(), false, false, daq::ctBool);
+        is_locked_ = (bool)device.isLocked();
+        AddAttribute(attributes_, "@Locked", "Locked", is_locked_, false, false, daq::ctBool);
     }
 
     AddAttribute(attributes_, "@Name", "Name", component_.getName().toStdString(), false, false);

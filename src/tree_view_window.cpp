@@ -2,6 +2,7 @@
 #include "imgui.h"
 #include "imsearch.h"
 #include "utils.h"
+#include "IconsFontAwesome6.h"
 #include <string>
 
 
@@ -103,7 +104,11 @@ void TreeViewWindow::RenderTreeNode(const CachedComponent* component, const std:
             has_color = true;
         }
 
-        bool open = ImGui::TreeNodeEx(component_guid.c_str(), local_flags, "%s", label);
+        std::string display_label = label;
+        if (component->is_locked_)
+            display_label = ICON_FA_LOCK " " + display_label;
+
+        bool open = ImGui::TreeNodeEx(component_guid.c_str(), local_flags, "%s", display_label.c_str());
 
         if (has_color)
             ImGui::PopStyleColor();
