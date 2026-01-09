@@ -53,6 +53,7 @@ struct CachedComponent
 {
     CachedComponent(daq::ComponentPtr component);
 
+    void UpdateState();
     void RefreshStatus();
     void RefreshProperties();
     void RefreshStructure();
@@ -70,6 +71,7 @@ struct CachedComponent
     std::string error_message_;
     bool is_active_;
     bool is_locked_ = false;
+    std::string operation_mode_;
     std::vector<CachedProperty> attributes_;
     std::vector<CachedProperty> properties_;
     std::vector<CachedProperty> signal_descriptor_properties_;

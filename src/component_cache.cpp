@@ -6,8 +6,32 @@
 CachedComponent::CachedComponent(daq::ComponentPtr component)
     : component_(component)
 {
+    UpdateState();
+}
+
+void CachedComponent::UpdateState()
+{
+    if (!component_.assigned())
+        return;
+
     name_ = component_.getName().toStdString();
     is_active_ = (bool)component_.getActive();
+
+    is_locked_ = false;
+    operation_mode_.clear();
+
+    if (canCastTo<daq::IDevice>(component_))
+    {
+        daq::DevicePtr device = castTo<daq::IDevice>(component_);
+        if (auto available_modes = device.getAvailableOperationModes(); available_modes.assigned() && available_modes.getCount() > 0)
+        {
+            auto current_mode = device.getOperationMode();
+            operation_mode_ = OperationModeToString(current_mode);
+        }
+        is_locked_ = (bool)device.isLocked();
+    }
+
+    RefreshStatus();
 }
 
 void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr property_holder, int depth, const std::string& parent_uid)
@@ -322,10 +346,7 @@ void CachedComponent::RefreshProperties()
     signal_domain_descriptor_properties_.clear();
     initial_properties_loaded_ = true;
 
-    name_ = component_.getName().toStdString();
-    is_active_ = (bool)component_.getActive();
-    is_locked_ = false;
-    RefreshStatus();
+    UpdateState();
 
     if (canCastTo<daq::IDevice>(component_))
     {
@@ -346,7 +367,6 @@ void CachedComponent::RefreshProperties()
             cached.selection_values_count_ = available_modes.getCount();
         }
 
-        is_locked_ = (bool)device.isLocked();
         AddAttribute(attributes_, "@Locked", "Locked", is_locked_, false, false, daq::ctBool);
     }
 
