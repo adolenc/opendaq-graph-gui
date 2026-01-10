@@ -154,28 +154,35 @@ void OpenDAQNodeEditor::Init()
         return GetSignalColor(signal_id);
     };
 
-    properties_window_.on_property_changed_ = [this](const std::string& component_id, const std::string& property_name) {
-        if (property_name == "@SignalColor")
+    properties_window_.on_property_changed_ =
+        [this](const std::string& component_id, const std::string& property_name)
         {
-            ImVec4 color = GetSignalColor(component_id);
-            signals_window_.UpdateSignalColor(component_id, color);
-            for (auto& w : cloned_signals_windows_)
-                w->UpdateSignalColor(component_id, color);
-
-            for (const auto& [input_id, cached_input] : input_ports_)
+            if (property_name == "@SignalColor")
             {
-                if (cached_input->component_.assigned())
+                ImVec4 color = GetSignalColor(component_id);
+                signals_window_.UpdateSignalColor(component_id, color);
+                for (auto& w : cloned_signals_windows_)
+                    w->UpdateSignalColor(component_id, color);
+
+                for (const auto& [input_id, cached_input] : input_ports_)
                 {
-                    if (daq::InputPortPtr input_port = castTo<daq::IInputPort>(cached_input->component_); input_port.assigned())
+                    if (cached_input->component_.assigned())
                     {
-                        daq::SignalPtr signal = input_port.getSignal();
-                        if (signal.assigned() && signal.getGlobalId().toStdString() == component_id)
-                            nodes_->SetConnectionColor(input_id, color);
+                        if (daq::InputPortPtr input_port = castTo<daq::IInputPort>(cached_input->component_); input_port.assigned())
+                        {
+                            daq::SignalPtr signal = input_port.getSignal();
+                            if (signal.assigned() && signal.getGlobalId().toStdString() == component_id)
+                                nodes_->SetConnectionColor(input_id, color);
+                        }
                     }
                 }
             }
-        }
-    };
+            else if (property_name == "@Locked")
+            {
+                for (auto& [id, component] : all_components_)
+                    component->UpdateState(); // refresh the Locked state because there is no core event for that one
+            }
+        };
 }
 
 void OpenDAQNodeEditor::UpdateSignalsActiveState(CachedComponent* cached)

@@ -278,6 +278,14 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
     auto SetValue = [&](const CachedProperty::ValueType& val) {
         for (CachedProperty* target : cached_prop.target_properties_)
             target->SetValue(val);
+        if (on_property_changed_)
+        {
+            for (CachedProperty* target : cached_prop.target_properties_)
+            {
+                if (target->owner_)
+                    on_property_changed_(target->owner_->uid_, target->name_);
+            }
+        }
         if (owner)
             owner->needs_refresh_ = true;
     };
@@ -299,11 +307,7 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
                 {
                     ImVec4 color = ImGui::ColorConvertU32ToFloat4((ImU32)std::get<int64_t>(cached_prop.value_));
                     if (ImGui::ColorEdit4(cached_prop.display_name_.c_str(), (float*)&color, ImGuiColorEditFlags_NoInputs))
-                    {
                         SetValue((int64_t)ImGui::ColorConvertFloat4ToU32(color));
-                        if (on_property_changed_)
-                            on_property_changed_(cached_prop.owner_->component_.getGlobalId().toStdString(), cached_prop.name_);
-                    }
                 }
                 else if (cached_prop.selection_values_count_ > 0)
                 {
