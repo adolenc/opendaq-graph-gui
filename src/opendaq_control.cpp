@@ -938,6 +938,7 @@ void OpenDAQNodeEditor::ShowStartupPopup()
             "Did you know? You can auto-connect to a device on startup by using the --connection-string command line argument.",
             "Pro tip: Right-clicking in the tree view allows you to quickly collapse all items or select all children of a node.",
             "Double-clicking an input port in the node editor will focus the connected source node.",
+            "Use delete key to quickly delete selected nodes.",
             "Double-clicking any node in the tree view window will focus the node editor on that specific node.",
             "Holding ctrl while clicking will select multiple components at once.",
             "Left-click and drag the mouse cursor to create a box selection of multiple components in the node editor.",
@@ -1019,18 +1020,25 @@ void OpenDAQNodeEditor::OnNodeActiveToggle(const ImGui::ImGuiNodesUid& uid)
     }
 }
 
-void OpenDAQNodeEditor::OnNodeTrashClick(const ImGui::ImGuiNodesUid& uid)
+void OpenDAQNodeEditor::OnNodeDelete(const std::vector<ImGui::ImGuiNodesUid>& uids)
 {
-    auto it = all_components_.find(uid);
-    if (it == all_components_.end())
+    for (const auto& uid : uids)
     {
-        ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Cannot remove component: Unknown component"});
-        return;
+        auto it = all_components_.find(uid);
+        if (it == all_components_.end())
+        {
+            ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Cannot remove component: Unknown component"});
+            continue;
+        }
+        DeleteComponent(it->second.get());
     }
+    RebuildStructure();
+}
 
-    CachedComponent* cached = it->second.get();
-    daq::ComponentPtr component = cached->component_;
-    daq::ComponentPtr owner = cached->owner_;
+void OpenDAQNodeEditor::DeleteComponent(CachedComponent* cached_component)
+{
+    daq::ComponentPtr component = cached_component->component_;
+    daq::ComponentPtr owner = cached_component->owner_;
 
     if (!component.assigned() || !owner.assigned())
     {

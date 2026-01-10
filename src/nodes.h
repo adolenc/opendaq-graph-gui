@@ -160,7 +160,7 @@ public:
     virtual void RenderPopupMenu(ImGuiNodes* nodes, ImVec2 position) {}
     virtual void OnAddButtonClick(const ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position) {}
     virtual void OnNodeActiveToggle(const ImGuiNodesUid& uid) {}
-    virtual void OnNodeTrashClick(const ImGuiNodesUid& uid) {}
+    virtual void OnNodeDelete(const std::vector<ImGuiNodesUid>& uids) {}
     virtual void OnSignalActiveToggle(const ImGuiNodesUid& uid) {}
     virtual void OnInputDropped(const ImGuiNodesUid& input_uid, std::optional<ImVec2> position) {}
     virtual void OnEmptySpaceClick(ImVec2 position) {}
@@ -263,6 +263,7 @@ private:
 
     void ProcessInteractions();
     void ProcessNodes();
+    void DeleteNodes(const std::vector<ImGuiNodesNode*>& nodes_to_delete);
     void UpdateCanvasGeometry(ImDrawList* draw_list);
     ImGuiNodesNode* UpdateNodesFromCanvas();
     void RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color, float thickness = 1.5f);

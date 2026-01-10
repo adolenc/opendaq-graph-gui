@@ -1099,9 +1099,8 @@ void ImGuiNodes::ProcessInteractions()
 
         case ImGuiNodesState_HoveringTrashButton:
         {
-            if (interaction_handler_)
-                interaction_handler_->OnNodeTrashClick(active_node_->uid_);
-            
+            DeleteNodes({active_node_});
+
             state_ = ImGuiNodesState_Default;
             return;
         }
@@ -1253,95 +1252,103 @@ void ImGuiNodes::ProcessInteractions()
 
     if (ImGui::IsKeyPressed(ImGuiKey_Delete))
     {
+        std::vector<ImGuiNodesNode*> selected_nodes;
         for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
         {
             ImGuiNodesNode* node = nodes_[node_idx];
+            if (IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected))
+                selected_nodes.push_back(node);
+        }
+        DeleteNodes(selected_nodes);
+    }
+}
+
+void ImGuiNodes::DeleteNodes(const std::vector<ImGuiNodesNode*>& nodes_to_delete)
+{
+    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+    {
+        ImGuiNodesNode* node = nodes_[node_idx];
+        for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+        {
+            ImGuiNodesInput& input = node->inputs_[input_idx];
+            if (IS_SET(input.state_, ImGuiNodesConnectorStateFlag_Selected))
+                RemoveConnection(input.uid_);
+            CLEAR_FLAG(input.state_, ImGuiNodesConnectorStateFlag_Selected);
+        }
+        for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+            CLEAR_FLAG(node->outputs_[output_idx].state_, ImGuiNodesConnectorStateFlag_Selected);
+    }
+
+    std::vector<ImGuiNodesUid> deleted_nodes_uids;
+    if (interaction_handler_)
+    {
+        for (ImGuiNodesNode* node : nodes_to_delete)
+            deleted_nodes_uids.push_back(node->uid_);
+    }
+
+    ImVector<ImGuiNodesNode*> non_removed_nodes;
+    non_removed_nodes.reserve(nodes_.size());
+
+    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+    {
+        ImGuiNodesNode* node = nodes_[node_idx];
+        IM_ASSERT(node);
+
+        if (std::find(nodes_to_delete.begin(), nodes_to_delete.end(), node) != nodes_to_delete.end())
+        {
+            node_cache_[node->uid_] = { node->area_node_.GetCenter(), node->color_index_, true };
+
+            active_node_ = NULL;
+            active_input_ = NULL;
+            active_output_ = NULL;
+
+            state_ = ImGuiNodesState_Default;
+
+            for (int sweep_idx = 0; sweep_idx < nodes_.size(); ++sweep_idx)
+            {
+                ImGuiNodesNode* sweep = nodes_[sweep_idx];
+                IM_ASSERT(sweep);
             
+                for (int input_idx = 0; input_idx < sweep->inputs_.size(); ++input_idx)
+                {
+                    ImGuiNodesInput& input = sweep->inputs_[input_idx];
+
+                    if (node == input.source_node_)
+                        RemoveConnection(input.uid_);
+                }
+            }
+
             for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
             {
                 ImGuiNodesInput& input = node->inputs_[input_idx];
-                if (IS_SET(input.state_, ImGuiNodesConnectorStateFlag_Selected))
-                {
-                    RemoveConnection(input.uid_);
-                    if (interaction_handler_)
-                        interaction_handler_->OnConnectionRemoved(input.uid_);
-                }
-                CLEAR_FLAG(input.state_, ImGuiNodesConnectorStateFlag_Selected);
+                RemoveConnection(input.uid_);
+                input.name_.clear();
             }
-            
+
             for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
-                CLEAR_FLAG(node->outputs_[output_idx].state_, ImGuiNodesConnectorStateFlag_Selected);
-        }
-
-        ImVector<ImGuiNodesNode*> nodes;
-        nodes.reserve(nodes_.size());
-
-        for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
-        {
-            ImGuiNodesNode* node = nodes_[node_idx];
-            IM_ASSERT(node);
-
-            if (IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected))
             {
-                node_cache_[node->uid_] = { node->area_node_.GetCenter(), node->color_index_, true };
-
-                active_node_ = NULL;
-                active_input_ = NULL;
-                active_output_ = NULL;
-
-                state_ = ImGuiNodesState_Default;
-
-                for (int sweep_idx = 0; sweep_idx < nodes_.size(); ++sweep_idx)
-                {
-                    ImGuiNodesNode* sweep = nodes_[sweep_idx];
-                    IM_ASSERT(sweep);
-                
-                    for (int input_idx = 0; input_idx < sweep->inputs_.size(); ++input_idx)
-                    {
-                        ImGuiNodesInput& input = sweep->inputs_[input_idx];
-
-                        if (node == input.source_node_)
-                        {
-                            RemoveConnection(input.uid_);
-                            if (interaction_handler_)
-                                interaction_handler_->OnConnectionRemoved(input.uid_);
-                        }
-                    }
-                }
-
-                for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
-                {
-                    ImGuiNodesInput& input = node->inputs_[input_idx];
-                    RemoveConnection(input.uid_);
-                    if (interaction_handler_)
-                        interaction_handler_->OnConnectionRemoved(input.uid_);
-                    input.name_.clear();
-                }
-
-                for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
-                {
-                    ImGuiNodesOutput& output = node->outputs_[output_idx];
-                    IM_ASSERT(output.connections_count_ == 0);
-                }
-    
-                nodes_by_uid_.erase(node->uid_);
-                for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
-                    inputs_by_uid_.erase(node->inputs_[input_idx].uid_);
-                for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
-                    outputs_by_uid_.erase(node->outputs_[output_idx].uid_);
-                
-                delete node;
+                ImGuiNodesOutput& output = node->outputs_[output_idx];
+                IM_ASSERT(output.connections_count_ == 0);
             }
-            else
-            {
-                nodes.push_back(node);
-            }			
+
+            nodes_by_uid_.erase(node->uid_);
+            for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+                inputs_by_uid_.erase(node->inputs_[input_idx].uid_);
+            for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+                outputs_by_uid_.erase(node->outputs_[output_idx].uid_);
+
+            delete node;
         }
-
-        nodes_ = nodes;
-
-        return;
+        else
+        {
+            non_removed_nodes.push_back(node);
+        }			
     }
+
+    nodes_ = non_removed_nodes;
+
+    if (interaction_handler_)
+        interaction_handler_->OnNodeDelete(deleted_nodes_uids);
 }
 
 void ImGuiNodes::ProcessNodes()
