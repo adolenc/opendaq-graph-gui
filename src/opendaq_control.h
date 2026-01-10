@@ -70,7 +70,7 @@ public:
     struct PopupParentCandidate
     {
         std::string display_name;
-        std::string global_id;
+        std::string guid;
         CachedComponent* cached;
         int color_index;
         int depth;

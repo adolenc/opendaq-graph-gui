@@ -862,13 +862,13 @@ void OpenDAQNodeEditor::RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 positio
                 ImGui::Indent(candidate.depth * ImGui::GetFontSize());
             ImGui::PushStyleColor(ImGuiCol_Text, GetNodeColor(candidate.color_index).Value);
 
-            bool is_selected = popup_selected_parent_guid_ == candidate.global_id;
-            if (ImGui::Selectable((candidate.display_name + "###" + candidate.global_id).c_str(), is_selected))
+            bool is_selected = popup_selected_parent_guid_ == candidate.guid;
+            if (ImGui::Selectable((candidate.display_name + "###" + candidate.guid).c_str(), is_selected))
             {
                 if (!is_selected)
                 {
                     if (candidate.cached)
-                        popup_selected_parent_guid_ = candidate.global_id;
+                        popup_selected_parent_guid_ = candidate.guid;
                     else
                         popup_selected_parent_guid_ = instance_.getGlobalId().toStdString();
                     fb_options_cache_valid_ = false;
@@ -941,7 +941,17 @@ void OpenDAQNodeEditor::RenderNestedNodePopup()
             fb_options_cache_valid_ = false;
             popup_parent_candidates_.clear();
             BuildPopupParentCandidates(instance_.getGlobalId().toStdString());
-            popup_selected_parent_guid_ = instance_.getGlobalId().toStdString();
+            bool parent_selection_still_valid = false;
+            for (const PopupParentCandidate& candidate : popup_parent_candidates_)
+            {
+                if (candidate.guid == popup_selected_parent_guid_)
+                {
+                    parent_selection_still_valid = true;
+                    break;
+                }
+            }
+            if (!parent_selection_still_valid)
+                popup_selected_parent_guid_ = instance_.getGlobalId().toStdString();
         }
         
         RenderPopupMenu(nodes_, add_button_drop_position_ ? add_button_drop_position_.value() : ImGui::GetMousePos());
