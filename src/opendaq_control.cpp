@@ -828,18 +828,13 @@ void OpenDAQNodeEditor::BuildPopupParentCandidates(const std::string& parent_gui
     if (supports_adding_fbs)
     {
         daq::DictPtr<daq::IString, daq::IFunctionBlockType> available_nested_fbs;
-        if (canCastTo<daq::IDevice>(cached->component_))
-        {
-            daq::DevicePtr dev = castTo<daq::IDevice>(cached->component_);
-            available_nested_fbs = dev.getAvailableFunctionBlockTypes();
-        }
-        else
+        if (canCastTo<daq::IFunctionBlock>(cached->component_))
         {
             daq::FunctionBlockPtr fb = castTo<daq::IFunctionBlock>(cached->component_);
             available_nested_fbs = fb.getAvailableFunctionBlockTypes();
         }
 
-        if (available_nested_fbs.assigned() && available_nested_fbs.getCount() > 0)
+        if (canCastTo<daq::IDevice>(cached->component_) || (available_nested_fbs.assigned() && available_nested_fbs.getCount() > 0))
         {
             std::string name = cached->component_.getName().toStdString();
             std::string global_id = cached->component_.getGlobalId().toStdString();
@@ -854,11 +849,11 @@ void OpenDAQNodeEditor::BuildPopupParentCandidates(const std::string& parent_gui
 
 void OpenDAQNodeEditor::RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 position)
 {
-    ImGui::SeparatorText("Add a function block");
+    ImGui::SeparatorText("Add a nested component");
 
-    float total_width = 500.0f;
-    float left_width = 180.0f;
-    float child_height = 250.0f;
+    float total_width = 600.0f;
+    float left_width = 240.0f;
+    float child_height = 500.0f;
     if (ImGui::BeginChild("ParentTree", ImVec2(left_width, child_height), ImGuiChildFlags_None))
     {
         for (const auto& candidate : popup_parent_candidates_)
@@ -894,7 +889,14 @@ void OpenDAQNodeEditor::RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 positio
         if (popup_selected_parent_.assigned())
         {
             std::string parent_id = popup_selected_parent_.getGlobalId().toStdString();
+            ImGui::TextDisabled("Add function block");
             RenderFunctionBlockOptions(popup_selected_parent_, parent_id, position);
+            if (canCastTo<daq::IDevice>(popup_selected_parent_))
+            {
+                ImGui::Separator();
+                ImGui::TextDisabled("Connect to device");
+                RenderDeviceOptions(popup_selected_parent_, "", position);
+            }
         }
         else
         {
@@ -902,9 +904,6 @@ void OpenDAQNodeEditor::RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 positio
         }
     }
     ImGui::EndChild();
-
-    ImGui::SeparatorText("Connect to device");
-    RenderDeviceOptions(instance_, "", position);
 }
 
 void OpenDAQNodeEditor::OnAddButtonClick(const ImGui::ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position)
