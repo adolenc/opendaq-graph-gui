@@ -66,7 +66,7 @@ public:
 
     bool fb_options_cache_valid_ = false;
     daq::DictPtr<daq::IString, daq::IFunctionBlockType> cached_available_fbs_;
-    daq::ComponentPtr popup_selected_parent_;
+    std::string popup_selected_parent_guid_;
     struct PopupParentCandidate
     {
         std::string display_name;

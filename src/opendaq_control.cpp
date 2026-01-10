@@ -862,15 +862,15 @@ void OpenDAQNodeEditor::RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 positio
                 ImGui::Indent(candidate.depth * ImGui::GetFontSize());
             ImGui::PushStyleColor(ImGuiCol_Text, GetNodeColor(candidate.color_index).Value);
 
-            bool is_selected = popup_selected_parent_.assigned() && popup_selected_parent_.getGlobalId().toStdString() == candidate.global_id;
+            bool is_selected = popup_selected_parent_guid_ == candidate.global_id;
             if (ImGui::Selectable((candidate.display_name + "###" + candidate.global_id).c_str(), is_selected))
             {
                 if (!is_selected)
                 {
                     if (candidate.cached)
-                        popup_selected_parent_ = candidate.cached->component_;
+                        popup_selected_parent_guid_ = candidate.global_id;
                     else
-                        popup_selected_parent_ = instance_;
+                        popup_selected_parent_guid_ = instance_.getGlobalId().toStdString();
                     fb_options_cache_valid_ = false;
                 }
             }
@@ -886,16 +886,26 @@ void OpenDAQNodeEditor::RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 positio
 
     if (ImGui::BeginChild("FunctionBlocks", ImVec2(total_width - left_width - 8, child_height), ImGuiChildFlags_None))
     {
-        if (popup_selected_parent_.assigned())
+        if (!popup_selected_parent_guid_.empty())
         {
-            std::string parent_id = popup_selected_parent_.getGlobalId().toStdString();
-            ImGui::TextDisabled("Add function block");
-            RenderFunctionBlockOptions(popup_selected_parent_, parent_id, position);
-            if (canCastTo<daq::IDevice>(popup_selected_parent_))
+            std::string parent_id = popup_selected_parent_guid_;
+            daq::ComponentPtr parent_comp = nullptr;
+
+            if (instance_.assigned() && parent_id == instance_.getGlobalId().toStdString())
+                parent_comp = instance_;
+            else if (auto it = all_components_.find(parent_id); it != all_components_.end())
+                parent_comp = it->second->component_;
+
+            if (parent_comp.assigned())
             {
-                ImGui::Separator();
-                ImGui::TextDisabled("Connect to device");
-                RenderDeviceOptions(popup_selected_parent_, "", position);
+                ImGui::TextDisabled("Add function block");
+                RenderFunctionBlockOptions(parent_comp, parent_id, position);
+                if (canCastTo<daq::IDevice>(parent_comp))
+                {
+                    ImGui::Separator();
+                    ImGui::TextDisabled("Connect to device");
+                    RenderDeviceOptions(parent_comp, "", position);
+                }
             }
         }
         else
@@ -931,7 +941,7 @@ void OpenDAQNodeEditor::RenderNestedNodePopup()
             fb_options_cache_valid_ = false;
             popup_parent_candidates_.clear();
             BuildPopupParentCandidates(instance_.getGlobalId().toStdString());
-            popup_selected_parent_ = instance_;
+            popup_selected_parent_guid_ = instance_.getGlobalId().toStdString();
         }
         
         RenderPopupMenu(nodes_, add_button_drop_position_ ? add_button_drop_position_.value() : ImGui::GetMousePos());
