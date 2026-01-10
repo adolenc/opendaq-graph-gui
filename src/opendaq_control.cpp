@@ -286,7 +286,7 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
             cached->color_index_ = folders_[parent_id]->color_index_;
 
         nodes_->AddNode({component.getName().toStdString(), component_id}, 
-                        cached->color_index_,
+                        GetNodeColor(cached->color_index_),
                         cached->input_ports_,
                         cached->output_signals_,
                         parent_id);
@@ -610,7 +610,8 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
                             auto fb_cached = std::make_unique<CachedComponent>(fb);
                             fb_cached->parent_ = parent_component;
                             fb_cached->owner_ = parent_component;
-                            fb_cached->color_index_ = parent_id.empty() ? 0 : folders_[parent_id]->color_index_;
+                            auto parent_it = folders_.find(parent_id);
+                            fb_cached->color_index_ = (parent_id.empty() || parent_it == folders_.end()) ? 0 : parent_it->second->color_index_;
                             fb_cached->RefreshStructure();
 
                             for (const daq::InputPortPtr& input_port : fb.getInputPorts())
@@ -637,7 +638,7 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
                             if (position.has_value())
                             {
                                 nodes_->AddNode({fb.getName().toStdString(), fb_id_str},
-                                                fb_cached->color_index_,
+                                                GetNodeColor(fb_cached->color_index_),
                                                 position.value(),
                                                 fb_cached->input_ports_,
                                                 fb_cached->output_signals_,
@@ -646,7 +647,7 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
                             else
                             {
                                 nodes_->AddNode({fb.getName().toStdString(), fb_id_str},
-                                                fb_cached->color_index_,
+                                                GetNodeColor(fb_cached->color_index_),
                                                 fb_cached->input_ports_,
                                                 fb_cached->output_signals_,
                                                 parent_id);
@@ -659,6 +660,8 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
 
                             folders_[fb_id_str] = fb_cached.get();
                             all_components_[fb_id_str] = std::move(fb_cached);
+
+                            ImGui::CloseCurrentPopup();
                         }
                     }
                     catch (const std::exception& e)
@@ -749,7 +752,7 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
                 if (position.has_value())
                 {
                     nodes_->AddNode({dev.getName().toString(), dev_id},
-                                    dev_cached->color_index_,
+                                    GetNodeColor(dev_cached->color_index_),
                                     position.value(),
                                     dev_cached->input_ports_,
                                     dev_cached->output_signals_,
@@ -758,7 +761,7 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
                 else
                 {
                     nodes_->AddNode({dev.getName().toString(), dev_id},
-                                    dev_cached->color_index_,
+                                    GetNodeColor(dev_cached->color_index_),
                                     dev_cached->input_ports_,
                                     dev_cached->output_signals_,
                                     parent_id);
@@ -811,10 +814,94 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
     }
 }
 
+void OpenDAQNodeEditor::BuildPopupParentCandidates(const std::string& parent_guid, int depth, int parent_color_index)
+{
+    if (all_components_.find(parent_guid) == all_components_.end())
+        return;
+
+    CachedComponent* cached = all_components_[parent_guid].get();
+    if (!cached || !cached->component_.assigned())
+        return;
+
+    bool supports_adding_fbs = canCastTo<daq::IDevice>(cached->component_)
+                            || canCastTo<daq::IFunctionBlock>(cached->component_);
+    if (supports_adding_fbs)
+    {
+        daq::DictPtr<daq::IString, daq::IFunctionBlockType> available_nested_fbs;
+        if (canCastTo<daq::IDevice>(cached->component_))
+        {
+            daq::DevicePtr dev = castTo<daq::IDevice>(cached->component_);
+            available_nested_fbs = dev.getAvailableFunctionBlockTypes();
+        }
+        else
+        {
+            daq::FunctionBlockPtr fb = castTo<daq::IFunctionBlock>(cached->component_);
+            available_nested_fbs = fb.getAvailableFunctionBlockTypes();
+        }
+
+        if (available_nested_fbs.assigned() && available_nested_fbs.getCount() > 0)
+        {
+            std::string name = cached->component_.getName().toStdString();
+            std::string global_id = cached->component_.getGlobalId().toStdString();
+            popup_parent_candidates_.push_back({name, global_id, cached, cached->color_index_, depth});
+            depth++;
+        }
+    }
+
+    for (const ImGui::ImGuiNodesIdentifier &child : cached->children_)
+      BuildPopupParentCandidates(child.id_, depth, parent_color_index);
+}
+
 void OpenDAQNodeEditor::RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 position)
 {
     ImGui::SeparatorText("Add a function block");
-    RenderFunctionBlockOptions(instance_, "", position);
+
+    float total_width = 500.0f;
+    float left_width = 180.0f;
+    float child_height = 250.0f;
+    if (ImGui::BeginChild("ParentTree", ImVec2(left_width, child_height), ImGuiChildFlags_None))
+    {
+        for (const auto& candidate : popup_parent_candidates_)
+        {
+            if (candidate.depth > 0)
+                ImGui::Indent(candidate.depth * ImGui::GetFontSize());
+            ImGui::PushStyleColor(ImGuiCol_Text, GetNodeColor(candidate.color_index).Value);
+
+            bool is_selected = popup_selected_parent_.assigned() && popup_selected_parent_.getGlobalId().toStdString() == candidate.global_id;
+            if (ImGui::Selectable((candidate.display_name + "###" + candidate.global_id).c_str(), is_selected))
+            {
+                if (!is_selected)
+                {
+                    if (candidate.cached)
+                        popup_selected_parent_ = candidate.cached->component_;
+                    else
+                        popup_selected_parent_ = instance_;
+                    fb_options_cache_valid_ = false;
+                }
+            }
+
+            ImGui::PopStyleColor();
+            if (candidate.depth > 0)
+                ImGui::Unindent(candidate.depth * ImGui::GetFontSize());
+        }
+    }
+    ImGui::EndChild();
+
+    ImGui::SameLine();
+
+    if (ImGui::BeginChild("FunctionBlocks", ImVec2(total_width - left_width - 8, child_height), ImGuiChildFlags_None))
+    {
+        if (popup_selected_parent_.assigned())
+        {
+            std::string parent_id = popup_selected_parent_.getGlobalId().toStdString();
+            RenderFunctionBlockOptions(popup_selected_parent_, parent_id, position);
+        }
+        else
+        {
+            ImGui::Text("Select a parent");
+        }
+    }
+    ImGui::EndChild();
 
     ImGui::SeparatorText("Connect to device");
     RenderDeviceOptions(instance_, "", position);
@@ -841,7 +928,12 @@ void OpenDAQNodeEditor::RenderNestedNodePopup()
     if (ImGui::BeginPopup("NodesContextMenu", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
     {
         if (!was_context_menu_open)
+        {
             fb_options_cache_valid_ = false;
+            popup_parent_candidates_.clear();
+            BuildPopupParentCandidates(instance_.getGlobalId().toStdString());
+            popup_selected_parent_ = instance_;
+        }
         
         RenderPopupMenu(nodes_, add_button_drop_position_ ? add_button_drop_position_.value() : ImGui::GetMousePos());
         ImGui::EndPopup();
@@ -1175,6 +1267,9 @@ void OpenDAQNodeEditor::Render()
                     break;
                 }
                 case static_cast<int>(daq::CoreEventId::PropertyValueChanged):
+                    if (args.getParameters().hasKey("Name"))
+                        properties_window_.on_property_changed_(comp.getGlobalId().toStdString(), args.getParameters().get("Name").toString());
+                    // fallthrough
                 case static_cast<int>(daq::CoreEventId::PropertyAdded):
                 case static_cast<int>(daq::CoreEventId::PropertyRemoved):
                 {

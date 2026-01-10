@@ -135,13 +135,13 @@ struct ImGuiNodesNode
     float body_height_;
     ImGuiNodesNodeState state_;
     std::string name_;
-    int color_index_;
+    ImColor color_;
     std::string warning_message_;
     std::string error_message_;
     std::vector<ImGuiNodesInput> inputs_;
     std::vector<ImGuiNodesOutput> outputs_;
 
-    ImGuiNodesNode(const ImGuiNodesIdentifier& name, int color_index);
+    ImGuiNodesNode(const ImGuiNodesIdentifier& name, ImColor color);
     void TranslateNode(ImVec2 delta, bool selected_only = false);
     void BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size);
     void Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
@@ -173,11 +173,11 @@ public:
     ~ImGuiNodes();
 
     void Update();
-    void AddNode(const ImGuiNodesIdentifier& name, int color_index,
+    void AddNode(const ImGuiNodesIdentifier& name, ImColor color,
                  const std::vector<ImGuiNodesIdentifier>& inputs,
                  const std::vector<ImGuiNodesIdentifier>& outputs,
                  ImGuiNodesUid parent_uid = "");
-    void AddNode(const ImGuiNodesIdentifier& name, int color_index, ImVec2 pos, 
+    void AddNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2 pos,
                  const std::vector<ImGuiNodesIdentifier>& inputs,
                  const std::vector<ImGuiNodesIdentifier>& outputs,
                  ImGuiNodesUid parent_uid = "");
@@ -203,14 +203,6 @@ public:
     static constexpr ImColor parent_connection_color_ = ImColor(0x20ffffff);
     static constexpr ImColor warning_color_ = ImColor(0xff0060ff);
     static constexpr ImColor error_color_ = ImColor(0xff0719eb);
-    static constexpr ImColor color_palette_[] = {
-        ImColor(0xffffd670),
-        ImColor(0xff70d6ff),
-        ImColor(0xff7097ff),
-        ImColor(0xff70ffe9),
-        ImColor(0xffa670ff),
-    };
-    static constexpr int color_palette_size_ = sizeof(color_palette_) / sizeof(color_palette_[0]);
 
 private:
     ImVec2 nodes_imgui_window_pos_;
@@ -255,7 +247,7 @@ private:
     struct NodeCacheEntry
     {
         ImVec2 pos;
-        int color_index;
+        ImColor color;
         bool is_selected;
     };
     std::unordered_map<ImGuiNodesUid, NodeCacheEntry> node_cache_;

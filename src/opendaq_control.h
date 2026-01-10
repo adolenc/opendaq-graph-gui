@@ -44,6 +44,7 @@ public:
     void DeleteComponent(CachedComponent* component);
     void RenderFunctionBlockOptions(daq::ComponentPtr parent_component, const std::string& parent_id, std::optional<ImVec2> position);
     void RenderDeviceOptions(daq::ComponentPtr parent_component, const std::string& parent_id, std::optional<ImVec2> position);
+    void BuildPopupParentCandidates(const std::string& parent_guid, int depth = 0, int parent_color_index = 0);
     ImVec4 GetSignalColor(const std::string& signal_id);
 
     daq::InstancePtr instance_;
@@ -65,6 +66,16 @@ public:
 
     bool fb_options_cache_valid_ = false;
     daq::DictPtr<daq::IString, daq::IFunctionBlockType> cached_available_fbs_;
+    daq::ComponentPtr popup_selected_parent_;
+    struct PopupParentCandidate
+    {
+        std::string display_name;
+        std::string global_id;
+        CachedComponent* cached;
+        int color_index;
+        int depth;
+    };
+    std::vector<PopupParentCandidate> popup_parent_candidates_;
 
     ImGui::ImGuiNodes* nodes_ = nullptr;
 
@@ -73,6 +84,16 @@ public:
     std::vector<std::unique_ptr<SignalsWindow>> cloned_signals_windows_;
     std::vector<std::unique_ptr<PropertiesWindow>> cloned_properties_windows_;
     TreeViewWindow tree_view_window_;
+
+    static constexpr ImColor node_color_palette_[] = {
+        ImColor(0xffffd670),
+        ImColor(0xff70d6ff),
+        ImColor(0xff7097ff),
+        ImColor(0xff70ffe9),
+        ImColor(0xffa670ff),
+    };
+    static constexpr int node_color_palette_size_ = sizeof(node_color_palette_) / sizeof(node_color_palette_[0]);
+    ImColor GetNodeColor(int color_index) const { return node_color_palette_[color_index % node_color_palette_size_]; }
 
     int next_color_index_ = 1;
     int next_signal_color_index_ = 0;

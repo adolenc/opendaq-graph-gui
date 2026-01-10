@@ -452,7 +452,7 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
     return hovered_node;
 }
 
-void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, int color_index, 
+void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color,
                          const std::vector<ImGuiNodesIdentifier>& inputs,
                          const std::vector<ImGuiNodesIdentifier>& outputs,
                          ImGuiNodesUid parent_uid)
@@ -462,9 +462,9 @@ void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, int color_index,
     if (auto it = node_cache_.find(name.id_); it != node_cache_.end())
     {
         pos = it->second.pos;
-        if (it->second.color_index >= 0)
-            color_index = it->second.color_index;
-        AddNode(name, color_index, pos, inputs, outputs, parent_uid);
+        if (it->second.color.Value.w > 0)
+            color = it->second.color;
+        AddNode(name, color, pos, inputs, outputs, parent_uid);
 
         if (it->second.is_selected)
         {
@@ -518,15 +518,15 @@ void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, int color_index,
             pos = parent ? parent->area_node_.GetCenter() + ImVec2(300.0f, 0.0f) : ImVec2(50.0f, 50.0f);
         }
     }
-    AddNode(name, color_index, pos, inputs, outputs, parent_uid);
+    AddNode(name, color, pos, inputs, outputs, parent_uid);
 }
 
-void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, int color_index, ImVec2 pos, 
+void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2 pos,
                          const std::vector<ImGuiNodesIdentifier>& inputs,
                          const std::vector<ImGuiNodesIdentifier>& outputs,
                         ImGuiNodesUid parent_uid)
 {
-    ImGuiNodesNode* node = new ImGuiNodesNode(name, color_index);
+    ImGuiNodesNode* node = new ImGuiNodesNode(name, color);
     node->parent_node_ = NULL;
     if (!parent_uid.empty())
     {
@@ -1296,7 +1296,7 @@ void ImGuiNodes::DeleteNodes(const std::vector<ImGuiNodesNode*>& nodes_to_delete
 
         if (std::find(nodes_to_delete.begin(), nodes_to_delete.end(), node) != nodes_to_delete.end())
         {
-            node_cache_[node->uid_] = { node->area_node_.GetCenter(), node->color_index_, true };
+            node_cache_[node->uid_] = { node->area_node_.GetCenter(), node->color_, true };
 
             active_node_ = NULL;
             active_input_ = NULL;
@@ -1366,7 +1366,7 @@ void ImGuiNodes::ProcessNodes()
             if (node->parent_node_)
             {
                 ImVec2 head_offset(0.0f, node->area_name_.GetHeight() * 0.8f);
-                ImColor color = ImGuiNodes::color_palette_[node->parent_node_->color_index_];
+                ImColor color = node->parent_node_->color_;
                 color.Value.w = UsingImGuiLightStyle() ? 0.5f : 0.125f;
                 RenderConnection(offset + (node->area_node_.GetTL() + head_offset) * scale_, offset + (node->parent_node_->area_node_.GetTR() + head_offset) * scale_, color, 10.0f);
             }
@@ -1485,7 +1485,7 @@ void ImGuiNodes::ProcessNodes()
     {
         if (state_ == ImGuiNodesState_DraggingParentConnection)
         {
-            ImColor color = ImGuiNodes::color_palette_[active_node_->color_index_];
+            ImColor color = active_node_->color_;
             color.Value.w = UsingImGuiLightStyle() ? 0.5f : 0.125f;
             RenderConnection(ImVec2(active_dragging_connection_.x, active_dragging_connection_.y), 
                              ImVec2(active_dragging_connection_.z, active_dragging_connection_.w), 
@@ -1733,12 +1733,12 @@ void ImGuiNodesNode::TranslateNode(ImVec2 delta, bool selected_only)
         outputs_[output_idx].TranslateOutput(delta);
 }
 
-ImGuiNodesNode::ImGuiNodesNode(const ImGuiNodesIdentifier& name, int color_index)
+ImGuiNodesNode::ImGuiNodesNode(const ImGuiNodesIdentifier& name, ImColor color)
 {
     name_ = name.name_;
     uid_ = name.id_;
     state_ = ImGuiNodesNodeStateFlag_Default;
-    color_index_ = color_index % ImGuiNodes::color_palette_size_;
+    color_ = color;
 
     area_name_.Min = ImVec2(0.0f, 0.0f);
     area_name_.Max = ImGui::CalcTextSize(name_.c_str());
@@ -1798,7 +1798,7 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
     node_rect.Max *= scale;
     node_rect.Translate(offset);
 
-    ImColor color = ImGuiNodes::color_palette_[color_index_];
+    ImColor color = color_;
     ImColor head_color = ImColor(0.f, 0.f, 0.f, 0.15f), body_color = color;
     body_color.Value.w = 0.9f;		
 
@@ -2043,7 +2043,7 @@ void ImGuiNodes::Clear()
     {
         ImGuiNodesNode* node = nodes_[node_idx];
         bool selected = IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected);
-        node_cache_[node->uid_] = { node->area_node_.GetCenter(), node->color_index_, selected };
+        node_cache_[node->uid_] = { node->area_node_.GetCenter(), node->color_, selected };
         delete node;
     }
     
@@ -2133,7 +2133,7 @@ void ImGuiNodes::LoadSettings(const char* line)
     float x, y;
     if (sscanf(line, "Node=%[^,],%f,%f", uid, &x, &y) == 3)
     {
-        node_cache_[uid] = { ImVec2(x, y), -1, false };
+        node_cache_[uid] = { ImVec2(x, y), ImColor(0, 0, 0, 0), false };
     }
 }
 
@@ -2244,7 +2244,7 @@ void ImGuiNodes::RenderMinimap(ImDrawList* draw_list)
         ImVec2 min = (node_rect.Min - world_bounds.Min) * mm_scale + mm_offset;
         ImVec2 max = (node_rect.Max - world_bounds.Min) * mm_scale + mm_offset;
 
-        ImColor color = ImGuiNodes::color_palette_[node->color_index_];
+        ImColor color = node->color_;
 
         if (IS_SET(node->state_, ImGuiNodesNodeStateFlag_Warning))
             color = ImGuiNodes::warning_color_;
