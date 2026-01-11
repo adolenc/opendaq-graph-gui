@@ -1423,12 +1423,12 @@ void ImGuiNodes::ProcessNodes()
                     p4 += (input.source_output_->pos_ * scale_);		
                 }
 
-                ImColor color = IS_SET(node->state_, ImGuiNodesNodeStateFlag_Collapsed)
-                    ? ImColor(0.4f, 0.4f, 0.4f, 0.1f)
-                    : (!any_node_selected || IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected) || IS_SET(source_node->state_, ImGuiNodesNodeStateFlag_Selected))
-                    ? (input.connection_color_.has_value() ? input.connection_color_.value() : ImColor(ImGui::GetStyle().Colors[ImGuiCol_Text]))
-                    : (input.connection_color_.has_value() ? ImColor(input.connection_color_.value().Value.x, input.connection_color_.value().Value.y, input.connection_color_.value().Value.z, 0.5f) : ImColor(0.4f, 0.4f, 0.4f, 0.5f));
-                RenderConnection(p1, p4, color, 4.f);
+                ImColor connection_color = input.connection_color_.has_value() ? input.connection_color_.value() : ImColor(0.5f, 0.5f, 0.5f, 1.0f);
+                bool active_node_collapsed_and_not_selected = IS_SET(node->state_, ImGuiNodesNodeStateFlag_Collapsed) && !IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected);
+                bool another_node_selected = any_node_selected && !IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected) && !IS_SET(source_node->state_, ImGuiNodesNodeStateFlag_Selected);
+                if (active_node_collapsed_and_not_selected || another_node_selected)
+                    connection_color.Value.w = 0.1f;
+                RenderConnection(p1, p4, connection_color, 4.f);
             }
         }
     }
