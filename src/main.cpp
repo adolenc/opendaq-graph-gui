@@ -25,7 +25,7 @@ int main(int argc, char** argv)
         {
             unsigned int major, minor, revision;
             daqOpenDaqGetVersion(&major, &minor, &revision);
-            printf("openDAQ Node GUI - built with openDAQ v%u.%u.%u\n", major, minor, revision);
+            printf("openDAQ graph GUI %s\nUsing openDAQ v%u.%u.%u\n", GIT_SHA, major, minor, revision);
             return 0;
         }
         else if ((arg == "--connection_string" || arg == "--connection-string" || arg == "-c") && i + 1 < argc)
@@ -43,7 +43,7 @@ int main(int argc, char** argv)
             printf("Options:\n");
             printf("  --connection-string, -c <string>   Connect directly to a device (usually daq.nd://<ip>).\n");
             printf("  --light-mode                       Use light theme instead of dark theme.\n");
-            printf("  --version, -v                      Show used openDAQ version.\n");
+            printf("  --version, -v                      Display program and openDAQ version.\n");
             printf("  --help, -h                         Show this help message.\n");
             return 0;
         }

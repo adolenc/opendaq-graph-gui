@@ -131,6 +131,13 @@ target_link_libraries(imgui PUBLIC SDL2::SDL2 SDL2::SDL2main OpenGL::GL)
 
 
 add_executable(${PROJECT_NAME} src/main.cpp src/nodes.cpp src/opendaq_control.cpp src/properties_window.cpp src/component_cache.cpp src/signals_window.cpp src/signal.cpp src/tree_view_window.cpp)
+execute_process(
+  COMMAND git rev-parse --short HEAD
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  OUTPUT_VARIABLE GIT_SHA
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+target_compile_definitions(${PROJECT_NAME} PRIVATE GIT_SHA="${GIT_SHA}")
 target_include_directories(${PROJECT_NAME} PUBLIC ${openDAQ_INCLUDE_DIRS} src ${iconfontcppheaders_SOURCE_DIR})
 target_link_libraries(${PROJECT_NAME} PUBLIC daq::opendaq imgui implot imsearch imgui_notify)
 
