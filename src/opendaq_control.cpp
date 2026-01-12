@@ -1053,13 +1053,13 @@ void OpenDAQNodeEditor::ShowStartupPopup()
         ImGui::OpenPopup("Startup");
 
         hints = {
-            "Did you know? You can auto-connect to a device on startup by using the --connection-string command line argument.",
-            "Pro tip: Right-clicking in the tree view allows you to quickly collapse all items or select all children of a node.",
-            "Double-clicking an input port in the node editor will focus the connected source node.",
+            "You can auto-connect to a device on startup by using the --connection-string command line argument.",
+            "Right-clicking in the Tree window allows you to quickly collapse all items or select all children of a node.",
+            "Double-clicking an input port in the Nodes window will focus the connected source node.",
             "Use delete key to quickly delete selected nodes.",
-            "Double-clicking any node in the tree view window will focus the node editor on that specific node.",
-            "Holding ctrl while clicking will select multiple components at once.",
-            "Left-click and drag the mouse cursor to create a box selection of multiple components in the node editor.",
+            "Double-clicking any node in the Tree window will focus the Nodes window on that specific node.",
+            "Holding ctrl while clicking will add components to the current selection.",
+            "Left-click and drag the mouse cursor in Nodes window to create a box selection of multiple components.",
         };
         srand(time(nullptr));
         current_hint_index = rand() % hints.size();
@@ -1087,12 +1087,12 @@ void OpenDAQNodeEditor::ShowStartupPopup()
 
         ImGui::Text("Getting started:");
         ImGui::Text("- Use the list below to connect to an automatically discovered device, or manually enter a connection string.");
-        ImGui::Text("- Once connected, the device structure will appear in the tree view on the left, and in the node canvas.");
-        ImGui::Text("- Click on components to view and edit their properties in the properties panel.");
-        ImGui::Text("- Click on empty space in the node canvas to add new devices or function blocks.");
+        ImGui::Text("- Once connected, the device structure will appear in the Tree on the left, and in the Nodes.");
+        ImGui::Text("- Click on components to view and edit their properties in the Properties.");
+        ImGui::Text("- Click on empty space in the Nodes to add new devices or function blocks.");
         ImGui::Text("- Connect signals to input ports by dragging connections between nodes.");
-        ImGui::Text("- Add nested function blocks by clicking the '+' button on device or function block nodes in the node canvas.");
-        ImGui::Text("- Signals from selected components are drawn in the signals panel.");
+        ImGui::Text("- Add nested function blocks by clicking the '+' button on device or function block nodes in the Nodes.");
+        ImGui::Text("- Signals from selected components are drawn in the Signals.");
 
         ImGui::Dummy(ImVec2(0.0f, 10.0f));
         ImGui::Separator();

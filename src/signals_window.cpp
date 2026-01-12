@@ -136,7 +136,7 @@ void SignalsWindow::Render()
     ImGui::SetNextWindowPos(ImVec2(500.f, 20.f), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(800.f, 500.f), ImGuiCond_FirstUseEver);
 
-    std::string title = !is_cloned_ ? std::string("Signal viewer") : "Signal viewer (cloned)##" + std::to_string((uintptr_t)this);
+    std::string title = !is_cloned_ ? std::string("Signals") : "Signals (cloned)##" + std::to_string((uintptr_t)this);
     if (!ImGui::Begin(title.c_str(), is_cloned_ ? &is_open_ : nullptr))
     {
         ImGui::End();

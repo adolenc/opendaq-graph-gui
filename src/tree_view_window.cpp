@@ -15,7 +15,7 @@ void TreeViewWindow::OnSelectionChanged(const std::vector<std::string>& selected
 
 void TreeViewWindow::Render(const CachedComponent* root, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
 {
-    ImGui::Begin("Tree view", nullptr);
+    ImGui::Begin("Tree", nullptr);
     if (ImSearch::BeginSearch())
     {
         ImSearch::SearchBar();

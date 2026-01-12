@@ -631,7 +631,7 @@ void PropertiesWindow::Render()
     ImGui::SetNextWindowPos(ImVec2(300.f, 20.f), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(100.f, 100.f), ImGuiCond_FirstUseEver);
     
-    std::string title = !is_cloned_ ? "Property editor" : "Property editor (cloned)##" + std::to_string((uintptr_t)this);
+    std::string title = !is_cloned_ ? "Properties" : "Properties (cloned)##" + std::to_string((uintptr_t)this);
     if (!ImGui::Begin(title.c_str(), is_cloned_ ? &is_open_ : nullptr, is_cloned_ ? ImGuiWindowFlags_AlwaysAutoResize : 0))
     {
         ImGui::End();
