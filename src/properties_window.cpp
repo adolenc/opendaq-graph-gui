@@ -547,7 +547,7 @@ void PropertiesWindow::RenderChildren(SharedCachedComponent& shared_cached_compo
         else
         {
             ImGui::PushID(child_id.c_str());
-            if (ImGui::CollapsingHeader(child->name_.c_str()))
+            if (ImGui::CollapsingHeader((child->name_ + "###" + child->uid_).c_str()))
             {
                 SharedCachedComponent shared_child({child});
                 RenderComponent(shared_child, false);
