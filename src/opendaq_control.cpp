@@ -1316,8 +1316,29 @@ void OpenDAQNodeEditor::Render()
                     }
                     break;
                 }
-                case static_cast<int>(daq::CoreEventId::ComponentAdded):
                 case static_cast<int>(daq::CoreEventId::ComponentRemoved):
+                {
+                    daq::DictPtr<daq::IString, daq::IBaseObject> params = args.getParameters();
+                    if (params.hasKey("Id"))
+                    {
+                        std::string removed_local_id = params.get("Id");
+                        for (const auto& [id, cached] : all_components_)
+                        {
+                            if (cached->parent_ == comp && cached->component_.assigned() && cached->component_.getLocalId() == removed_local_id)
+                            {
+                                if (canCastTo<daq::IDevice>(cached->component_))
+                                {
+                                    std::string name = cached->component_.getName().toStdString();
+                                    ImGui::InsertNotification({ImGuiToastType::Warning, DEFAULT_NOTIFICATION_DURATION_MS, "Device disconnected: %s", name.c_str()});
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    RebuildStructure();
+                    break;
+                }
+                case static_cast<int>(daq::CoreEventId::ComponentAdded):
                 case static_cast<int>(daq::CoreEventId::ComponentUpdateEnd):
                 {
                     RebuildStructure();
