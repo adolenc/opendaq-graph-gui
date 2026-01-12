@@ -605,8 +605,8 @@ bool ImGuiNodes::SortSelectedNodesOrder()
                 selected_ids.push_back(node->outputs_[output_idx].uid_);
     }
 
-    if (interaction_handler_)
-        interaction_handler_->OnSelectionChanged(selected_ids);
+    if (callbacks.on_selection_changed)
+        callbacks.on_selection_changed(selected_ids);
 
     int node_idx = 0;
 
@@ -649,27 +649,27 @@ void ImGuiNodes::Update()
 
     if (state_ == ImGuiNodesState_HoveringOutput)
     {
-        if (interaction_handler_ && active_output_)
+        if (callbacks.on_output_hover && active_output_)
         {
             if (previous_active_output_uid != active_output_->uid_)
-                interaction_handler_->OnOutputHover("");
-            interaction_handler_->OnOutputHover(active_output_->uid_);
+                callbacks.on_output_hover("");
+            callbacks.on_output_hover(active_output_->uid_);
         }
     }
-    else if (was_hovering_output && interaction_handler_)
-        interaction_handler_->OnOutputHover("");
+    else if (was_hovering_output && callbacks.on_output_hover)
+        callbacks.on_output_hover("");
 
     if (state_ == ImGuiNodesState_HoveringInput)
     {
-        if (interaction_handler_ && active_input_)
+        if (callbacks.on_input_hover && active_input_)
         {
             if (previous_active_input_uid != active_input_->uid_)
-                interaction_handler_->OnInputHover("");
-            interaction_handler_->OnInputHover(active_input_->uid_);
+                callbacks.on_input_hover("");
+            callbacks.on_input_hover(active_input_->uid_);
         }
     }
-    else if (was_hovering_input && interaction_handler_)
-        interaction_handler_->OnInputHover("");
+    else if (was_hovering_input && callbacks.on_input_hover)
+        callbacks.on_input_hover("");
 
     ProcessNodes();
 }
@@ -992,8 +992,8 @@ void ImGuiNodes::ProcessInteractions()
                     active_output_ = active_input_->source_output_;
 
                     RemoveConnection(active_input_->uid_);
-                    if (interaction_handler_)
-                        interaction_handler_->OnConnectionRemoved(active_input_->uid_);
+                    if (callbacks.on_connection_removed)
+                        callbacks.on_connection_removed(active_input_->uid_);
 
                     state_ = ImGuiNodesState_DraggingOutput;
                     return;
@@ -1066,10 +1066,10 @@ void ImGuiNodes::ProcessInteractions()
                 if (ImGui::GetFrameCount() - last_double_click_frame < 10)
                     return;
 
-                if (interaction_handler_)
+                if (callbacks.on_empty_space_click)
                 {
                     ImVec2 position = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
-                    interaction_handler_->OnEmptySpaceClick(position);
+                    callbacks.on_empty_space_click(position);
                 }
             }
             return;
@@ -1090,8 +1090,8 @@ void ImGuiNodes::ProcessInteractions()
 
         case ImGuiNodesState_HoveringActiveButton:
         {
-            if (interaction_handler_)
-                interaction_handler_->OnNodeActiveToggle(active_node_->uid_);
+            if (callbacks.on_node_active_toggle)
+                callbacks.on_node_active_toggle(active_node_->uid_);
             
             state_ = ImGuiNodesState_Default;
             return;
@@ -1107,8 +1107,8 @@ void ImGuiNodes::ProcessInteractions()
 
         case ImGuiNodesState_HoveringOutputActiveButton:
         {
-            if (interaction_handler_)
-                interaction_handler_->OnSignalActiveToggle(active_output_->uid_);
+            if (callbacks.on_signal_active_toggle)
+                callbacks.on_signal_active_toggle(active_output_->uid_);
             
             state_ = ImGuiNodesState_Default;
             return;
@@ -1178,8 +1178,8 @@ void ImGuiNodes::ProcessInteractions()
                 IM_ASSERT(active_node_);
                 
                 AddConnection(active_output_->uid_, active_input_->uid_);
-                if (interaction_handler_)
-                    interaction_handler_->OnConnectionCreated(active_output_->uid_, active_input_->uid_);
+                if (callbacks.on_connection_created)
+                    callbacks.on_connection_created(active_output_->uid_, active_input_->uid_);
             }
             else
             {
@@ -1216,8 +1216,8 @@ void ImGuiNodes::ProcessInteractions()
                 {
                     if (state_ == ImGuiNodesState_DraggingInput)
                     {
-                        if (interaction_handler_)
-                            interaction_handler_->OnInputDropped(active_input_->uid_, std::nullopt);
+                        if (callbacks.on_input_dropped)
+                            callbacks.on_input_dropped(active_input_->uid_, std::nullopt);
                     }
                 }
             }
@@ -1231,14 +1231,14 @@ void ImGuiNodes::ProcessInteractions()
         {
             if (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold))
             {
-                if (interaction_handler_)
-                    interaction_handler_->OnAddButtonClick(active_node_->uid_, std::nullopt);
+                if (callbacks.on_add_button_click)
+                    callbacks.on_add_button_click(active_node_->uid_, std::nullopt);
             }
             else
             {
                 ImVec2 drop_position = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
-                if (interaction_handler_)
-                    interaction_handler_->OnAddButtonClick(active_node_->uid_, drop_position);
+                if (callbacks.on_add_button_click)
+                    callbacks.on_add_button_click(active_node_->uid_, drop_position);
             }
 
             active_dragging_connection_ = ImVec4();
@@ -1280,7 +1280,7 @@ void ImGuiNodes::DeleteNodes(const std::vector<ImGuiNodesNode*>& nodes_to_delete
     }
 
     std::vector<ImGuiNodesUid> deleted_nodes_uids;
-    if (interaction_handler_)
+    if (callbacks.on_node_delete)
     {
         for (ImGuiNodesNode* node : nodes_to_delete)
             deleted_nodes_uids.push_back(node->uid_);
@@ -1347,8 +1347,8 @@ void ImGuiNodes::DeleteNodes(const std::vector<ImGuiNodesNode*>& nodes_to_delete
 
     nodes_ = non_removed_nodes;
 
-    if (interaction_handler_)
-        interaction_handler_->OnNodeDelete(deleted_nodes_uids);
+    if (callbacks.on_node_delete)
+        callbacks.on_node_delete(deleted_nodes_uids);
 }
 
 void ImGuiNodes::ProcessNodes()
@@ -1943,7 +1943,7 @@ void ImGuiNodes::RenderConnection(ImVec2 p1, ImVec2 p4, ImColor color, float thi
     // draw_list->AddCircle(p3, 3.0f * scale_, color);
 }
 
-ImGuiNodes::ImGuiNodes(ImGuiNodesInteractionHandler* interaction_handler)
+ImGuiNodes::ImGuiNodes()
 {
     scale_ = 1.0f;
     minimap_preview_scale_ = 1.0f;
@@ -1951,8 +1951,6 @@ ImGuiNodes::ImGuiNodes(ImGuiNodesInteractionHandler* interaction_handler)
     active_node_ = NULL;
     active_input_ = NULL;
     active_output_ = NULL;
-
-    interaction_handler_ = interaction_handler;
 }
 
 ImGuiNodes::~ImGuiNodes()

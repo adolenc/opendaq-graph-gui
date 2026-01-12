@@ -56,8 +56,22 @@ int main(int argc, char** argv)
     }
 
     OpenDAQNodeEditor opendaq_editor;
-    ImGui::ImGuiNodes nodes_editor(&opendaq_editor);
+    ImGui::ImGuiNodes nodes_editor;
     opendaq_editor.nodes_ = &nodes_editor;
+
+    nodes_editor.callbacks.on_output_hover = [&](const ImGui::ImGuiNodesUid& id) { opendaq_editor.OnOutputHover(id); };
+    nodes_editor.callbacks.on_input_hover = [&](const ImGui::ImGuiNodesUid& id) { opendaq_editor.OnInputHover(id); };
+    nodes_editor.callbacks.on_selection_changed = [&](const std::vector<ImGui::ImGuiNodesUid>& ids) { opendaq_editor.OnSelectionChanged(ids); };
+    nodes_editor.callbacks.on_connection_created = [&](const ImGui::ImGuiNodesUid& out_id, const ImGui::ImGuiNodesUid& in_id) { opendaq_editor.OnConnectionCreated(out_id, in_id); };
+    nodes_editor.callbacks.on_connection_removed = [&](const ImGui::ImGuiNodesUid& id) { opendaq_editor.OnConnectionRemoved(id); };
+    nodes_editor.callbacks.render_popup_menu = [&](ImGui::ImGuiNodes* nodes, ImVec2 pos) { opendaq_editor.RenderPopupMenu(nodes, pos); };
+    nodes_editor.callbacks.on_add_button_click = [&](const ImGui::ImGuiNodesUid& id, std::optional<ImVec2> pos) { opendaq_editor.OnAddButtonClick(id, pos); };
+    nodes_editor.callbacks.on_node_active_toggle = [&](const ImGui::ImGuiNodesUid& id) { opendaq_editor.OnNodeActiveToggle(id); };
+    nodes_editor.callbacks.on_node_delete = [&](const std::vector<ImGui::ImGuiNodesUid>& ids) { opendaq_editor.OnNodeDelete(ids); };
+    nodes_editor.callbacks.on_signal_active_toggle = [&](const ImGui::ImGuiNodesUid& id) { opendaq_editor.OnSignalActiveToggle(id); };
+    nodes_editor.callbacks.on_input_dropped = [&](const ImGui::ImGuiNodesUid& id, std::optional<ImVec2> pos) { opendaq_editor.OnInputDropped(id, pos); };
+    nodes_editor.callbacks.on_empty_space_click = [&](ImVec2 pos) { opendaq_editor.OnEmptySpaceClick(pos); };
+
     opendaq_editor.Init();
     
     if (connection_string == "demo")

@@ -8,6 +8,7 @@
 #include <string>
 #include <optional>
 #include <unordered_map>
+#include <functional>
 
 namespace ImGui
 {
@@ -73,6 +74,23 @@ constexpr float ImGuiNodesTitleHight = 2.0f;
 struct ImGuiNodesNode;
 struct ImGuiNodesInput;
 struct ImGuiNodesOutput;
+struct ImGuiNodes;
+
+struct ImGuiNodesCallbacks
+{
+    std::function<void(const ImGuiNodesUid&)> on_output_hover;
+    std::function<void(const ImGuiNodesUid&)> on_input_hover;
+    std::function<void(const std::vector<ImGuiNodesUid>&)> on_selection_changed;
+    std::function<void(const ImGuiNodesUid&, const ImGuiNodesUid&)> on_connection_created;
+    std::function<void(const ImGuiNodesUid&)> on_connection_removed;
+    std::function<void(ImGuiNodes*, ImVec2)> render_popup_menu;
+    std::function<void(const ImGuiNodesUid&, std::optional<ImVec2>)> on_add_button_click;
+    std::function<void(const ImGuiNodesUid&)> on_node_active_toggle;
+    std::function<void(const std::vector<ImGuiNodesUid>&)> on_node_delete;
+    std::function<void(const ImGuiNodesUid&)> on_signal_active_toggle;
+    std::function<void(const ImGuiNodesUid&, std::optional<ImVec2>)> on_input_dropped;
+    std::function<void(ImVec2)> on_empty_space_click;
+};
 
 struct ImGuiNodesIdentifier
 {
@@ -147,30 +165,13 @@ struct ImGuiNodesNode
     void Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
 };
 
-struct ImGuiNodes;
-
-class ImGuiNodesInteractionHandler
-{
-public:
-    virtual void OnOutputHover(const ImGuiNodesUid& id) {};
-    virtual void OnInputHover(const ImGuiNodesUid& id) {};
-    virtual void OnSelectionChanged(const std::vector<ImGuiNodesUid>& selected_ids) {}
-    virtual void OnConnectionCreated(const ImGuiNodesUid& output_id, const ImGuiNodesUid& input_id) {}
-    virtual void OnConnectionRemoved(const ImGuiNodesUid& input_id) {}
-    virtual void RenderPopupMenu(ImGuiNodes* nodes, ImVec2 position) {}
-    virtual void OnAddButtonClick(const ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position) {}
-    virtual void OnNodeActiveToggle(const ImGuiNodesUid& uid) {}
-    virtual void OnNodeDelete(const std::vector<ImGuiNodesUid>& uids) {}
-    virtual void OnSignalActiveToggle(const ImGuiNodesUid& uid) {}
-    virtual void OnInputDropped(const ImGuiNodesUid& input_uid, std::optional<ImVec2> position) {}
-    virtual void OnEmptySpaceClick(ImVec2 position) {}
-};
-
 struct ImGuiNodes
 {
 public:
-    ImGuiNodes(ImGuiNodesInteractionHandler* interaction_handler = nullptr);
+    ImGuiNodes();
     ~ImGuiNodes();
+
+    ImGuiNodesCallbacks callbacks;
 
     void Update();
     void AddNode(const ImGuiNodesIdentifier& name, ImColor color,
@@ -229,8 +230,6 @@ private:
 
         bool needs_rebuild_ = false;
     } rebuild_cache_;
-
-    ImGuiNodesInteractionHandler* interaction_handler_ = nullptr;
 
     struct OutputWithOwner
     {

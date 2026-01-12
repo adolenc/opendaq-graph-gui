@@ -14,25 +14,25 @@
 #include <chrono>
 
 
-class OpenDAQNodeEditor : public ImGui::ImGuiNodesInteractionHandler
+class OpenDAQNodeEditor
 {
 public:
     OpenDAQNodeEditor();
     void Init();
     void InitImGui();
     void RetrieveTopology(daq::ComponentPtr component, std::string parent_id = "", daq::ComponentPtr owner = nullptr);
-    void OnConnectionCreated(const ImGui::ImGuiNodesUid& output_id, const ImGui::ImGuiNodesUid& input_id) override;
-    void OnConnectionRemoved(const ImGui::ImGuiNodesUid& input_id) override;
-    void OnOutputHover(const ImGui::ImGuiNodesUid& id) override;
-    void OnInputHover(const ImGui::ImGuiNodesUid& id) override;
-    void OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUid>& selected_ids) override;
-    void RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 position) override;
-    void OnAddButtonClick(const ImGui::ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position) override;
-    void OnNodeActiveToggle(const ImGui::ImGuiNodesUid& uid) override;
-    void OnNodeDelete(const std::vector<ImGui::ImGuiNodesUid>& uids) override;
-    void OnSignalActiveToggle(const ImGui::ImGuiNodesUid& uid) override;
-    void OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, std::optional<ImVec2> /*position*/) override;
-    void OnEmptySpaceClick(ImVec2 position) override;
+    void OnConnectionCreated(const ImGui::ImGuiNodesUid& output_id, const ImGui::ImGuiNodesUid& input_id);
+    void OnConnectionRemoved(const ImGui::ImGuiNodesUid& input_id);
+    void OnOutputHover(const ImGui::ImGuiNodesUid& id);
+    void OnInputHover(const ImGui::ImGuiNodesUid& id);
+    void OnSelectionChanged(const std::vector<ImGui::ImGuiNodesUid>& selected_ids);
+    void RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 position);
+    void OnAddButtonClick(const ImGui::ImGuiNodesUid& parent_node_id, std::optional<ImVec2> position);
+    void OnNodeActiveToggle(const ImGui::ImGuiNodesUid& uid);
+    void OnNodeDelete(const std::vector<ImGui::ImGuiNodesUid>& uids);
+    void OnSignalActiveToggle(const ImGui::ImGuiNodesUid& uid);
+    void OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, std::optional<ImVec2> position);
+    void OnEmptySpaceClick(ImVec2 position);
     void RenderNestedNodePopup();
     void ShowStartupPopup();
     void RetrieveConnections();

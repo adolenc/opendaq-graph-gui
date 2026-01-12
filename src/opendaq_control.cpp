@@ -1221,8 +1221,9 @@ void OpenDAQNodeEditor::OnSignalActiveToggle(const ImGui::ImGuiNodesUid& uid)
     }
 }
 
-void OpenDAQNodeEditor::OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, std::optional<ImVec2> /*position*/)
+void OpenDAQNodeEditor::OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, std::optional<ImVec2> position)
 {
+    (void)position; // currently unused
     if (auto it = input_ports_.find(input_uid); it != input_ports_.end())
         dragged_input_port_component_ = it->second->component_;
     else
