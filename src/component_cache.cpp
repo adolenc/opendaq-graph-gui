@@ -100,6 +100,14 @@ void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr 
                         AddProperty(sub_property, parent, depth + 1, new_parent_uid);
                 }
                 break;
+            case daq::ctList:
+            case daq::ctDict:
+            case daq::ctRatio:
+            case daq::ctEnumeration:
+                cached.is_read_only_ = true;
+                cached.type_ = daq::ctString;
+                cached.value_ = ValueToString(property_holder.getPropertyValue(cached.name_));
+                break;
             case daq::ctStruct:
                 {
                     auto struct_value = property_holder.getPropertyValue(cached.name_).asPtr<daq::IStruct>();
