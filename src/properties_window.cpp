@@ -123,7 +123,7 @@ static void RenderFunctionProperty(SharedCachedProperty& cached_prop)
         for (size_t i = 0; i < fn_info.parameters.size(); ++i)
         {
             auto& param = fn_info.parameters[i];
-            ImGui::PushID(i);
+            ImGui::PushID((int)i);
             switch (param.type)
             {
                 case daq::ctBool:
@@ -312,7 +312,7 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
                 else if (cached_prop.selection_values_count_ > 0)
                 {
                     assert(cached_prop.selection_values_);
-                    int value = std::get<int64_t>(cached_prop.value_);
+                    int value = (int)std::get<int64_t>(cached_prop.value_);
 
                     // We need to do create a combo manually because otherwise shared component properties
                     // do not correctly call SetValue when changed.
@@ -323,7 +323,7 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
                     if (ImGui::BeginCombo(cached_prop.display_name_.c_str(), *preview ? preview : ""))
                     {
                         const char* item = items;
-                        for (int i = 0; i < cached_prop.selection_values_count_ && *item; ++i)
+                        for (int i = 0; i < (int)cached_prop.selection_values_count_ && *item; ++i)
                         {
                             if (ImGui::Selectable(item, i == value))
                                 SetValue((int64_t)i);
@@ -334,7 +334,7 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
                 }
                 else
                 {
-                    int value = std::get<int64_t>(cached_prop.value_);
+                    int value = (int)std::get<int64_t>(cached_prop.value_);
                     ImGui::InputInt(cached_prop.display_name_.c_str(), &value, 0, 0);
                     if (ImGui::IsItemDeactivatedAfterEdit() || (cached_prop.is_multi_value_ && ImGui::IsItemFocused() && ImGui::IsKeyPressed(ImGuiKey_Enter)))
                         SetValue((int64_t)value);

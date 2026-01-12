@@ -5,12 +5,12 @@
 using namespace ImGui;
 
 
-#define IS_SET(state, flag)         ((state) & (flag))
+#define IS_SET(state, flag)         (((state) & (flag)) != 0)
 #define SET_FLAG(state, flag)       ((state) |= (flag))
 #define CLEAR_FLAG(state, flag)     ((state) &= ~(flag))
 #define TOGGLE_FLAG(state, flag)    ((state) ^= (flag))
 #define HAS_ALL_FLAGS(state, flags) (((state) & (flags)) == (flags))
-#define HAS_ANY_FLAG(state, flags)  ((state) & (flags))
+#define HAS_ANY_FLAG(state, flags)  (((state) & (flags)) != 0)
 #define CLEAR_FLAGS(state, flags)   ((state) &= ~(flags))
 
 static bool UsingImGuiLightStyle()
@@ -259,8 +259,6 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
     if (nodes_.empty())
         return NULL;
 
-    const ImGuiIO& io = ImGui::GetIO();
-
     ImVec2 offset = nodes_imgui_window_pos_ + scroll_;
     ImRect canvas(nodes_imgui_window_pos_, nodes_imgui_window_pos_ + nodes_imgui_window_size_);
     ImGuiNodesNode* hovered_node = NULL;
@@ -341,7 +339,7 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
             CLEAR_FLAG(node->state_, ImGuiNodesNodeStateFlag_MarkedForSelection);
         }
 
-        for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+        for (size_t input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
         {
             ImGuiNodesInput& input = node->inputs_[input_idx];
 
@@ -388,7 +386,7 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
             }				
         }
 
-        for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+        for (size_t output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
         {
             ImGuiNodesOutput& output = node->outputs_[output_idx];
 
@@ -544,13 +542,13 @@ void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2
     
     ImVec2 inputs_size;
     ImVec2 outputs_size;
-    for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+    for (size_t input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
     {
         const ImGuiNodesInput& input = node->inputs_[input_idx];
         inputs_size.x = ImMax(inputs_size.x, input.area_input_.GetWidth());
         inputs_size.y += input.area_input_.GetHeight();
     }
-    for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+    for (size_t output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
     {
         const ImGuiNodesOutput& output = node->outputs_[output_idx];
         outputs_size.x = ImMax(outputs_size.x, output.area_output_.GetWidth());
@@ -564,10 +562,10 @@ void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color, ImVec2
     nodes_.push_back(node);
     nodes_by_uid_[node->uid_] = node;
     
-    for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+    for (size_t input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
         inputs_by_uid_[node->inputs_[input_idx].uid_] = &node->inputs_[input_idx];
     
-    for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+    for (size_t output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
         outputs_by_uid_[node->outputs_[output_idx].uid_] = {&node->outputs_[output_idx], node};
 }
 
@@ -597,10 +595,10 @@ bool ImGuiNodes::SortSelectedNodesOrder()
             nodes_unselected.push_back(node);
             
         // Always check for selected connectors, regardless of node selection state
-        for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+        for (size_t input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
             if (IS_SET(node->inputs_[input_idx].state_, ImGuiNodesConnectorStateFlag_Selected))
                 selected_ids.push_back(node->inputs_[input_idx].uid_);
-        for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+        for (size_t output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
             if (IS_SET(node->outputs_[output_idx].state_, ImGuiNodesConnectorStateFlag_Selected))
                 selected_ids.push_back(node->outputs_[output_idx].uid_);
     }
@@ -731,7 +729,7 @@ void ImGuiNodes::ProcessInteractions()
         active_input_ = NULL;
         active_output_ = NULL;
 
-        for (int input_idx = 0; input_idx < hovered_node->inputs_.size(); ++input_idx)
+        for (size_t input_idx = 0; input_idx < hovered_node->inputs_.size(); ++input_idx)
         {
             if (IS_SET(hovered_node->inputs_[input_idx].state_, ImGuiNodesConnectorStateFlag_Hovered))
             {
@@ -741,7 +739,7 @@ void ImGuiNodes::ProcessInteractions()
             }
         }						
         
-        for (int output_idx = 0; output_idx < hovered_node->outputs_.size(); ++output_idx)
+        for (size_t output_idx = 0; output_idx < hovered_node->outputs_.size(); ++output_idx)
         {
             if (IS_SET(hovered_node->outputs_[output_idx].state_, ImGuiNodesConnectorStateFlag_Hovered))
             {
@@ -801,7 +799,7 @@ void ImGuiNodes::ProcessInteractions()
     
         if (hovered_node)
         {
-            for (int output_idx = 0; output_idx < hovered_node->outputs_.size(); ++output_idx)
+            for (size_t output_idx = 0; output_idx < hovered_node->outputs_.size(); ++output_idx)
             {
                 ImGuiNodesConnectorState state = hovered_node->outputs_[output_idx].state_;
                 if (HAS_ALL_FLAGS(state, ImGuiNodesConnectorStateFlag_Hovered | ImGuiNodesConnectorStateFlag_ConsideredAsDropTarget))
@@ -816,7 +814,7 @@ void ImGuiNodes::ProcessInteractions()
     
         if (hovered_node)
         {
-            for (int input_idx = 0; input_idx < hovered_node->inputs_.size(); ++input_idx)
+            for (size_t input_idx = 0; input_idx < hovered_node->inputs_.size(); ++input_idx)
             {
                 ImGuiNodesConnectorState state = hovered_node->inputs_[input_idx].state_;
 
@@ -1268,14 +1266,14 @@ void ImGuiNodes::DeleteNodes(const std::vector<ImGuiNodesNode*>& nodes_to_delete
     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
     {
         ImGuiNodesNode* node = nodes_[node_idx];
-        for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+        for (size_t input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
         {
             ImGuiNodesInput& input = node->inputs_[input_idx];
             if (IS_SET(input.state_, ImGuiNodesConnectorStateFlag_Selected))
                 RemoveConnection(input.uid_);
             CLEAR_FLAG(input.state_, ImGuiNodesConnectorStateFlag_Selected);
         }
-        for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+        for (size_t output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
             CLEAR_FLAG(node->outputs_[output_idx].state_, ImGuiNodesConnectorStateFlag_Selected);
     }
 
@@ -1309,7 +1307,7 @@ void ImGuiNodes::DeleteNodes(const std::vector<ImGuiNodesNode*>& nodes_to_delete
                 ImGuiNodesNode* sweep = nodes_[sweep_idx];
                 IM_ASSERT(sweep);
             
-                for (int input_idx = 0; input_idx < sweep->inputs_.size(); ++input_idx)
+                for (size_t input_idx = 0; input_idx < sweep->inputs_.size(); ++input_idx)
                 {
                     ImGuiNodesInput& input = sweep->inputs_[input_idx];
 
@@ -1318,23 +1316,20 @@ void ImGuiNodes::DeleteNodes(const std::vector<ImGuiNodesNode*>& nodes_to_delete
                 }
             }
 
-            for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+            for (size_t input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
             {
                 ImGuiNodesInput& input = node->inputs_[input_idx];
                 RemoveConnection(input.uid_);
                 input.name_.clear();
             }
 
-            for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
-            {
-                ImGuiNodesOutput& output = node->outputs_[output_idx];
-                IM_ASSERT(output.connections_count_ == 0);
-            }
+            for (size_t output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+                IM_ASSERT(node->outputs_[output_idx].connections_count_ == 0);
 
             nodes_by_uid_.erase(node->uid_);
-            for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+            for (size_t input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
                 inputs_by_uid_.erase(node->inputs_[input_idx].uid_);
-            for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+            for (size_t output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
                 outputs_by_uid_.erase(node->outputs_[output_idx].uid_);
 
             delete node;
@@ -1390,7 +1385,7 @@ void ImGuiNodes::ProcessNodes()
         const ImGuiNodesNode* node = nodes_[node_idx];
         IM_ASSERT(node);
 
-        for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+        for (size_t input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
         {		
             const ImGuiNodesInput& input = node->inputs_[input_idx];
             
@@ -1726,10 +1721,10 @@ void ImGuiNodesNode::TranslateNode(ImVec2 delta, bool selected_only)
     area_active_button_.Translate(delta);
     area_trash_button_.Translate(delta);
 
-    for (int input_idx = 0; input_idx < inputs_.size(); ++input_idx)
+    for (size_t input_idx = 0; input_idx < inputs_.size(); ++input_idx)
         inputs_[input_idx].TranslateInput(delta);
 
-    for (int output_idx = 0; output_idx < outputs_.size(); ++output_idx)
+    for (size_t output_idx = 0; output_idx < outputs_.size(); ++output_idx)
         outputs_[output_idx].TranslateOutput(delta);
 }
 
@@ -1773,7 +1768,7 @@ void ImGuiNodesNode::BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size)
 
     ImVec2 inputs = area_node_.GetTL();
     inputs.y += title_height_ + (ImGuiNodesVSeparation * area_name_.GetHeight() * 0.5f);
-    for (int input_idx = 0; input_idx < inputs_.size(); ++input_idx)
+    for (size_t input_idx = 0; input_idx < inputs_.size(); ++input_idx)
     {
         inputs_[input_idx].TranslateInput(inputs - inputs_[input_idx].area_input_.GetTL());
         inputs.y += inputs_[input_idx].area_input_.GetHeight();
@@ -1781,7 +1776,7 @@ void ImGuiNodesNode::BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size)
 
     ImVec2 outputs = area_node_.GetTR();
     outputs.y += title_height_ + (ImGuiNodesVSeparation * area_name_.GetHeight() * 0.5f);
-    for (int output_idx = 0; output_idx < outputs_.size(); ++output_idx)
+    for (size_t output_idx = 0; output_idx < outputs_.size(); ++output_idx)
     {
         outputs_[output_idx].TranslateOutput(outputs - outputs_[output_idx].area_output_.GetTR());
         outputs.y += outputs_[output_idx].area_output_.GetHeight();
@@ -1815,8 +1810,6 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
     }
 
     const ImVec2 outline(3.0f * scale, 3.0f * scale);
-
-    const ImDrawFlags rounding_corners_flags = ImDrawFlags_RoundCornersAll;
 
     if (IS_SET(state_, ImGuiNodesNodeStateFlag_Disabled))
     {
@@ -1860,10 +1853,10 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
 
     if (!IS_SET(state_, ImGuiNodesNodeStateFlag_Collapsed))
     {
-        for (int input_idx = 0; input_idx < inputs_.size(); ++input_idx)
+        for (size_t input_idx = 0; input_idx < inputs_.size(); ++input_idx)
             inputs_[input_idx].Render(draw_list, offset, scale, state);
 
-        for (int output_idx = 0; output_idx < outputs_.size(); ++output_idx)
+        for (size_t output_idx = 0; output_idx < outputs_.size(); ++output_idx)
             outputs_[output_idx].Render(draw_list, offset, scale, state);
     }
 
@@ -2101,10 +2094,10 @@ void ImGuiNodes::ClearAllConnectorSelections()
     {
         ImGuiNodesNode* node = nodes_[node_idx];
         
-        for (int input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+        for (size_t input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
             CLEAR_FLAG(node->inputs_[input_idx].state_, ImGuiNodesConnectorStateFlag_Selected);
             
-        for (int output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+        for (size_t output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
             CLEAR_FLAG(node->outputs_[output_idx].state_, ImGuiNodesConnectorStateFlag_Selected);
     }
 }
@@ -2182,7 +2175,7 @@ void ImGuiNodes::EndBatchAdd()
         float first_child_center_y = 0.0f;
         float last_child_center_y = 0.0f;
         
-        for (int i = 0; i < children.size(); ++i)
+        for (size_t i = 0; i < children.size(); ++i)
         {
             ImGuiNodesNode* child = children[i];
             child_y = self(self, child, x + horizontal_spacing, child_y);

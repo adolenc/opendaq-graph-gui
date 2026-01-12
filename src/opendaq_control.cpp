@@ -23,7 +23,7 @@ static void* PropertiesWindowSettingsHandler_ReadOpen(ImGuiContext*, ImGuiSettin
     return (void*)name;
 }
 
-static void PropertiesWindowSettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* entry, const char* line)
+static void PropertiesWindowSettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* /*entry*/, const char* line)
 {
     OpenDAQNodeEditor* editor = (OpenDAQNodeEditor*)handler->UserData;
     editor->properties_window_.LoadSettings(line);
@@ -42,7 +42,7 @@ static void* SignalsWindowSettingsHandler_ReadOpen(ImGuiContext*, ImGuiSettingsH
     return (void*)name;
 }
 
-static void SignalsWindowSettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* entry, const char* line)
+static void SignalsWindowSettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* /*entry*/, const char* line)
 {
     OpenDAQNodeEditor* editor = (OpenDAQNodeEditor*)handler->UserData;
     editor->signals_window_.LoadSettings(line);
@@ -61,7 +61,7 @@ static void* NodeEditorSettingsHandler_ReadOpen(ImGuiContext*, ImGuiSettingsHand
     return (void*)name;
 }
 
-static void NodeEditorSettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* entry, const char* line)
+static void NodeEditorSettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* /*entry*/, const char* line)
 {
     OpenDAQNodeEditor* editor = (OpenDAQNodeEditor*)handler->UserData;
     editor->nodes_.LoadSettings(line);
@@ -480,8 +480,8 @@ void OpenDAQNodeEditor::OnOutputHover(const ImGui::ImGuiNodesUid& id)
 
             if (signal_preview.signal_type_ == SignalType::DomainAndValue)
             {
-                ImPlot::SetNextFillStyle(plot_color, 0.3);
-                ImPlot::PlotShaded("Uncertain Data", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_min_.data(), signal_preview.plot_values_max_.data(), (int)signal_preview.points_in_plot_buffer_, 0, signal_preview.pos_in_plot_buffer_);
+                ImPlot::SetNextFillStyle(plot_color, 0.3f);
+                ImPlot::PlotShaded("Uncertain Data", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_min_.data(), signal_preview.plot_values_max_.data(), (int)signal_preview.points_in_plot_buffer_, 0, (int)signal_preview.pos_in_plot_buffer_);
             }
             else
             {
@@ -491,7 +491,7 @@ void OpenDAQNodeEditor::OnOutputHover(const ImGui::ImGuiNodesUid& id)
                 ImPlot::SetupAxisTicks(ImAxis_Y1, dummy_ticks, 1, dummy_labels, false);
             }
             ImPlot::SetNextLineStyle(plot_color);
-            ImPlot::PlotLine("", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_avg_.data(), (int)signal_preview.points_in_plot_buffer_, 0, signal_preview.pos_in_plot_buffer_);
+            ImPlot::PlotLine("", signal_preview.plot_times_seconds_.data(), signal_preview.plot_values_avg_.data(), (int)signal_preview.points_in_plot_buffer_, 0, (int)signal_preview.pos_in_plot_buffer_);
             ImPlot::EndPlot();
         }
         ImGui::EndTooltip();
@@ -868,7 +868,7 @@ void OpenDAQNodeEditor::BuildPopupParentCandidates(const std::string& parent_gui
       BuildPopupParentCandidates(child.id_, depth, parent_color_index);
 }
 
-void OpenDAQNodeEditor::RenderPopupMenu(ImGui::ImGuiNodes* nodes, ImVec2 position)
+void OpenDAQNodeEditor::RenderPopupMenu(ImGui::ImGuiNodes* /*nodes*/, ImVec2 position)
 {
     ImGui::SeparatorText("Add a nested component");
 
@@ -1082,7 +1082,7 @@ void OpenDAQNodeEditor::ShowStartupPopup()
             "Holding ctrl while clicking will add components to the current selection.",
             "Left-click and drag the mouse cursor in Nodes window to create a box selection of multiple components.",
         };
-        srand(time(nullptr));
+        srand((unsigned int)time(nullptr));
         current_hint_index = rand() % hints.size();
 
         if (!is_device_discovery_initialized_)
@@ -1234,9 +1234,8 @@ void OpenDAQNodeEditor::OnSignalActiveToggle(const ImGui::ImGuiNodesUid& uid)
     }
 }
 
-void OpenDAQNodeEditor::OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, std::optional<ImVec2> position)
+void OpenDAQNodeEditor::OnInputDropped(const ImGui::ImGuiNodesUid& input_uid, std::optional<ImVec2> /*position*/)
 {
-    (void)position; // currently unused
     if (auto it = input_ports_.find(input_uid); it != input_ports_.end())
         dragged_input_port_component_ = it->second->component_;
     else

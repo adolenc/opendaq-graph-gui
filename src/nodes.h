@@ -94,8 +94,8 @@ struct ImGuiNodesCallbacks
 
 struct ImGuiNodesIdentifier
 {
-    ImGuiNodesUid id_;
     std::string name_;
+    ImGuiNodesUid id_;
 
     ImGuiNodesIdentifier(const std::string& name, ImGuiNodesUid id) : name_(name), id_(id) { }
     ImGuiNodesIdentifier(const std::string& name) : ImGuiNodesIdentifier(name, std::to_string(id_counter_++)) { }

@@ -61,7 +61,7 @@ void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr 
         
         if (selection_values.assigned())
         {
-            for (int i = 0; i < selection_values.getCount(); i++)
+            for (size_t i = 0; i < selection_values.getCount(); i++)
             {
                 auto val = selection_values.getItemAt(i);
                 if (val.supportsInterface<daq::IInteger>())
@@ -72,7 +72,7 @@ void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr 
                     values << static_cast<std::string>(val) << '\0';
             }
             cached.selection_values_ = values.str();
-            cached.selection_values_count_ = selection_values.getCount();
+            cached.selection_values_count_ = (int)selection_values.getCount();
         }
     }
 
@@ -113,7 +113,7 @@ void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr 
                     auto struct_value = property_holder.getPropertyValue(cached.name_).asPtr<daq::IStruct>();
                     auto field_names = struct_value.getFieldNames();
                     auto field_values = struct_value.getFieldValues();
-                    for (int i = 0; i < field_names.getCount(); i++)
+                    for (size_t i = 0; i < field_names.getCount(); i++)
                     {
                         CachedProperty struct_field;
                         struct_field.owner_ = this;
@@ -191,7 +191,7 @@ void CachedComponent::AddDescriptorProperties(daq::DataDescriptorPtr descriptor,
             try
             {
                 std::string text = "{";
-                for (int i = 0; i < dimensions.getCount(); i++)
+                for (size_t i = 0; i < dimensions.getCount(); i++)
                 {
                     if (i > 0) text += ", ";
 
@@ -272,7 +272,7 @@ void CachedComponent::AddDescriptorProperties(daq::DataDescriptorPtr descriptor,
             if (auto fields = descriptor.getStructFields(); fields.assigned())
             {
                 std::string text = "[";
-                for (int i = 0; i < fields.getCount(); i++)
+                for (size_t i = 0; i < fields.getCount(); i++)
                 {
                     if (i > 0) text += ", ";
                     text += static_cast<std::string>(fields.getItemAt(i).asPtr<daq::IBaseObject>().toString());
@@ -372,7 +372,7 @@ void CachedComponent::RefreshProperties()
                     cached.value_ = (int64_t)i;
             }
             cached.selection_values_ = modes_str.str();
-            cached.selection_values_count_ = available_modes.getCount();
+            cached.selection_values_count_ = (int)available_modes.getCount();
         }
 
         AddAttribute(attributes_, "@Locked", "Locked", is_locked_, false, false, daq::ctBool);
@@ -388,7 +388,7 @@ void CachedComponent::RefreshProperties()
     if (canCastTo<daq::IRecorder>(component_))
     {
         daq::RecorderPtr recorder = castTo<daq::IRecorder>(component_);
-        auto& cached = AddAttribute(attributes_, "@Recording", "Recording", (bool)recorder.getIsRecording(), false, false, daq::ctBool);
+        AddAttribute(attributes_, "@Recording", "Recording", (bool)recorder.getIsRecording(), false, false, daq::ctBool);
     }
 
     if (signal_color_.has_value())
@@ -398,7 +398,7 @@ void CachedComponent::RefreshProperties()
         daq::ListPtr<daq::IString> tags = component_.getTags().getList();
         std::stringstream tags_value;
         tags_value << "[";
-        for (int i = 0; i < tags.getCount(); i++)
+        for (size_t i = 0; i < tags.getCount(); i++)
         {
             if (i != 0)
                 tags_value << ", ";

@@ -286,20 +286,20 @@ void SignalsWindow::Render()
                     if (std::holds_alternative<std::vector<double>>(axis.values_))
                     {
                         const auto& x_values = std::get<std::vector<double>>(axis.values_);
-                        ImPlot::PlotLine(label.c_str(), x_values.data(), signal.live.plot_values_avg_.data(), std::min(x_values.size(), signal.live.plot_values_avg_.size()));
+                        ImPlot::PlotLine(label.c_str(), x_values.data(), signal.live.plot_values_avg_.data(), (int)std::min(x_values.size(), signal.live.plot_values_avg_.size()));
                     }
                     else
                     {
-                        ImPlot::PlotLine(label.c_str(), signal.live.plot_values_avg_.data(), signal.live.plot_values_avg_.size());
+                        ImPlot::PlotLine(label.c_str(), signal.live.plot_values_avg_.data(), (int)signal.live.plot_values_avg_.size());
                     }
                 }
                 else
                 {
                     OpenDAQSignal& to_plot = is_paused_ ? signal.paused : signal.live;
                     ImPlot::SetNextLineStyle(signal.color);
-                    ImPlot::PlotLine(label.c_str(), to_plot.plot_times_seconds_.data(), to_plot.plot_values_avg_.data(), (int)to_plot.points_in_plot_buffer_, 0, to_plot.pos_in_plot_buffer_);
+                    ImPlot::PlotLine(label.c_str(), to_plot.plot_times_seconds_.data(), to_plot.plot_values_avg_.data(), (int)to_plot.points_in_plot_buffer_, ImPlotLineFlags_None, (int)to_plot.pos_in_plot_buffer_);
                     ImPlot::SetNextFillStyle(signal.color, 0.25f);
-                    ImPlot::PlotShaded(label.c_str(), to_plot.plot_times_seconds_.data(), to_plot.plot_values_min_.data(), to_plot.plot_values_max_.data(), (int)to_plot.points_in_plot_buffer_, (ImPlotShadedFlags)ImPlotItemFlags_NoLegend, to_plot.pos_in_plot_buffer_);
+                    ImPlot::PlotShaded(label.c_str(), to_plot.plot_times_seconds_.data(), to_plot.plot_values_min_.data(), to_plot.plot_values_max_.data(), (int)to_plot.points_in_plot_buffer_, (ImPlotShadedFlags)ImPlotItemFlags_NoLegend, (int)to_plot.pos_in_plot_buffer_);
                 }
 
                 if (ImPlot::BeginDragDropSourceItem(label.c_str()))

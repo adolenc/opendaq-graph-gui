@@ -98,13 +98,12 @@ void OpenDAQSignal::RebuildIfInvalid(daq::SignalPtr signal, float seconds_shown,
     float samples_per_second = 1;
     try
     {
-        samples_per_second = std::max<daq::Int>(
-            1,
-            daq::reader::getSampleRate(signal.getDomainSignal().assigned() ? signal.getDomainSignal().getDescriptor() : signal.getDescriptor()));
+        daq::Int rate = (daq::Int)daq::reader::getSampleRate(signal.getDomainSignal().assigned() ? signal.getDomainSignal().getDescriptor() : signal.getDescriptor());
+        samples_per_second = (float)std::max<daq::Int>(1, rate);
     } catch (...)
     {
     }
-    samples_per_plot_sample_ = std::max<int>(1, std::ceil(samples_per_second * seconds_shown / (float)max_points));
+    samples_per_plot_sample_ = std::max<int>(1, (int)std::ceil((double)samples_per_second * seconds_shown / (float)max_points));
 
     if (auto value_range = signal.getDescriptor().getValueRange(); value_range.assigned())
     {
@@ -233,7 +232,7 @@ void OpenDAQSignal::ReadDomainAndValue()
             plot_values_avg_[pos_in_plot_buffer_] = 0;
             plot_values_min_[pos_in_plot_buffer_] = 1e30;
             plot_values_max_[pos_in_plot_buffer_] = -1e30;
-            for (size_t j = 0; j < samples_per_plot_sample_; ++j, ++read_pos)
+            for (size_t j = 0; j < (size_t)samples_per_plot_sample_; ++j, ++read_pos)
             {
                 plot_values_avg_[pos_in_plot_buffer_] += read_values[read_pos];
                 plot_values_min_[pos_in_plot_buffer_] = std::min(read_values[read_pos], plot_values_min_[pos_in_plot_buffer_]);
@@ -244,7 +243,7 @@ void OpenDAQSignal::ReadDomainAndValue()
             pos_in_plot_buffer_ += 1; if (pos_in_plot_buffer_ >= plot_values_avg_.size()) pos_in_plot_buffer_ = 0;
             points_in_plot_buffer_ = std::min(points_in_plot_buffer_ + 1, plot_values_avg_.size());
         }
-        int new_leftover_samples = read_count - read_samples_evaluated;
+        int new_leftover_samples = (int)read_count - (int)read_samples_evaluated;
         for (int j = 0; j < new_leftover_samples; ++j, ++read_pos)
         {
             if (signal_type_ == SignalType::DomainAndValue)

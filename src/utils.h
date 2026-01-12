@@ -82,7 +82,7 @@ inline std::string ValueToString(daq::BaseObjectPtr value)
             {
                 result += "{";
                 auto keys = params.getKeyList();
-                for (int i = 0; i < keys.getCount(); i++)
+                for (size_t i = 0; i < keys.getCount(); i++)
                 {
                     if (i > 0) result += ", ";
                     auto key = keys.getItemAt(i);
@@ -101,7 +101,7 @@ inline std::string ValueToString(daq::BaseObjectPtr value)
             auto dict = value.asPtr<daq::IDict>();
             std::string result = "{";
             auto keys = dict.getKeyList();
-            for (int i = 0; i < keys.getCount(); i++)
+            for (size_t i = 0; i < keys.getCount(); i++)
             {
                 if (i > 0) result += ", ";
                 auto key = keys.getItemAt(i);
@@ -116,7 +116,7 @@ inline std::string ValueToString(daq::BaseObjectPtr value)
             auto prop_obj = value.asPtr<daq::IPropertyObject>();
             std::string result = "{";
             auto props = prop_obj.getVisibleProperties();
-            for (int i = 0; i < props.getCount(); i++)
+            for (size_t i = 0; i < props.getCount(); i++)
             {
                 if (i > 0) result += ", ";
                 auto prop = props.getItemAt(i);
@@ -158,7 +158,7 @@ inline std::string DictToString(daq::DictPtr<daq::IString, daq::IBaseObject> dic
     {
         std::string result = "{";
         auto keys = dict.getKeyList();
-        for (int i = 0; i < keys.getCount(); i++)
+        for (size_t i = 0; i < keys.getCount(); i++)
         {
             if (i > 0) result += ", ";
             auto key = keys.getItemAt(i);

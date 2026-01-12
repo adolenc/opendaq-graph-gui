@@ -6,7 +6,7 @@
 #include <string>
 
 
-void TreeViewWindow::OnSelectionChanged(const std::vector<std::string>& selected_ids, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
+void TreeViewWindow::OnSelectionChanged(const std::vector<std::string>& selected_ids, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& /*all_components*/)
 {
     selected_component_guids_.clear();
     for (const auto& id : selected_ids)
