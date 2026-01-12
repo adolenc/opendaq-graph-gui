@@ -80,7 +80,7 @@ public:
     };
     std::vector<PopupParentCandidate> popup_parent_candidates_;
 
-    ImGui::ImGuiNodes* nodes_ = nullptr;
+    ImGui::ImGuiNodes nodes_;
 
     PropertiesWindow properties_window_;
     SignalsWindow signals_window_;

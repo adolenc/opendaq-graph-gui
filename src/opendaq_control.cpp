@@ -64,14 +64,14 @@ static void* NodeEditorSettingsHandler_ReadOpen(ImGuiContext*, ImGuiSettingsHand
 static void NodeEditorSettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* entry, const char* line)
 {
     OpenDAQNodeEditor* editor = (OpenDAQNodeEditor*)handler->UserData;
-    editor->nodes_->LoadSettings(line);
+    editor->nodes_.LoadSettings(line);
 }
 
 static void NodeEditorSettingsHandler_WriteAll(ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buf)
 {
     OpenDAQNodeEditor* editor = (OpenDAQNodeEditor*)handler->UserData;
     buf->appendf("[%s][Settings]\n", handler->TypeName);
-    editor->nodes_->SaveSettings(buf);
+    editor->nodes_.SaveSettings(buf);
     buf->append("\n");
 }
 
@@ -113,18 +113,31 @@ void OpenDAQNodeEditor::Init()
         event_id_queue_.push_back({comp, args});
     };
 
+    nodes_.callbacks.on_output_hover = [this](const ImGui::ImGuiNodesUid& id) { OnOutputHover(id); };
+    nodes_.callbacks.on_input_hover = [this](const ImGui::ImGuiNodesUid& id) { OnInputHover(id); };
+    nodes_.callbacks.on_selection_changed = [this](const std::vector<ImGui::ImGuiNodesUid>& ids) { OnSelectionChanged(ids); };
+    nodes_.callbacks.on_connection_created = [this](const ImGui::ImGuiNodesUid& out_id, const ImGui::ImGuiNodesUid& in_id) { OnConnectionCreated(out_id, in_id); };
+    nodes_.callbacks.on_connection_removed = [this](const ImGui::ImGuiNodesUid& id) { OnConnectionRemoved(id); };
+    nodes_.callbacks.render_popup_menu = [this](ImGui::ImGuiNodes* nodes, ImVec2 pos) { RenderPopupMenu(nodes, pos); };
+    nodes_.callbacks.on_add_button_click = [this](const ImGui::ImGuiNodesUid& id, std::optional<ImVec2> pos) { OnAddButtonClick(id, pos); };
+    nodes_.callbacks.on_node_active_toggle = [this](const ImGui::ImGuiNodesUid& id) { OnNodeActiveToggle(id); };
+    nodes_.callbacks.on_node_delete = [this](const std::vector<ImGui::ImGuiNodesUid>& ids) { OnNodeDelete(ids); };
+    nodes_.callbacks.on_signal_active_toggle = [this](const ImGui::ImGuiNodesUid& id) { OnSignalActiveToggle(id); };
+    nodes_.callbacks.on_input_dropped = [this](const ImGui::ImGuiNodesUid& id, std::optional<ImVec2> pos) { OnInputDropped(id, pos); };
+    nodes_.callbacks.on_empty_space_click = [this](ImVec2 pos) { OnEmptySpaceClick(pos); };
+
     tree_view_window_.on_selection_changed_callback_ =
         [this](const std::vector<std::string>& selected_ids)
         {
-            nodes_->SetSelectedNodes(selected_ids);
+            nodes_.SetSelectedNodes(selected_ids);
             OnSelectionChanged(selected_ids);
         };
 
     tree_view_window_.on_node_double_clicked_callback_ =
         [this](const std::string& node_id)
         {
-            nodes_->SetSelectedNodes({node_id});
-            nodes_->MoveSelectedNodesIntoView();
+            nodes_.SetSelectedNodes({node_id});
+            nodes_.MoveSelectedNodesIntoView();
         };
 
     signals_window_.on_clone_click_ =
@@ -145,8 +158,8 @@ void OpenDAQNodeEditor::Init()
     properties_window_.on_reselect_click_ =
         [this](const std::vector<std::string>& ids)
         {
-            nodes_->SetSelectedNodes(ids);
-            nodes_->MoveSelectedNodesIntoView();
+            nodes_.SetSelectedNodes(ids);
+            nodes_.MoveSelectedNodesIntoView();
             OnSelectionChanged(ids);
         };
 
@@ -172,7 +185,7 @@ void OpenDAQNodeEditor::Init()
                         {
                             daq::SignalPtr signal = input_port.getSignal();
                             if (signal.assigned() && signal.getGlobalId().toStdString() == component_id)
-                                nodes_->SetConnectionColor(input_id, color);
+                                nodes_.SetConnectionColor(input_id, color);
                         }
                     }
                 }
@@ -195,7 +208,7 @@ void OpenDAQNodeEditor::UpdateSignalsActiveState(CachedComponent* cached)
             if (it->second->component_.assigned())
             {
                 bool active = it->second->component_.getActive();
-                nodes_->SetActive(signal_id, active);
+                nodes_.SetActive(signal_id, active);
             }
         }
     }
@@ -285,22 +298,22 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
         else if (!parent_id.empty())
             cached->color_index_ = folders_[parent_id]->color_index_;
 
-        nodes_->AddNode({component.getName().toStdString(), component_id}, 
+        nodes_.AddNode({component.getName().toStdString(), component_id}, 
                         GetNodeColor(cached->color_index_),
                         cached->input_ports_,
                         cached->output_signals_,
                         parent_id);
 
         if (!component.getActive())
-            nodes_->SetActive(component_id, false);
+            nodes_.SetActive(component_id, false);
 
         UpdateSignalsActiveState(cached);
 
         cached->RefreshStatus();
         if (!cached->error_message_.empty())
-            nodes_->SetError(component_id, cached->error_message_);
+            nodes_.SetError(component_id, cached->error_message_);
         else if (!cached->warning_message_.empty())
-            nodes_->SetWarning(component_id, cached->warning_message_);
+            nodes_.SetWarning(component_id, cached->warning_message_);
 
         new_parent_id = component_id;
         folders_[component_id] = cached;
@@ -332,14 +345,14 @@ void OpenDAQNodeEditor::RetrieveConnections()
         {
             daq::SignalPtr connected_signal = input_port.getSignal();
             std::string signal_uid = connected_signal.getGlobalId().toStdString();
-            nodes_->AddConnection(signal_uid, input_uid, GetSignalColor(signal_uid));
+            nodes_.AddConnection(signal_uid, input_uid, GetSignalColor(signal_uid));
         }
     }
 }
 
 void OpenDAQNodeEditor::RebuildNodeConnections(const std::string& node_id)
 {
-    nodes_->ClearNodeConnections(node_id);
+    nodes_.ClearNodeConnections(node_id);
 
     if (auto it = folders_.find(node_id); it != folders_.end())
     {
@@ -354,7 +367,7 @@ void OpenDAQNodeEditor::RebuildNodeConnections(const std::string& node_id)
                 {
                     daq::SignalPtr signal = input_port.getSignal();
                     std::string signal_id = signal.getGlobalId().toStdString();
-                    nodes_->AddConnection(signal_id, input_id, GetSignalColor(signal_id));
+                    nodes_.AddConnection(signal_id, input_id, GetSignalColor(signal_id));
                 }
             }
         }
@@ -363,16 +376,16 @@ void OpenDAQNodeEditor::RebuildNodeConnections(const std::string& node_id)
 
 void OpenDAQNodeEditor::RebuildStructure()
 {
-    nodes_->Clear();
+    nodes_.Clear();
     all_components_.clear();
     folders_.clear();
     input_ports_.clear();
     signals_.clear();
     next_color_index_ = 1;
 
-    nodes_->BeginBatchAdd();
+    nodes_.BeginBatchAdd();
     RetrieveTopology(instance_);
-    nodes_->EndBatchAdd();
+    nodes_.EndBatchAdd();
     RetrieveConnections();
 
     properties_window_.RestoreSelection(all_components_);
@@ -393,7 +406,7 @@ void OpenDAQNodeEditor::SetNodeActiveRecursively(const std::string& node_id)
             return;
 
         cached->is_active_ = cached->component_.getActive();
-        nodes_->SetActive(node_id, cached->is_active_);
+        nodes_.SetActive(node_id, cached->is_active_);
 
         UpdateSignalsActiveState(cached);
 
@@ -637,7 +650,7 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
 
                             if (position.has_value())
                             {
-                                nodes_->AddNode({fb.getName().toStdString(), fb_id_str},
+                                nodes_.AddNode({fb.getName().toStdString(), fb_id_str},
                                                 GetNodeColor(fb_cached->color_index_),
                                                 position.value(),
                                                 fb_cached->input_ports_,
@@ -646,7 +659,7 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
                             }
                             else
                             {
-                                nodes_->AddNode({fb.getName().toStdString(), fb_id_str},
+                                nodes_.AddNode({fb.getName().toStdString(), fb_id_str},
                                                 GetNodeColor(fb_cached->color_index_),
                                                 fb_cached->input_ports_,
                                                 fb_cached->output_signals_,
@@ -654,7 +667,7 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
                             }
 
                             if (!fb.getActive())
-                                nodes_->SetActive(fb_id_str, false);
+                                nodes_.SetActive(fb_id_str, false);
 
                             UpdateSignalsActiveState(fb_cached.get());
 
@@ -759,7 +772,7 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
 
                 if (position.has_value())
                 {
-                    nodes_->AddNode({dev.getName().toString(), dev_id},
+                    nodes_.AddNode({dev.getName().toString(), dev_id},
                                     GetNodeColor(dev_cached->color_index_),
                                     position.value(),
                                     dev_cached->input_ports_,
@@ -768,7 +781,7 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
                 }
                 else
                 {
-                    nodes_->AddNode({dev.getName().toString(), dev_id},
+                    nodes_.AddNode({dev.getName().toString(), dev_id},
                                     GetNodeColor(dev_cached->color_index_),
                                     dev_cached->input_ports_,
                                     dev_cached->output_signals_,
@@ -776,7 +789,7 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
                 }
 
                 if (!dev.getActive())
-                    nodes_->SetActive(dev_id, false);
+                    nodes_.SetActive(dev_id, false);
 
                 UpdateSignalsActiveState(dev_cached.get());
 
@@ -962,7 +975,7 @@ void OpenDAQNodeEditor::RenderNestedNodePopup()
                 popup_selected_parent_guid_ = instance_.getGlobalId().toStdString();
         }
         
-        RenderPopupMenu(nodes_, add_button_drop_position_ ? add_button_drop_position_.value() : ImGui::GetMousePos());
+        RenderPopupMenu(&nodes_, add_button_drop_position_ ? add_button_drop_position_.value() : ImGui::GetMousePos());
         ImGui::EndPopup();
         was_context_menu_open = true;
         was_nested_menu_open = false;
@@ -1254,16 +1267,16 @@ void OpenDAQNodeEditor::Render()
                     cached->RefreshStatus();
                     if (!cached->error_message_.empty())
                     {
-                        nodes_->SetError(component_id, cached->error_message_);
+                        nodes_.SetError(component_id, cached->error_message_);
                         ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "'%s' error: %s", comp.getName().toStdString().c_str(), cached->error_message_.c_str()});
                     }
                     else if (!cached->warning_message_.empty())
                     {
-                        nodes_->SetWarning(component_id, cached->warning_message_);
+                        nodes_.SetWarning(component_id, cached->warning_message_);
                         ImGui::InsertNotification({ImGuiToastType::Warning, DEFAULT_NOTIFICATION_DURATION_MS, "'%s' warning: %s", comp.getName().toStdString().c_str(), cached->warning_message_.c_str()});
                     }
                     else
-                        nodes_->SetOk(component_id);
+                        nodes_.SetOk(component_id);
 
                     break;
                 }
@@ -1279,7 +1292,7 @@ void OpenDAQNodeEditor::Render()
                              if (signals_.find(component_id) != signals_.end())
                              {
                                  bool active = (bool)params.get("Active");
-                                 nodes_->SetActive(component_id, active);
+                                 nodes_.SetActive(component_id, active);
                              }
                              else
                              {
@@ -1378,6 +1391,13 @@ void OpenDAQNodeEditor::Render()
             ++it;
     }
     tree_view_window_.Render(all_components_[instance_.getGlobalId().toStdString()].get(), all_components_);
+
+    if (ImGui::Begin("Nodes", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+    {
+        nodes_.Update();
+        RenderNestedNodePopup();
+    }
+    ImGui::End();
 
     for (auto& [id, component] : all_components_)
     {
