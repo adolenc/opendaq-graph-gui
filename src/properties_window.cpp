@@ -693,10 +693,10 @@ void PropertiesWindow::Render()
 
     ImGui::SameLine();
 
-    if (ImGui::Button(tabbed_interface_ ? ICON_FA_TABLE_COLUMNS " " ICON_FA_TOGGLE_ON : ICON_FA_TABLE_COLUMNS " " ICON_FA_TOGGLE_OFF))
+    if (ImGui::Button(tabbed_interface_ ? ICON_FA_TABLE_COLUMNS " " ICON_FA_TOGGLE_OFF : ICON_FA_TABLE_COLUMNS " " ICON_FA_TOGGLE_ON))
         tabbed_interface_ = !tabbed_interface_;
     if (ImGui::IsItemHovered())
-        ImGui::SetTooltip(tabbed_interface_ ? "Disable tabs for multiple components" : "Use tabs for multiple components");
+        ImGui::SetTooltip(tabbed_interface_ ? "Show multiple components side by side" : "Use tabs for multiple components");
 
     ImGui::SameLine();
 
