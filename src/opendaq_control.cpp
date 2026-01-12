@@ -712,28 +712,36 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
                 ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to discover devices: Unknown error"});
                 available_devices_ = nullptr;
             }
+            last_refresh_time_ = std::chrono::steady_clock::now();
         }
     }
 
     bool is_discovering = device_discovery_future_.valid();
-
+    std::string discover_button_label = (available_devices_.assigned() && available_devices_.getCount() > 0) ? "Refresh device list" : "Discover devices";
     if (is_discovering)
     {
         ImGui::BeginDisabled();
-        ImGui::Button("Discovering devices...");
+        ImGui::Button(discover_button_label.c_str());
         ImGui::EndDisabled();
         ImGui::SameLine();
-        float progress = (float)(sin(ImGui::GetTime() * 3.0f) * 0.5f + 0.5f);
-        ImGui::ProgressBar(progress, ImVec2(0.0f, 0.0f), "");
+        ImGui::Checkbox("Auto", &auto_refresh_devices_);
+        ImGui::SameLine();
+        ImGui::ProgressBar(-1.0f * (float)ImGui::GetTime(), ImVec2(0.0f, 0.0f), "Discovering...");
     }
     else
     {
-        if (ImGui::Button(available_devices_.assigned() && available_devices_.getCount() > 0 ? "Refresh device list" : "Discover devices"))
-        {
-            device_discovery_future_ = std::async(std::launch::async, [parent_device]() {
-                return parent_device.getAvailableDevices();
-            });
-        }
+        bool run_discovery = false;
+        run_discovery |= ImGui::Button(discover_button_label.c_str());
+        ImGui::SameLine();
+        run_discovery |= (ImGui::Checkbox("Auto", &auto_refresh_devices_) && auto_refresh_devices_);
+        run_discovery |= (auto_refresh_devices_ && std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - last_refresh_time_).count() >= 1);
+
+        if (run_discovery)
+            device_discovery_future_ = std::async(std::launch::async,
+                [parent_device]()
+                {
+                    return parent_device.getAvailableDevices();
+                });
     }
 
     auto add_device = [&](const std::string& device_connection_string) -> bool

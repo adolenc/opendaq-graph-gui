@@ -11,6 +11,7 @@
 #include <memory>
 #include <future>
 #include <atomic>
+#include <chrono>
 
 
 class OpenDAQNodeEditor : public ImGui::ImGuiNodesInteractionHandler
@@ -63,6 +64,8 @@ public:
     daq::ListPtr<daq::IDeviceInfo> available_devices_;
     std::future<daq::ListPtr<daq::IDeviceInfo>> device_discovery_future_;
     bool is_device_discovery_initialized_ = false;
+    bool auto_refresh_devices_ = true;
+    std::chrono::steady_clock::time_point last_refresh_time_;
 
     bool fb_options_cache_valid_ = false;
     daq::DictPtr<daq::IString, daq::IFunctionBlockType> cached_available_fbs_;
