@@ -230,13 +230,19 @@ void SignalsWindow::Render()
             std::string x_label = "Time";
             for (const auto& id : subplot.signal_ids)
             {
-                if (signals_map_.count(id) && !signals_map_[id].live.axes_.empty())
+                if (signals_map_.count(id))
                 {
-                    is_multi_dim = true;
-                    x_label = signals_map_[id].live.axes_[0].name_;
-                    if (!signals_map_[id].live.axes_[0].unit_.empty())
-                        x_label += " [" + signals_map_[id].live.axes_[0].unit_ + "]";
-                    break;
+                    auto& signal = signals_map_[id];
+                    OpenDAQSignal& to_check = is_paused_ ? signal.paused : signal.live;
+
+                    if (!to_check.axes_.empty())
+                    {
+                        is_multi_dim = true;
+                        x_label = to_check.axes_[0].name_;
+                        if (!to_check.axes_[0].unit_.empty())
+                            x_label += " [" + to_check.axes_[0].unit_ + "]";
+                        break;
+                    }
                 }
             }
 
@@ -254,13 +260,11 @@ void SignalsWindow::Render()
                 if (signals_map_.find(id) == signals_map_.end()) continue;
                 has_signals = true;
                 auto& signal = signals_map_[id];
-                if (is_paused_)
-                    max_end_time = ImMax(max_end_time, signal.paused.end_time_seconds_);
-                else
-                    max_end_time = ImMax(max_end_time, signal.live.end_time_seconds_);
+                OpenDAQSignal& to_plot = is_paused_ ? signal.paused : signal.live;
+                max_end_time = ImMax(max_end_time, to_plot.end_time_seconds_);
 
-                sub_min = std::min(sub_min, signal.live.value_range_min_);
-                sub_max = std::max(sub_max, signal.live.value_range_max_);
+                sub_min = std::min(sub_min, to_plot.value_range_min_);
+                sub_max = std::max(sub_max, to_plot.value_range_max_);
             }
 
             if (!has_signals) { sub_min = 0; sub_max = 1; }
@@ -273,29 +277,29 @@ void SignalsWindow::Render()
             {
                 if (signals_map_.find(id) == signals_map_.end()) continue;
                 auto& signal = signals_map_[id];
+                OpenDAQSignal& to_plot = is_paused_ ? signal.paused : signal.live;
 
-                std::string label = signal.live.signal_name_;
-                if (!signal.live.signal_unit_.empty())
-                    label += " [" + signal.live.signal_unit_ + "]";
-                label += "##" + signal.live.signal_id_;
+                std::string label = to_plot.signal_name_;
+                if (!to_plot.signal_unit_.empty())
+                    label += " [" + to_plot.signal_unit_ + "]";
+                label += "##" + to_plot.signal_id_;
 
-                if (!signal.live.axes_.empty())
+                if (!to_plot.axes_.empty())
                 {
-                    auto& axis = signal.live.axes_[0];
+                    auto& axis = to_plot.axes_[0];
                     ImPlot::SetNextLineStyle(signal.color);
                     if (std::holds_alternative<std::vector<double>>(axis.values_))
                     {
                         const auto& x_values = std::get<std::vector<double>>(axis.values_);
-                        ImPlot::PlotLine(label.c_str(), x_values.data(), signal.live.plot_values_avg_.data(), (int)std::min(x_values.size(), signal.live.plot_values_avg_.size()));
+                        ImPlot::PlotLine(label.c_str(), x_values.data(), to_plot.plot_values_avg_.data(), (int)std::min(x_values.size(), to_plot.plot_values_avg_.size()));
                     }
                     else
                     {
-                        ImPlot::PlotLine(label.c_str(), signal.live.plot_values_avg_.data(), (int)signal.live.plot_values_avg_.size());
+                        ImPlot::PlotLine(label.c_str(), to_plot.plot_values_avg_.data(), (int)to_plot.plot_values_avg_.size());
                     }
                 }
                 else
                 {
-                    OpenDAQSignal& to_plot = is_paused_ ? signal.paused : signal.live;
                     ImPlot::SetNextLineStyle(signal.color);
                     ImPlot::PlotLine(label.c_str(), to_plot.plot_times_seconds_.data(), to_plot.plot_values_avg_.data(), (int)to_plot.points_in_plot_buffer_, ImPlotLineFlags_None, (int)to_plot.pos_in_plot_buffer_);
                     ImPlot::SetNextFillStyle(signal.color, 0.25f);
