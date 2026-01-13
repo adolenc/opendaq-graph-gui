@@ -868,15 +868,31 @@ void OpenDAQNodeEditor::BuildPopupParentCandidates(const std::string& parent_gui
       BuildPopupParentCandidates(child.id_, depth, parent_color_index);
 }
 
+static void CloseablePopupHeader(const std::string& label)
+{
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGui::GetStyleColorVec4(ImGuiCol_Header));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGui::GetStyleColorVec4(ImGuiCol_Header));
+    ImGui::SetNextItemOpen(true);
+    bool open = true;
+    ImGui::CollapsingHeader(label.c_str(), &open, ImGuiTreeNodeFlags_Leaf);
+    ImGui::PopStyleColor(2);
+    if (!open)
+    {
+        ImGui::CloseCurrentPopup();
+        return;
+    }
+}
+
 void OpenDAQNodeEditor::RenderPopupMenu(ImGui::ImGuiNodes* /*nodes*/, ImVec2 position)
 {
-    ImGui::SeparatorText("Add a nested component");
+    CloseablePopupHeader("Add a nested component");
 
     float total_width = 600.0f;
     float left_width = 240.0f;
     float child_height = 500.0f;
     if (ImGui::BeginChild("ParentTree", ImVec2(left_width, child_height), ImGuiChildFlags_None))
     {
+        ImGui::TextDisabled("Parent node");
         for (const auto& candidate : popup_parent_candidates_)
         {
             if (candidate.depth > 0)
@@ -995,6 +1011,7 @@ void OpenDAQNodeEditor::RenderNestedNodePopup()
         }
         else
         {
+            CloseablePopupHeader("Add a nested component");
             bool supports_fbs = canCastTo<daq::IInstance>(add_button_click_component_) || 
                                 canCastTo<daq::IDevice>(add_button_click_component_) || 
                                 canCastTo<daq::IFunctionBlock>(add_button_click_component_);
@@ -1002,15 +1019,16 @@ void OpenDAQNodeEditor::RenderNestedNodePopup()
 
             if (supports_fbs)
             {
-                ImGui::SeparatorText("Add function block");
+                ImGui::TextDisabled("Add function block");
                 RenderFunctionBlockOptions(add_button_click_component_, 
                                           add_button_click_component_.getGlobalId().toStdString(),
                                           add_button_drop_position_);
             }
-
+            if (supports_fbs && supports_devices)
+                ImGui::Separator();
             if (supports_devices)
             {
-                ImGui::SeparatorText("Connect to device");
+                ImGui::TextDisabled("Connect to device");
                 RenderDeviceOptions(add_button_click_component_, 
                                   add_button_click_component_.getGlobalId().toStdString(),
                                   add_button_drop_position_);
@@ -1031,6 +1049,7 @@ void OpenDAQNodeEditor::RenderNestedNodePopup()
 
     if (ImGui::BeginPopup("AddInputMenu", ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
     {
+        CloseablePopupHeader("Connect signal");
         if (ImSearch::BeginSearch())
         {
             ImSearch::SearchBar();
