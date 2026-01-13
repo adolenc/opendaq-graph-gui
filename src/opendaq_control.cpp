@@ -1426,16 +1426,16 @@ void OpenDAQNodeEditor::Render()
 
 ImVec4 OpenDAQNodeEditor::GetSignalColor(const std::string& signal_id)
 {
-    if (auto it = all_components_.find(signal_id); it != all_components_.end())
-    {
-        if (it->second->signal_color_.has_value())
-            return it->second->signal_color_.value();
-    }
+    // synchronize the color between cached component and global signal color map
+    auto cached_signal_component = all_components_.find(signal_id);
+    if (cached_signal_component != all_components_.end() && cached_signal_component->second->signal_color_)
+        signal_colors_[signal_id] = *cached_signal_component->second->signal_color_;
 
-    if (auto it = signal_colors_.find(signal_id); it != signal_colors_.end())
-        return it->second;
+    if (signal_colors_.count(signal_id) == 0)
+        signal_colors_[signal_id] = ImPlot::GetColormapColor(next_signal_color_index_++);
 
-    ImVec4 color = ImPlot::GetColormapColor(next_signal_color_index_++);
-    signal_colors_[signal_id] = color;
-    return color;
+    if (cached_signal_component != all_components_.end())
+        cached_signal_component->second->signal_color_ = signal_colors_[signal_id];
+
+    return signal_colors_[signal_id];
 }

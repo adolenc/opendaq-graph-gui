@@ -16,6 +16,7 @@ void CachedComponent::UpdateState()
 
     name_ = component_.getName().toStdString();
     is_active_ = (bool)component_.getActive();
+    uid_ = component_.getGlobalId().toStdString();
 
     is_locked_ = false;
     operation_mode_.clear();
