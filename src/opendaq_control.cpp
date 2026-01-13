@@ -163,10 +163,6 @@ void OpenDAQNodeEditor::Init()
             OnSelectionChanged(ids);
         };
 
-    signals_window_.get_signal_color_callback_ = [this](const std::string& signal_id) {
-        return GetSignalColor(signal_id);
-    };
-
     properties_window_.on_property_changed_ =
         [this](const std::string& component_id, const std::string& property_name)
         {

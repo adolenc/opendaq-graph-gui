@@ -23,7 +23,6 @@ SignalsWindow::SignalsWindow(const SignalsWindow& other)
     seconds_shown_ = other.seconds_shown_;
     plot_unique_id_ = other.plot_unique_id_;
     on_reselect_click_ = other.on_reselect_click_;
-    get_signal_color_callback_ = other.get_signal_color_callback_;
 }
 
 void SignalsWindow::OnSelectionChanged(const std::vector<std::string>& selected_ids, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
@@ -50,12 +49,6 @@ void SignalsWindow::RestoreSelection(const std::unordered_map<std::string, std::
                 {
                     if (it->second->signal_color_.has_value())
                         color = it->second->signal_color_.value();
-                    else if (get_signal_color_callback_)
-                        color = get_signal_color_callback_(signal_id);
-                }
-                else if (get_signal_color_callback_)
-                {
-                    color = get_signal_color_callback_(signal_id);
                 }
 
                 signals_map_[signal_id] = { OpenDAQSignal(signal, seconds_shown_), OpenDAQSignal(), color };
