@@ -181,7 +181,7 @@ void CachedComponent::AddDescriptorProperties(daq::DataDescriptorPtr descriptor,
     }
     {
         std::string value = descriptor.getName().assigned() ? descriptor.getName().toStdString() : "None";
-        AddAttribute(properties, prefix + "Name", "Name", value, true, false);
+        AddAttribute(properties, prefix + "Name", "Name", value, true, true);
     }
     {
         std::string value;
