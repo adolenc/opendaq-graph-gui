@@ -2104,6 +2104,8 @@ void ImGuiNodes::ClearAllConnectorSelections()
 
 void ImGuiNodes::SaveSettings(ImGuiTextBuffer* buf)
 {
+    buf->appendf("View=%.0f,%.0f,%.3f\n", scroll_.x, scroll_.y, scale_);
+
     for (const auto* node : nodes_)
     {
         ImVec2 pos = node->area_node_.GetCenter();
@@ -2120,6 +2122,15 @@ void ImGuiNodes::SaveSettings(ImGuiTextBuffer* buf)
 
 void ImGuiNodes::LoadSettings(const char* line)
 {
+    float sx, sy, s;
+    if (sscanf(line, "View=%f,%f,%f", &sx, &sy, &s) == 3)
+    {
+        scroll_.x = sx;
+        scroll_.y = sy;
+        scale_ = std::clamp(s, 0.1f, 3.0f);
+        return;
+    }
+
     char uid[256];
     float x, y;
     if (sscanf(line, "Node=%[^,],%f,%f", uid, &x, &y) == 3)
