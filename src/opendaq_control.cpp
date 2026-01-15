@@ -1335,6 +1335,9 @@ void OpenDAQNodeEditor::Render()
                 case static_cast<int>(daq::CoreEventId::DataDescriptorChanged):
                 {
                     signals_window_.RebuildInvalidSignals();
+                    std::string signal_id = comp.getGlobalId().toStdString();
+                    if (signals_.count(signal_id) > 0)
+                        signals_[signal_id]->needs_refresh_ = true;
                     break;
                 }
                 case static_cast<int>(daq::CoreEventId::SignalConnected):
