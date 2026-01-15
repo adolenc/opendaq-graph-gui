@@ -574,7 +574,7 @@ void CachedProperty::SetValue(ValueType value)
             {
                 owner_->signal_color_ = ImGui::ColorConvertU32ToFloat4((ImU32)std::get<int64_t>(value));
             }
-            owner_->needs_refresh_ = true;
+            owner_->needs_resync_ = true;
             return;
         }
 
@@ -599,7 +599,7 @@ void CachedProperty::SetValue(ValueType value)
                 return;
         }
 
-        owner_->needs_refresh_ = true;
+        owner_->needs_resync_ = true;
     }
     catch (const std::exception& e)
     {

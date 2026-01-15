@@ -24,7 +24,7 @@ struct SharedCachedComponent
     std::vector<SharedCachedProperty> signal_domain_descriptor_properties_;
 
     std::vector<CachedComponent*> source_components_;
-    bool needs_refresh_ = false;
+    bool needs_resync_ = false;
 };
 
 
