@@ -1328,8 +1328,9 @@ void OpenDAQNodeEditor::Render()
                 case static_cast<int>(daq::CoreEventId::PropertyAdded):
                 case static_cast<int>(daq::CoreEventId::PropertyRemoved):
                 {
-                    properties_window_.RefreshComponents();
-                    for (auto& w : cloned_properties_windows_) w->RefreshComponents();
+                    properties_window_.FlagComponentsForResync();
+                    for (auto& w : cloned_properties_windows_)
+                        w->FlagComponentsForResync();
                     break;
                 }
                 case static_cast<int>(daq::CoreEventId::DataDescriptorChanged):
@@ -1337,7 +1338,7 @@ void OpenDAQNodeEditor::Render()
                     signals_window_.RebuildInvalidSignals();
                     std::string signal_id = comp.getGlobalId().toStdString();
                     if (signals_.count(signal_id) > 0)
-                        signals_[signal_id]->needs_refresh_ = true;
+                        signals_[signal_id]->needs_resync_ = true;
                     break;
                 }
                 case static_cast<int>(daq::CoreEventId::SignalConnected):
@@ -1388,6 +1389,12 @@ void OpenDAQNodeEditor::Render()
         event_id_queue_.clear();
     }
 
+    for (auto& [id, component] : all_components_)
+    {
+        if (component && component->needs_resync_)
+            component->RefreshProperties();
+    }
+
     properties_window_.Render();
     for (auto it = cloned_properties_windows_.begin(); it != cloned_properties_windows_.end(); )
     {
@@ -1419,7 +1426,7 @@ void OpenDAQNodeEditor::Render()
     for (auto& [id, component] : all_components_)
     {
         if (component)
-            component->needs_refresh_ = false;
+            component->needs_resync_ = false;
     }
 }
 

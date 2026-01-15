@@ -287,7 +287,7 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
             }
         }
         if (owner)
-            owner->needs_refresh_ = true;
+            owner->needs_resync_ = true;
     };
 
     switch (cached_prop.type_)
@@ -506,13 +506,6 @@ void PropertiesWindow::RenderComponent(SharedCachedComponent& shared_cached_comp
             ImGui::EndTabBar();
         }
     }
-
-    if (shared_cached_component.needs_refresh_)
-    {
-        for (CachedComponent* component : shared_cached_component.source_components_)
-            component->RefreshProperties();
-        RebuildComponents();
-    }
 }
 
 void PropertiesWindow::RenderChildren(SharedCachedComponent& shared_cached_component)
@@ -617,12 +610,12 @@ void PropertiesWindow::RestoreSelection(const std::unordered_map<std::string, st
     RebuildComponents();
 }
 
-void PropertiesWindow::RefreshComponents()
+void PropertiesWindow::FlagComponentsForResync()
 {
     for (SharedCachedComponent& group : grouped_selected_components_)
     {
         for (CachedComponent* component : group.source_components_)
-            component->needs_refresh_ = true;
+            component->needs_resync_ = true;
     }
 }
 
@@ -712,21 +705,6 @@ void PropertiesWindow::Render()
     }
     else
     {
-        bool needs_rebuild = false;
-        for (auto& comp : grouped_selected_components_)
-        {
-            for (auto* source : comp.source_components_)
-            {
-                if (source->needs_refresh_)
-                {
-                    source->RefreshProperties();
-                    needs_rebuild = true;
-                }
-            }
-        }
-        if (needs_rebuild)
-            RebuildComponents();
-
         if (grouped_selected_components_.size() == 1)
         {
             RenderComponentWithParents(grouped_selected_components_[0]);
@@ -762,6 +740,18 @@ void PropertiesWindow::Render()
             }
             ImGui::EndChild();
         }
+
+        bool needs_rebuild = false;
+        for (auto& comp : grouped_selected_components_)
+        {
+            for (auto* source : comp.source_components_)
+            {
+                if (source->needs_resync_)
+                    needs_rebuild = true;
+            }
+        }
+        if (needs_rebuild)
+            RebuildComponents();
     }
     ImGui::PopStyleColor(1);
     ImGui::End();

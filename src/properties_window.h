@@ -24,7 +24,7 @@ struct SharedCachedComponent
     std::vector<SharedCachedProperty> signal_domain_descriptor_properties_;
 
     std::vector<CachedComponent*> source_components_;
-    bool needs_refresh_ = false;
+    bool needs_resync_ = false;
 };
 
 
@@ -36,7 +36,7 @@ public:
 
     void Render();
     void OnSelectionChanged(const std::vector<std::string>& selected_ids, const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components);
-    void RefreshComponents();
+    void FlagComponentsForResync();
     void RestoreSelection(const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components);
 
     std::function<void(PropertiesWindow*)> on_clone_click_;
