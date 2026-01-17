@@ -540,6 +540,7 @@ void PropertiesWindow::RenderChildren(SharedCachedComponent& shared_cached_compo
         else
         {
             ImGui::PushID(child_id.c_str());
+            ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyleColorVec4(ImGuiCol_Tab));
             if (ImGui::CollapsingHeader((child->name_ + "###" + child->uid_).c_str()))
             {
                 SharedCachedComponent shared_child({child});
@@ -547,6 +548,7 @@ void PropertiesWindow::RenderChildren(SharedCachedComponent& shared_cached_compo
                 if (show_parents_and_children_ && !group_components_)
                     RenderChildren(shared_child);
             }
+            ImGui::PopStyleColor(1);
             ImGui::PopID();
         }
     }
@@ -583,11 +585,13 @@ void PropertiesWindow::RenderComponentWithParents(SharedCachedComponent& shared_
             continue;
 
         ImGui::PushID((*it)->component_.getGlobalId().toStdString().c_str());
+        ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyleColorVec4(ImGuiCol_Tab));
         if (ImGui::CollapsingHeader((*it)->name_.c_str()))
         {
              SharedCachedComponent parent_component({*it});
              RenderComponent(parent_component, false);
         }
+        ImGui::PopStyleColor(1);
         ImGui::PopID();
     }
 
@@ -632,6 +636,8 @@ void PropertiesWindow::Render()
     }
 
     ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyleColorVec4(ImGuiCol_TabSelected));
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGui::GetStyleColorVec4(ImGuiCol_TabSelected));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGui::GetStyleColorVec4(ImGuiCol_TabSelected));
     if (is_cloned_)
     {
         if (ImGui::Button(ICON_FA_ARROWS_ROTATE))
@@ -753,7 +759,7 @@ void PropertiesWindow::Render()
         if (needs_rebuild)
             RebuildComponents();
     }
-    ImGui::PopStyleColor(1);
+    ImGui::PopStyleColor(3);
     ImGui::End();
 }
 
