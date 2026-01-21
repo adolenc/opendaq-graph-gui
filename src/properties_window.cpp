@@ -275,9 +275,14 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
     if (cached_prop.depth_ > 0)
         ImGui::Indent(cached_prop.depth_ * 10.0f);
 
-    auto SetValue = [&](const CachedProperty::ValueType& val) {
+    auto SetValue = [&](const CachedProperty::ValueType& val)
+    {
         for (CachedProperty* target : cached_prop.target_properties_)
             target->SetValue(val);
+
+        cached_prop.value_ = val;
+        cached_prop.is_multi_value_ = false;
+
         if (on_property_changed_)
         {
             for (CachedProperty* target : cached_prop.target_properties_)
@@ -286,8 +291,6 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
                     on_property_changed_(target->owner_->uid_, target->name_);
             }
         }
-        if (owner)
-            owner->needs_resync_ = true;
     };
 
     switch (cached_prop.type_)

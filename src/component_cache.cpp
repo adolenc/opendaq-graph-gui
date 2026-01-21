@@ -578,6 +578,9 @@ void CachedProperty::SetValue(ValueType value)
             else if (name_ == "@SignalColor")
             {
                 owner_->signal_color_ = ImGui::ColorConvertU32ToFloat4((ImU32)std::get<int64_t>(value));
+                value_ = value;
+                owner_->needs_resync_ = false; // no refresh needed component over a non-opendaq property
+                return;
             }
             owner_->needs_resync_ = true;
             return;
