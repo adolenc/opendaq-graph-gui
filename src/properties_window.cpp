@@ -265,7 +265,8 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
 
     ImGui::PushID(cached_prop.uid_.c_str());
 
-    if (cached_prop.is_multi_value_)
+    bool was_multi_value = cached_prop.is_multi_value_;
+    if (was_multi_value)
         ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_NavHighlight]);
 
     bool is_disabled = cached_prop.is_read_only_ && cached_prop.type_ != daq::ctProc && cached_prop.type_ != daq::ctFunc;
@@ -430,6 +431,10 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
                 ImGui::EndTooltip();
             }
         }
+        ImGui::PopStyleColor();
+    }
+    else if (was_multi_value)
+    {
         ImGui::PopStyleColor();
     }
 
