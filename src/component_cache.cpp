@@ -2,6 +2,8 @@
 #include "utils.h"
 #include "ImGuiNotify.hpp"
 #include <implot.h>
+#include "imgui_internal.h"
+#include <cstdio>
 
 
 std::unordered_map<std::string, ImVec4> CachedComponent::signal_colors_;
@@ -662,4 +664,31 @@ ImVec4 CachedComponent::GetSignalColor()
 
     signal_color_ = signal_colors_[uid_];
     return signal_colors_[uid_];
+}
+
+void* CachedComponent::SettingsHandler_ReadOpen(ImGuiContext*, ImGuiSettingsHandler*, const char* name)
+{
+    auto& color = signal_colors_[name];
+    return (void*)&color;
+}
+
+void CachedComponent::SettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler*, void* entry, const char* line)
+{
+    ImVec4* color = (ImVec4*)entry;
+    float r, g, b, a;
+    if (sscanf(line, "Color=%f,%f,%f,%f", &r, &g, &b, &a) == 4)
+    {
+        *color = ImVec4(r, g, b, a);
+    }
+}
+
+void CachedComponent::SettingsHandler_WriteAll(ImGuiContext*, ImGuiSettingsHandler*, ImGuiTextBuffer* buf)
+{
+    buf->reserve(buf->size() + signal_colors_.size() * 100);
+    for (const auto& pair : signal_colors_)
+    {
+        buf->appendf("[SignalColor][%s]\n", pair.first.c_str());
+        buf->appendf("Color=%.3f,%.3f,%.3f,%.3f\n", pair.second.x, pair.second.y, pair.second.z, pair.second.w);
+        buf->appendf("\n");
+    }
 }

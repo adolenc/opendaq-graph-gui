@@ -92,4 +92,8 @@ struct CachedComponent
 
     static std::unordered_map<std::string, ImVec4> signal_colors_;
     static int next_signal_color_index_;
+
+    static void* SettingsHandler_ReadOpen(ImGuiContext*, ImGuiSettingsHandler*, const char* name);
+    static void SettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler*, void* entry, const char* line);
+    static void SettingsHandler_WriteAll(ImGuiContext*, ImGuiSettingsHandler*, ImGuiTextBuffer* buf);
 };

@@ -103,6 +103,14 @@ void OpenDAQNodeEditor::InitImGui()
     ini_handler3.WriteAllFn = NodeEditorSettingsHandler_WriteAll;
     ini_handler3.UserData = this;
     ImGui::GetCurrentContext()->SettingsHandlers.push_back(ini_handler3);
+
+    ImGuiSettingsHandler ini_handler4;
+    ini_handler4.TypeName = "SignalColor";
+    ini_handler4.TypeHash = ImHashStr("SignalColor");
+    ini_handler4.ReadOpenFn = CachedComponent::SettingsHandler_ReadOpen;
+    ini_handler4.ReadLineFn = CachedComponent::SettingsHandler_ReadLine;
+    ini_handler4.WriteAllFn = CachedComponent::SettingsHandler_WriteAll;
+    ImGui::GetCurrentContext()->SettingsHandlers.push_back(ini_handler4);
 }
 
 void OpenDAQNodeEditor::Init()
