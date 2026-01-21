@@ -1,6 +1,11 @@
 #include "component_cache.h"
 #include "utils.h"
 #include "ImGuiNotify.hpp"
+#include <implot.h>
+
+
+std::unordered_map<std::string, ImVec4> CachedComponent::signal_colors_;
+int CachedComponent::next_signal_color_index_ = 0;
 
 
 CachedComponent::CachedComponent(daq::ComponentPtr component)
@@ -641,4 +646,17 @@ void CachedProperty::EnsureFunctionInfoCached()
         }
         function_info_->parameters.push_back({arg.getName(), arg.getType(), default_val});
     }
+}
+
+ImVec4 CachedComponent::GetSignalColor()
+{
+    // synchronize the color between cached component and global signal color map
+    if (signal_color_.has_value())
+        signal_colors_[uid_] = *signal_color_;
+
+    if (signal_colors_.count(uid_) == 0)
+        signal_colors_[uid_] = ImPlot::GetColormapColor(next_signal_color_index_++);
+
+    signal_color_ = signal_colors_[uid_];
+    return signal_colors_[uid_];
 }

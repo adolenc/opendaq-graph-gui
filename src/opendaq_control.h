@@ -46,7 +46,6 @@ public:
     void RenderFunctionBlockOptions(daq::ComponentPtr parent_component, const std::string& parent_id, std::optional<ImVec2> position);
     void RenderDeviceOptions(daq::ComponentPtr parent_component, const std::string& parent_id, std::optional<ImVec2> position);
     void BuildPopupParentCandidates(const std::string& parent_guid, int depth = 0, int parent_color_index = 0);
-    ImVec4 GetSignalColor(const std::string& signal_id);
 
     daq::InstancePtr instance_;
     std::unordered_map<std::string, std::unique_ptr<CachedComponent>> all_components_;
@@ -99,8 +98,6 @@ public:
     ImColor GetNodeColor(int color_index) const { return node_color_palette_[color_index % node_color_palette_size_]; }
 
     int next_color_index_ = 1;
-    int next_signal_color_index_ = 0;
-    std::unordered_map<std::string, ImVec4> signal_colors_;
 
     std::mutex event_mutex_;
     std::vector<std::pair<daq::ComponentPtr, daq::CoreEventArgsPtr>> event_id_queue_;

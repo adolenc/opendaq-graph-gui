@@ -168,7 +168,10 @@ void OpenDAQNodeEditor::Init()
         {
             if (property_name == "@SignalColor")
             {
-                ImVec4 color = GetSignalColor(component_id);
+                auto it = all_components_.find(component_id);
+                if (it == all_components_.end())
+                    return;
+                ImVec4 color = it->second->GetSignalColor();
                 signals_window_.UpdateSignalColor(component_id, color);
                 for (auto& w : cloned_signals_windows_)
                     w->UpdateSignalColor(component_id, color);
@@ -254,7 +257,6 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
         {
             std::string signal_id = signal.getGlobalId().toStdString();
             auto signal_cached = std::make_unique<CachedComponent>(signal);
-            signal_cached->signal_color_ = GetSignalColor(signal_id);
             signals_[signal_id] = signal_cached.get();
             signal_cached->parent_ = component;
             signal_cached->owner_ = component;
@@ -268,7 +270,6 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
         {
             std::string signal_id = signal.getGlobalId().toStdString();
             auto signal_cached = std::make_unique<CachedComponent>(signal);
-            signal_cached->signal_color_ = GetSignalColor(signal_id);
             signals_[signal_id] = signal_cached.get();
             signal_cached->parent_ = component;
             signal_cached->owner_ = component;
@@ -341,7 +342,10 @@ void OpenDAQNodeEditor::RetrieveConnections()
         {
             daq::SignalPtr connected_signal = input_port.getSignal();
             std::string signal_uid = connected_signal.getGlobalId().toStdString();
-            nodes_.AddConnection(signal_uid, input_uid, GetSignalColor(signal_uid));
+            ImVec4 color = ImVec4(1,1,1,1);
+            if (auto it = signals_.find(signal_uid); it != signals_.end())
+                color = it->second->GetSignalColor();
+            nodes_.AddConnection(signal_uid, input_uid, color);
         }
     }
 }
@@ -363,7 +367,10 @@ void OpenDAQNodeEditor::RebuildNodeConnections(const std::string& node_id)
                 {
                     daq::SignalPtr signal = input_port.getSignal();
                     std::string signal_id = signal.getGlobalId().toStdString();
-                    nodes_.AddConnection(signal_id, input_id, GetSignalColor(signal_id));
+                    ImVec4 color = ImVec4(1,1,1,1);
+                    if (auto sig_it = signals_.find(signal_id); sig_it != signals_.end())
+                        color = sig_it->second->GetSignalColor();
+                    nodes_.AddConnection(signal_id, input_id, color);
                 }
             }
         }
@@ -459,7 +466,9 @@ void OpenDAQNodeEditor::OnOutputHover(const ImGui::ImGuiNodesUid& id)
 
     if (ImGui::BeginTooltip())
     {
-        ImVec4 signal_color = GetSignalColor(id);
+        ImVec4 signal_color = ImVec4(1,1,1,1);
+        if (auto it = signals_.find(id); it != signals_.end())
+            signal_color = it->second->GetSignalColor();
         ImGui::ColorButton("##SignalColor", signal_color, ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoOptions, ImVec2(ImGui::GetTextLineHeight(), ImGui::GetTextLineHeight()));
         ImGui::SameLine();
         ImGui::Text("%s [%s]", signal_preview.signal_name_.c_str(), signal_preview.signal_unit_.c_str());
@@ -637,7 +646,6 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
                             {
                                 std::string signal_id = signal.getGlobalId().toStdString();
                                 auto signal_cached = std::make_unique<CachedComponent>(signal);
-                                signal_cached->signal_color_ = GetSignalColor(signal_id);
                                 signal_cached->parent_ = fb;
                                 signal_cached->owner_ = fb;
                                 signals_[signal_id] = signal_cached.get();
@@ -1428,20 +1436,4 @@ void OpenDAQNodeEditor::Render()
         if (component)
             component->needs_resync_ = false;
     }
-}
-
-ImVec4 OpenDAQNodeEditor::GetSignalColor(const std::string& signal_id)
-{
-    // synchronize the color between cached component and global signal color map
-    auto cached_signal_component = all_components_.find(signal_id);
-    if (cached_signal_component != all_components_.end() && cached_signal_component->second->signal_color_)
-        signal_colors_[signal_id] = *cached_signal_component->second->signal_color_;
-
-    if (signal_colors_.count(signal_id) == 0)
-        signal_colors_[signal_id] = ImPlot::GetColormapColor(next_signal_color_index_++);
-
-    if (cached_signal_component != all_components_.end())
-        cached_signal_component->second->signal_color_ = signal_colors_[signal_id];
-
-    return signal_colors_[signal_id];
 }

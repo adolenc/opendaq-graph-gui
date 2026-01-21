@@ -5,6 +5,7 @@
 #include <string>
 #include <optional>
 #include <vector>
+#include <unordered_map>
 
 
 struct CachedComponent;
@@ -86,4 +87,9 @@ struct CachedComponent
 
     bool needs_resync_ = false;
     bool initial_properties_loaded_ = false;
+
+    ImVec4 GetSignalColor();
+
+    static std::unordered_map<std::string, ImVec4> signal_colors_;
+    static int next_signal_color_index_;
 };
