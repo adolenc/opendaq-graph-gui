@@ -38,6 +38,10 @@ void CachedComponent::UpdateState()
         }
         is_locked_ = (bool)device.isLocked();
     }
+    if (canCastTo<daq::ISignal>(component_))
+    {
+        signal_color_ = GetSignalColor();
+    }
 
     RefreshStatus();
 }
