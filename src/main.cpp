@@ -11,6 +11,7 @@
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include <opendaq/version.h>
+#include <algorithm>
 #include <string>
 
 
@@ -114,27 +115,40 @@ int main(int argc, char** argv)
     ImSearch::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    if (char *base_path = SDL_GetBasePath())
+
+    constexpr float base_font_size = 14.0f;
+    constexpr float ui_scale_step = 0.1f;
+    constexpr float ui_scale_min = 0.5f;
+    constexpr float ui_scale_max = 2.5f;
+    float ui_scale = 1.0f;
+
+    std::string base_path;
+    if (char* path = SDL_GetBasePath())
     {
-        io.Fonts->AddFontFromFileTTF((std::string(base_path) + "Roboto-Medium.ttf").c_str(), 14.0f);
-        
+        base_path = path;
+        SDL_free(path);
+    }
+
+    io.Fonts->Clear();
+    if (!base_path.empty())
+    {
+        io.Fonts->AddFontFromFileTTF((base_path + "Roboto-Medium.ttf").c_str(), base_font_size);
+
         static const ImWchar icons_ranges[] = { 0xf000, 0xf8ff, 0 };
         ImFontConfig icons_config;
         icons_config.MergeMode = true;
         icons_config.PixelSnapH = true;
-        io.Fonts->AddFontFromFileTTF((std::string(base_path) + "fa-solid-900.ttf").c_str(), 14.0f, &icons_config, icons_ranges);
-
-        SDL_free(base_path);
+        io.Fonts->AddFontFromFileTTF((base_path + "fa-solid-900.ttf").c_str(), base_font_size, &icons_config, icons_ranges);
     }
     else
     {
-        io.Fonts->AddFontFromFileTTF("Roboto-Medium.ttf", 14.0f);
+        io.Fonts->AddFontFromFileTTF("Roboto-Medium.ttf", base_font_size);
 
         static const ImWchar icons_ranges[] = { 0xf000, 0xf8ff, 0 };
         ImFontConfig icons_config;
         icons_config.MergeMode = true;
         icons_config.PixelSnapH = true;
-        io.Fonts->AddFontFromFileTTF("fa-solid-900.ttf", 14.0f, &icons_config, icons_ranges);
+        io.Fonts->AddFontFromFileTTF("fa-solid-900.ttf", base_font_size, &icons_config, icons_ranges);
     }
 
     if (light_mode)
@@ -150,6 +164,16 @@ int main(int argc, char** argv)
     ImPlot::GetStyle().UseISO8601 = true;
 
     ImGui::GetStyle().Colors[ImGuiCol_DragDropTarget] = ImGui::GetStyle().Colors[ImGuiCol_NavHighlight];
+
+    ImGuiStyle base_style = ImGui::GetStyle();
+    auto apply_ui_scale = [&](float scale)
+    {
+        ui_scale = std::clamp(scale, ui_scale_min, ui_scale_max);
+        ImGui::GetStyle() = base_style;
+        ImGui::GetStyle().ScaleAllSizes(ui_scale);
+        io.FontGlobalScale = ui_scale;
+    };
+    apply_ui_scale(ui_scale);
 
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL3_Init(glsl_version);
@@ -169,6 +193,28 @@ int main(int argc, char** argv)
             if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)
                 done = true;
 #endif
+            if (event.type == SDL_KEYDOWN && (event.key.keysym.mod & KMOD_CTRL))
+            {
+                bool scale_changed = false;
+                if (event.key.keysym.sym == SDLK_EQUALS || event.key.keysym.sym == SDLK_KP_PLUS)
+                {
+                    ui_scale += ui_scale_step;
+                    scale_changed = true;
+                }
+                else if (event.key.keysym.sym == SDLK_MINUS || event.key.keysym.sym == SDLK_KP_MINUS)
+                {
+                    ui_scale -= ui_scale_step;
+                    scale_changed = true;
+                }
+                else if (event.key.keysym.sym == SDLK_0 || event.key.keysym.sym == SDLK_KP_0)
+                {
+                    ui_scale = 1.0f;
+                    scale_changed = true;
+                }
+
+                if (scale_changed)
+                    apply_ui_scale(ui_scale);
+            }
         }
 
         if (!(SDL_GetWindowFlags(window) & SDL_WINDOW_INPUT_FOCUS)) // don't waste CPU if not focused
