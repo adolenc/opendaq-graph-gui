@@ -195,6 +195,7 @@ public:
     void MoveSelectedNodesIntoView();
     void ClearNodeConnections(const ImGuiNodesUid& node_uid);
     void Clear();
+    void RebuildGeometry();
 
     void SaveSettings(ImGuiTextBuffer* buf);
     void LoadSettings(const char* line);

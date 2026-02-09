@@ -408,6 +408,11 @@ void OpenDAQNodeEditor::RebuildStructure()
         w->RestoreSelection(all_components_);
 }
 
+void OpenDAQNodeEditor::RebuildNodeGeometry()
+{
+    nodes_.RebuildGeometry();
+}
+
 void OpenDAQNodeEditor::SetNodeActiveRecursively(const std::string& node_id)
 {
     if (auto it = all_components_.find(node_id); it != all_components_.end())

@@ -181,6 +181,7 @@ int main(int argc, char** argv)
     bool done = false;
     while (!done)
     {
+        bool scale_changed = false;
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
@@ -195,7 +196,6 @@ int main(int argc, char** argv)
 #endif
             if (event.type == SDL_KEYDOWN && (event.key.keysym.mod & KMOD_CTRL))
             {
-                bool scale_changed = false;
                 if (event.key.keysym.sym == SDLK_EQUALS || event.key.keysym.sym == SDLK_KP_PLUS)
                 {
                     ui_scale += ui_scale_step;
@@ -223,6 +223,9 @@ int main(int argc, char** argv)
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
+
+        if (scale_changed)
+            opendaq_editor.RebuildNodeGeometry();
 
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->WorkPos);

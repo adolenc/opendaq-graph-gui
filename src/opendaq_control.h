@@ -38,6 +38,7 @@ public:
     void RetrieveConnections();
     void RebuildNodeConnections(const std::string& node_id);
     void RebuildStructure();
+    void RebuildNodeGeometry();
     void Render();
     void SetNodeActiveRecursively(const std::string& node_id);
     void UpdateSignalsActiveState(CachedComponent* cached);

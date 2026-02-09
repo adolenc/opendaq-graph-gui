@@ -18,6 +18,64 @@ static bool UsingImGuiLightStyle()
     return ImGui::GetStyle().Colors[ImGuiCol_Text].x < 0.5f;
 }
 
+static void BuildInputGeometry(ImGuiNodesInput& input)
+{
+    input.area_name_.Min = ImVec2(0.0f, 0.0f);
+    input.area_name_.Max = ImGui::CalcTextSize(input.name_.c_str());
+
+    input.area_input_.Min = ImVec2(0.0f, 0.0f);
+    input.area_input_.Max.x = ImGuiNodesConnectorDotPadding + ImGuiNodesConnectorDotDiameter + ImGuiNodesConnectorDotPadding;
+    input.area_input_.Max.y = ImGuiNodesConnectorDistance;
+    input.area_input_.Max *= input.area_name_.GetHeight();
+
+    ImVec2 offset = ImVec2(0.0f, 0.0f) - input.area_input_.GetCenter();
+
+    input.area_name_.Translate(ImVec2(input.area_input_.GetWidth(), (input.area_input_.GetHeight() - input.area_name_.GetHeight()) * 0.5f));
+
+    input.area_input_.Max.x += input.area_name_.GetWidth();
+    input.area_input_.Max.x += ImGuiNodesConnectorDotPadding * input.area_name_.GetHeight();
+
+    input.area_input_.Translate(offset);
+    input.area_name_.Translate(offset);
+    input.pos_ = ImVec2(0.0f, 0.0f);
+}
+
+static void BuildOutputGeometry(ImGuiNodesOutput& output)
+{
+    output.area_name_.Min = ImVec2(0.0f, 0.0f);
+    output.area_name_.Max = ImGui::CalcTextSize(output.name_.c_str());
+
+    float button_size = output.area_name_.GetHeight();
+    output.area_active_button_ = ImRect(0.0f, 0.0f, button_size, button_size);
+
+    output.area_output_.Min = ImVec2(0.0f, 0.0f);
+    output.area_output_.Max.x = ImGuiNodesConnectorDotPadding + ImGuiNodesConnectorDotDiameter + ImGuiNodesConnectorDotPadding;
+    output.area_output_.Max.y = ImGuiNodesConnectorDistance;
+    output.area_output_.Max *= output.area_name_.GetHeight();
+
+    ImVec2 offset = ImVec2(0.0f, 0.0f) - output.area_output_.GetCenter();
+
+    output.area_name_.Translate(ImVec2(-output.area_name_.GetWidth(), (output.area_output_.GetHeight() - output.area_name_.GetHeight()) * 0.5f));
+    output.area_active_button_.Translate(ImVec2(output.area_name_.Min.x - button_size - (ImGuiNodesConnectorDotPadding * output.area_name_.GetHeight()), (output.area_output_.GetHeight() - button_size) * 0.5f));
+
+    output.area_output_.Min.x = output.area_active_button_.Min.x;
+
+    output.area_output_.Translate(offset);
+    output.area_name_.Translate(offset);
+    output.area_active_button_.Translate(offset);
+    output.pos_ = ImVec2(0.0f, 0.0f);
+}
+
+static void BuildNodeTitleGeometry(ImGuiNodesNode& node)
+{
+    node.area_name_.Min = ImVec2(0.0f, 0.0f);
+    node.area_name_.Max = ImGui::CalcTextSize(node.name_.c_str());
+    node.title_height_ = ImGuiNodesTitleHight * node.area_name_.GetHeight();
+    node.area_add_button_ = ImRect(0.0f, 0.0f, 0.0f, 0.0f);
+    node.area_active_button_ = ImRect(0.0f, 0.0f, 0.0f, 0.0f);
+    node.area_trash_button_ = ImRect(0.0f, 0.0f, 0.0f, 0.0f);
+}
+
 void ImGuiNodes::MoveSelectedNodesIntoView()
 {
     std::vector<ImGuiNodesNode*> selected_nodes;
@@ -1575,24 +1633,7 @@ ImGuiNodesInput::ImGuiNodesInput(const ImGuiNodesIdentifier& name)
     source_output_ = NULL;
     name_ = name.name_;
     uid_ = name.id_;
-
-    area_name_.Min = ImVec2(0.0f, 0.0f);
-    area_name_.Max = ImGui::CalcTextSize(name_.c_str());
-
-    area_input_.Min = ImVec2(0.0f, 0.0f);
-    area_input_.Max.x = ImGuiNodesConnectorDotPadding + ImGuiNodesConnectorDotDiameter + ImGuiNodesConnectorDotPadding;
-    area_input_.Max.y = ImGuiNodesConnectorDistance;
-    area_input_.Max *= area_name_.GetHeight();
-
-    ImVec2 offset = ImVec2(0.0f, 0.0f) - area_input_.GetCenter();
-
-    area_name_.Translate(ImVec2(area_input_.GetWidth(), (area_input_.GetHeight() - area_name_.GetHeight()) * 0.5f));
-
-    area_input_.Max.x += area_name_.GetWidth();
-    area_input_.Max.x += ImGuiNodesConnectorDotPadding * area_name_.GetHeight();
-
-    area_input_.Translate(offset);
-    area_name_.Translate(offset);
+    BuildInputGeometry(*this);
 }
 
 static void DrawTextScaled(ImDrawList* draw_list, ImVec2 pos, float scale, ImU32 color, const char* text, float font_scale_multiplier = 1.0f)
@@ -1648,28 +1689,7 @@ ImGuiNodesOutput::ImGuiNodesOutput(const ImGuiNodesIdentifier& name)
     connections_count_ = 0;
     name_ = name.name_;
     uid_ = name.id_;
-
-    area_name_.Min = ImVec2(0.0f, 0.0f);
-    area_name_.Max = ImGui::CalcTextSize(name_.c_str());
-
-    float button_size = area_name_.GetHeight();
-    area_active_button_ = ImRect(0.0f, 0.0f, button_size, button_size);
-
-    area_output_.Min = ImVec2(0.0f, 0.0f);
-    area_output_.Max.x = ImGuiNodesConnectorDotPadding + ImGuiNodesConnectorDotDiameter + ImGuiNodesConnectorDotPadding;
-    area_output_.Max.y = ImGuiNodesConnectorDistance;
-    area_output_.Max *= area_name_.GetHeight();
-
-    ImVec2 offset = ImVec2(0.0f, 0.0f) - area_output_.GetCenter();
-
-    area_name_.Translate(ImVec2(-area_name_.GetWidth(), (area_output_.GetHeight() - area_name_.GetHeight()) * 0.5f));
-    area_active_button_.Translate(ImVec2(area_name_.Min.x - button_size - (ImGuiNodesConnectorDotPadding * area_name_.GetHeight()), (area_output_.GetHeight() - button_size) * 0.5f));
-
-    area_output_.Min.x = area_active_button_.Min.x;
-
-    area_output_.Translate(offset);
-    area_name_.Translate(offset);
-    area_active_button_.Translate(offset);
+    BuildOutputGeometry(*this);
 }
 
 void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const
@@ -1734,13 +1754,7 @@ ImGuiNodesNode::ImGuiNodesNode(const ImGuiNodesIdentifier& name, ImColor color)
     uid_ = name.id_;
     state_ = ImGuiNodesNodeStateFlag_Default;
     color_ = color;
-
-    area_name_.Min = ImVec2(0.0f, 0.0f);
-    area_name_.Max = ImGui::CalcTextSize(name_.c_str());
-    title_height_ = ImGuiNodesTitleHight * area_name_.GetHeight();
-    
-    area_add_button_ = ImRect(0.0f, 0.0f, 0.0f, 0.0f);
-    area_active_button_ = ImRect(0.0f, 0.0f, 0.0f, 0.0f);
+    BuildNodeTitleGeometry(*this);
 }
 
 void ImGuiNodesNode::BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size)
@@ -2042,6 +2056,43 @@ void ImGuiNodes::Clear()
     nodes_by_uid_.clear();
     inputs_by_uid_.clear();
     outputs_by_uid_.clear();
+}
+
+void ImGuiNodes::RebuildGeometry()
+{
+    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+    {
+        ImGuiNodesNode* node = nodes_[node_idx];
+        if (!node)
+            continue;
+
+        ImVec2 center = node->area_node_.GetCenter();
+        BuildNodeTitleGeometry(*node);
+
+        for (auto& input : node->inputs_)
+            BuildInputGeometry(input);
+
+        for (auto& output : node->outputs_)
+            BuildOutputGeometry(output);
+
+        ImVec2 inputs_size;
+        ImVec2 outputs_size;
+        for (size_t input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
+        {
+            const ImGuiNodesInput& input = node->inputs_[input_idx];
+            inputs_size.x = ImMax(inputs_size.x, input.area_input_.GetWidth());
+            inputs_size.y += input.area_input_.GetHeight();
+        }
+        for (size_t output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
+        {
+            const ImGuiNodesOutput& output = node->outputs_[output_idx];
+            outputs_size.x = ImMax(outputs_size.x, output.area_output_.GetWidth());
+            outputs_size.y += output.area_output_.GetHeight();
+        }
+
+        node->BuildNodeGeometry(inputs_size, outputs_size);
+        node->TranslateNode(center - node->area_node_.GetCenter());
+    }
 }
 
 void ImGuiNodes::AddConnection(const ImGuiNodesUid& output_uid, const ImGuiNodesUid& input_uid, std::optional<ImColor> color)
