@@ -21,10 +21,11 @@ A graph-based user interface for [openDAQ](https://opendaq.com).
 
 ### Prebuilt Binaries
 
-Nightly prebuilt binaries are available for 64 bit Windows and Linux on the
-[releases page](https://github.com/adolenc/opendaq-graph-gui/releases), on
-other platforms you will need to build the project from source. The prebuilt
-binaries come with reference function blocks and devices from openDAQ.
+Nightly prebuilt binaries are available for 64 bit Windows, Linux, and macOS
+(Apple Silicon) on the
+[releases page](https://github.com/adolenc/opendaq-graph-gui/releases), on other
+platforms you will need to build the project from source. The prebuilt binaries
+come with reference function blocks and devices from openDAQ.
 
 ### Building From Source
 
