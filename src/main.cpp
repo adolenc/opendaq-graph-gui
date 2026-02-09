@@ -116,13 +116,7 @@ int main(int argc, char** argv)
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-    constexpr float base_font_size = 14.0f;
-    constexpr float ui_scale_step = 0.1f;
-    constexpr float ui_scale_min = 0.5f;
-    constexpr float ui_scale_max = 2.5f;
-    float ui_scale = 1.0f;
-
-    std::string base_path;
+    std::string base_path{""};
     if (char* path = SDL_GetBasePath())
     {
         base_path = path;
@@ -130,26 +124,12 @@ int main(int argc, char** argv)
     }
 
     io.Fonts->Clear();
-    if (!base_path.empty())
-    {
-        io.Fonts->AddFontFromFileTTF((base_path + "Roboto-Medium.ttf").c_str(), base_font_size);
-
-        static const ImWchar icons_ranges[] = { 0xf000, 0xf8ff, 0 };
-        ImFontConfig icons_config;
-        icons_config.MergeMode = true;
-        icons_config.PixelSnapH = true;
-        io.Fonts->AddFontFromFileTTF((base_path + "fa-solid-900.ttf").c_str(), base_font_size, &icons_config, icons_ranges);
-    }
-    else
-    {
-        io.Fonts->AddFontFromFileTTF("Roboto-Medium.ttf", base_font_size);
-
-        static const ImWchar icons_ranges[] = { 0xf000, 0xf8ff, 0 };
-        ImFontConfig icons_config;
-        icons_config.MergeMode = true;
-        icons_config.PixelSnapH = true;
-        io.Fonts->AddFontFromFileTTF("fa-solid-900.ttf", base_font_size, &icons_config, icons_ranges);
-    }
+    io.Fonts->AddFontFromFileTTF((base_path + "Roboto-Medium.ttf").c_str(), 14.0f);
+    static const ImWchar icons_ranges[] = { 0xf000, 0xf8ff, 0 };
+    ImFontConfig icons_config;
+    icons_config.MergeMode = true;
+    icons_config.PixelSnapH = true;
+    io.Fonts->AddFontFromFileTTF((base_path + "fa-solid-900.ttf").c_str(), 14.0f, &icons_config, icons_ranges);
 
     if (light_mode)
     {
@@ -166,9 +146,10 @@ int main(int argc, char** argv)
     ImGui::GetStyle().Colors[ImGuiCol_DragDropTarget] = ImGui::GetStyle().Colors[ImGuiCol_NavHighlight];
 
     ImGuiStyle base_style = ImGui::GetStyle();
+    float ui_scale = 1.0f;
     auto apply_ui_scale = [&](float scale)
     {
-        ui_scale = std::clamp(scale, ui_scale_min, ui_scale_max);
+        ui_scale = std::clamp(scale, 0.25f, 5.0f);
         ImGui::GetStyle() = base_style;
         ImGui::GetStyle().ScaleAllSizes(ui_scale);
         io.FontGlobalScale = ui_scale;
@@ -198,12 +179,12 @@ int main(int argc, char** argv)
             {
                 if (event.key.keysym.sym == SDLK_EQUALS || event.key.keysym.sym == SDLK_KP_PLUS)
                 {
-                    ui_scale += ui_scale_step;
+                    ui_scale += 0.1;
                     scale_changed = true;
                 }
                 else if (event.key.keysym.sym == SDLK_MINUS || event.key.keysym.sym == SDLK_KP_MINUS)
                 {
-                    ui_scale -= ui_scale_step;
+                    ui_scale -= 0.1;
                     scale_changed = true;
                 }
                 else if (event.key.keysym.sym == SDLK_0 || event.key.keysym.sym == SDLK_KP_0)
