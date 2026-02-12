@@ -6,6 +6,7 @@
 #include "imsearch.h"
 #include "signal.h"
 #include "IconsFontAwesome6.h"
+#include <algorithm>
 #include <cstdlib>
 #include <ctime>
 #include <chrono>
@@ -717,6 +718,27 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
     }
 }
 
+static std::vector<OpenDAQNodeEditor::DiscoveredDeviceEntry> DiscoverDevicesSorted(daq::DevicePtr parent_device)
+{
+    daq::ListPtr<daq::IDeviceInfo> available_devices = parent_device.getAvailableDevices();
+    std::vector<OpenDAQNodeEditor::DiscoveredDeviceEntry> devices;
+    if (available_devices.assigned())
+    {
+        devices.reserve(static_cast<size_t>(available_devices.getCount()));
+        for (const auto& device_info : available_devices)
+            devices.push_back({device_info.getName(), device_info.getConnectionString()});
+    }
+
+    std::sort(devices.begin(), devices.end(),
+              [](const OpenDAQNodeEditor::DiscoveredDeviceEntry& a, const OpenDAQNodeEditor::DiscoveredDeviceEntry& b)
+              {
+                  if (a.name != b.name)
+                      return a.name < b.name;
+                  return a.connection_string < b.connection_string;
+              });
+    return devices;
+}
+
 void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, const std::string& parent_id, std::optional<ImVec2> position)
 {
     if (!canCastTo<daq::IDevice>(parent_component))
@@ -730,24 +752,24 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
         {
             try
             {
-                available_devices_ = device_discovery_future_.get();
+                discovered_devices_sorted_ = device_discovery_future_.get();
             }
             catch (const std::exception& e)
             {
                 ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to discover devices: %s", e.what()});
-                available_devices_ = nullptr;
+                discovered_devices_sorted_.clear();
             }
             catch (...)
             {
                 ImGui::InsertNotification({ImGuiToastType::Error, DEFAULT_NOTIFICATION_DURATION_MS, "Failed to discover devices: Unknown error"});
-                available_devices_ = nullptr;
+                discovered_devices_sorted_.clear();
             }
             last_refresh_time_ = std::chrono::steady_clock::now();
         }
     }
 
     bool is_discovering = device_discovery_future_.valid();
-    std::string discover_button_label = (available_devices_.assigned() && available_devices_.getCount() > 0) ? "Refresh device list" : "Discover devices";
+    std::string discover_button_label = (!discovered_devices_sorted_.empty()) ? "Refresh device list" : "Discover devices";
     if (is_discovering)
     {
         ImGui::BeginDisabled();
@@ -770,7 +792,7 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
             device_discovery_future_ = std::async(std::launch::async,
                 [parent_device]()
                 {
-                    return parent_device.getAvailableDevices();
+                    return DiscoverDevicesSorted(parent_device);
                 });
     }
 
@@ -826,15 +848,13 @@ void OpenDAQNodeEditor::RenderDeviceOptions(daq::ComponentPtr parent_component, 
             }
         };
 
-    if (available_devices_.assigned() && available_devices_.getCount() > 0)
+    if (!discovered_devices_sorted_.empty())
     {
-        for (const auto& device_info : available_devices_)
+        for (const auto& device : discovered_devices_sorted_)
         {
-            std::string device_connection_name = device_info.getName();
-            std::string device_connection_string = device_info.getConnectionString();
-            if (ImGui::MenuItem((device_connection_name + " (" + device_connection_string + ")").c_str()))
+            if (ImGui::MenuItem((device.name + " (" + device.connection_string + ")").c_str()))
             {
-                if (add_device(device_connection_string))
+                if (add_device(device.connection_string))
                     ImGui::CloseCurrentPopup();
             }
         }
@@ -1126,7 +1146,7 @@ void OpenDAQNodeEditor::ShowStartupPopup()
              is_device_discovery_initialized_ = true;
              daq::DevicePtr parent_device = castTo<daq::IDevice>(instance_);
              device_discovery_future_ = std::async(std::launch::async, [parent_device]() {
-                 return parent_device.getAvailableDevices();
+                return DiscoverDevicesSorted(parent_device);
              });
         }
     }

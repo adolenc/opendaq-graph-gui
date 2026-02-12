@@ -61,8 +61,14 @@ public:
 
     daq::ComponentPtr dragged_input_port_component_;
 
-    daq::ListPtr<daq::IDeviceInfo> available_devices_;
-    std::future<daq::ListPtr<daq::IDeviceInfo>> device_discovery_future_;
+    struct DiscoveredDeviceEntry
+    {
+        std::string name;
+        std::string connection_string;
+    };
+
+    std::vector<DiscoveredDeviceEntry> discovered_devices_sorted_;
+    std::future<std::vector<DiscoveredDeviceEntry>> device_discovery_future_;
     bool is_device_discovery_initialized_ = false;
     bool auto_refresh_devices_ = true;
     std::chrono::steady_clock::time_point last_refresh_time_;
