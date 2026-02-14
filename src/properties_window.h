@@ -80,4 +80,5 @@ private:
     bool show_debug_properties_ = false;
     bool is_cloned_ = false;
     bool group_components_ = false;
+    bool force_auto_resize_next_frame_ = false;
 };

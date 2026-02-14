@@ -103,6 +103,7 @@ PropertiesWindow::PropertiesWindow(const PropertiesWindow& other)
     tabbed_interface_ = other.tabbed_interface_;
     show_debug_properties_ = other.show_debug_properties_;
     is_cloned_ = true;
+    force_auto_resize_next_frame_ = !tabbed_interface_;
     on_reselect_click_ = other.on_reselect_click_;
     on_property_changed_ = other.on_property_changed_;
     all_components_ = other.all_components_;
@@ -635,10 +636,16 @@ void PropertiesWindow::Render()
 {
     ImGui::SetNextWindowPos(ImVec2(300.f, 20.f), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(100.f, 100.f), ImGuiCond_FirstUseEver);
-    
+
+    const bool auto_fit_this_frame = is_cloned_ && !tabbed_interface_ && force_auto_resize_next_frame_;
+    ImGuiWindowFlags window_flags = 0;
+    if (is_cloned_ && (tabbed_interface_ || auto_fit_this_frame))
+        window_flags |= ImGuiWindowFlags_AlwaysAutoResize;
+
     std::string title = !is_cloned_ ? "Properties" : "Properties (cloned)##" + std::to_string((uintptr_t)this);
-    if (!ImGui::Begin(title.c_str(), is_cloned_ ? &is_open_ : nullptr, is_cloned_ ? ImGuiWindowFlags_AlwaysAutoResize : 0))
+    if (!ImGui::Begin(title.c_str(), is_cloned_ ? &is_open_ : nullptr, window_flags))
     {
+        force_auto_resize_next_frame_ = false;
         ImGui::End();
         return;
     }
@@ -701,7 +708,12 @@ void PropertiesWindow::Render()
     ImGui::SameLine();
 
     if (ImGui::Button(tabbed_interface_ ? ICON_FA_TABLE_COLUMNS " " ICON_FA_TOGGLE_OFF : ICON_FA_TABLE_COLUMNS " " ICON_FA_TOGGLE_ON))
+    {
+        const bool was_tabbed = tabbed_interface_;
         tabbed_interface_ = !tabbed_interface_;
+        if (is_cloned_ && was_tabbed && !tabbed_interface_)
+            force_auto_resize_next_frame_ = true;
+    }
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip(tabbed_interface_ ? "Show multiple components side by side" : "Use tabs for multiple components");
 
@@ -743,7 +755,9 @@ void PropertiesWindow::Render()
         }
         else
         {
-            ImGui::BeginChild("##ContentScrollRegion", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar);
+            if (!auto_fit_this_frame)
+                ImGui::BeginChild("##ContentScrollRegion", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar);
+
             int uid = 0;
             for (auto& comp : grouped_selected_components_)
             {
@@ -752,7 +766,9 @@ void PropertiesWindow::Render()
                 ImGui::EndChild();
                 ImGui::SameLine();
             }
-            ImGui::EndChild();
+
+            if (!auto_fit_this_frame)
+                ImGui::EndChild();
         }
 
         bool needs_rebuild = false;
@@ -768,6 +784,7 @@ void PropertiesWindow::Render()
             RebuildComponents();
     }
     ImGui::PopStyleColor(3);
+    force_auto_resize_next_frame_ = false;
     ImGui::End();
 }
 
