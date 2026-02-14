@@ -77,7 +77,7 @@ target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/
 FetchContent_Declare(
   implot
   GIT_REPOSITORY https://github.com/epezent/implot.git
-  GIT_TAG master
+  GIT_TAG v0.17
   PATCH_COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/patches/implot-locked-axis.patch || echo "Patch already applied"
 )
 FetchContent_MakeAvailable(implot)
