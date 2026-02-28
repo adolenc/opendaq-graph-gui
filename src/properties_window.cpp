@@ -373,6 +373,20 @@ void PropertiesWindow::RenderProperty(SharedCachedProperty& cached_prop, SharedC
         case daq::ctFunc:
             RenderFunctionProperty(cached_prop);
             break;
+        case daq::ctList:
+            assert(std::holds_alternative<std::string>(cached_prop.value_));
+            {
+                std::string value = std::get<std::string>(cached_prop.value_);
+                bool entered = ImGui::InputText(cached_prop.display_name_.c_str(), &value, cached_prop.is_multi_value_ ? ImGuiInputTextFlags_EnterReturnsTrue : 0);
+                if (entered || (!cached_prop.is_multi_value_ && ImGui::IsItemDeactivatedAfterEdit()))
+                    SetValue(value);
+                if (is_disabled && !cached_prop.is_multi_value_ && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNone | ImGuiHoveredFlags_AllowWhenDisabled) && ImGui::BeginTooltip())
+                {
+                    ImGui::Text("%s", value.c_str());
+                    ImGui::EndTooltip();
+                }
+            }
+            break;
         case daq::ctObject:
             ImGui::Text("%s", cached_prop.display_name_.c_str());
             break;

@@ -4,6 +4,7 @@
 #include <implot.h>
 #include "imgui_internal.h"
 #include <cstdio>
+#include <sstream>
 
 
 std::unordered_map<std::string, ImVec4> CachedComponent::signal_colors_;
@@ -113,6 +114,40 @@ void CachedComponent::AddProperty(daq::PropertyPtr prop, daq::PropertyObjectPtr 
                 }
                 break;
             case daq::ctList:
+                {
+                    daq::ListPtr<daq::IBaseObject> list = property_holder.getPropertyValue(cached.name_);
+                    daq::CoreType item_type = prop.getItemType();
+
+                    // if property doesn't declare item type, detect from first element
+                    if (item_type == daq::ctUndefined && list.assigned() && list.getCount() > 0)
+                    {
+                        auto elem = list.getItemAt(0);
+                        if (elem.supportsInterface<daq::IFloat>())
+                            item_type = daq::ctFloat;
+                        else if (elem.supportsInterface<daq::IInteger>())
+                            item_type = daq::ctInt;
+                        else if (elem.supportsInterface<daq::IString>())
+                            item_type = daq::ctString;
+                    }
+
+                    std::string text = "[";
+                    if (list.assigned())
+                    {
+                        for (size_t i = 0; i < list.getCount(); i++)
+                        {
+                            if (i > 0) text += ", ";
+                            text += ValueToString(list.getItemAt(i));
+                        }
+                    }
+                    text += "]";
+
+                    cached.list_item_type_ = item_type;
+                    cached.value_ = text;
+
+                    if (item_type != daq::ctInt && item_type != daq::ctFloat)
+                        cached.is_read_only_ = true;
+                }
+                break;
             case daq::ctDict:
             case daq::ctRatio:
             case daq::ctEnumeration:
@@ -608,6 +643,37 @@ void CachedProperty::SetValue(ValueType value)
                 property_holder.getPropertyValue(uid_).asPtr<daq::IProcedure>().dispatch(); break;
             case daq::ctFunc:
                 property_holder.getPropertyValue(uid_).asPtr<daq::IFunction>().dispatch(); break;
+            case daq::ctList:
+            {
+                std::string str = std::get<std::string>(value);
+                daq::ListPtr<daq::IBaseObject> list = daq::List<daq::IBaseObject>();
+
+                // strip outer brackets and whitespace
+                size_t start = str.find('[');
+                size_t end = str.rfind(']');
+                if (start != std::string::npos && end != std::string::npos && end > start)
+                {
+                    std::string inner = str.substr(start + 1, end - start - 1);
+                    std::istringstream stream(inner);
+                    std::string token;
+                    while (std::getline(stream, token, ','))
+                    {
+                        // trim whitespace
+                        size_t first = token.find_first_not_of(" \t");
+                        if (first == std::string::npos)
+                            continue;
+                        token = token.substr(first, token.find_last_not_of(" \t") - first + 1);
+
+                        if (list_item_type_.has_value() && *list_item_type_ == daq::ctInt)
+                            list.pushBack(daq::Integer(std::stoll(token)));
+                        else if (list_item_type_.has_value() && *list_item_type_ == daq::ctFloat)
+                            list.pushBack(daq::Float(std::stod(token)));
+                    }
+                }
+
+                property_holder.setPropertyValue(uid_, list);
+                break;
+            }
             default:
                 assert(false && "unsupported property type");
                 return;

@@ -46,6 +46,7 @@ struct CachedProperty
         std::string last_execution_result;
     };
     std::optional<FunctionInfo> function_info_;
+    std::optional<daq::CoreType> list_item_type_;
 
     void EnsureFunctionInfoCached();
 };
