@@ -1430,12 +1430,6 @@ void OpenDAQNodeEditor::Render()
         event_id_queue_.clear();
     }
 
-    for (auto& [id, component] : all_components_)
-    {
-        if (component && component->needs_resync_)
-            component->RefreshProperties();
-    }
-
     properties_window_.Render();
     for (auto it = cloned_properties_windows_.begin(); it != cloned_properties_windows_.end(); )
     {
@@ -1464,9 +1458,4 @@ void OpenDAQNodeEditor::Render()
     }
     ImGui::End();
 
-    for (auto& [id, component] : all_components_)
-    {
-        if (component)
-            component->needs_resync_ = false;
-    }
 }

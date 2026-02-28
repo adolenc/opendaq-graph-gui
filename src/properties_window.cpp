@@ -535,8 +535,11 @@ void PropertiesWindow::RenderChildren(SharedCachedComponent& shared_cached_compo
             continue;
 
         CachedComponent* child = it->second.get();
-        if (!child->initial_properties_loaded_)
+        if (child->needs_resync_ || !child->initial_properties_loaded_)
+        {
             child->RefreshProperties();
+            child->needs_resync_ = false;
+        }
 
         // skip folders that are just for structure
         if (child->name_ == "IO" || child->name_ == "AI" || child->name_ == "AO" || child->name_ == "Dev" || child->name_ == "FB")
@@ -587,8 +590,11 @@ void PropertiesWindow::RenderComponentWithParents(SharedCachedComponent& shared_
 
     for (auto it = parent_components.rbegin(); it != parent_components.rend(); ++it)
     {
-        if (!(*it)->initial_properties_loaded_)
+        if ((*it)->needs_resync_ || !(*it)->initial_properties_loaded_)
+        {
             (*it)->RefreshProperties();
+            (*it)->needs_resync_ = false;
+        }
 
         if ((*it)->name_ == "IO" || (*it)->name_ == "AI" || (*it)->name_ == "AO" || (*it)->name_ == "Dev" || (*it)->name_ == "FB")
             continue;
@@ -800,8 +806,11 @@ void PropertiesWindow::RebuildComponents()
         if (auto it = all_components_->find(id); it != all_components_->end())
         {
             CachedComponent* comp = it->second.get();
-            if (comp->properties_.empty() && comp->attributes_.empty())
+            if (comp->needs_resync_ || (!comp->initial_properties_loaded_))
+            {
                 comp->RefreshProperties();
+                comp->needs_resync_ = false;
+            }
             all_selected_components.push_back(comp);
         }
     }
