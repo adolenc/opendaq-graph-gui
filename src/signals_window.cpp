@@ -36,6 +36,7 @@ void SignalsWindow::OnSelectionChanged(const std::vector<std::string>& selected_
 
 void SignalsWindow::RestoreSelection(const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>& all_components)
 {
+    bool was_empty = signals_map_.empty();
     std::unordered_set<std::string> selected_signal_ids;
 
     auto add_signal = [&](const daq::SignalPtr& signal)
@@ -121,7 +122,8 @@ void SignalsWindow::RestoreSelection(const std::unordered_map<std::string, std::
         total_min_ = std::min(total_min_, signal.live.value_range_min_);
         total_max_ = std::max(total_max_, signal.live.value_range_max_);
     }
-    plot_unique_id_ += 1;
+    if (was_empty && !signals_map_.empty())
+        plot_unique_id_ += 1;
 }
 
 void SignalsWindow::Render()
@@ -186,7 +188,6 @@ void SignalsWindow::Render()
     if (ImGui::InputFloat("##SecondsShown", &temp_seconds_shown, 0, 0, "%.1f s"), ImGui::IsItemDeactivatedAfterEdit())
     {
         seconds_shown_ = ImClamp(temp_seconds_shown, 0.1f, 3600.0f);
-        plot_unique_id_++;
     }
 
     if (signals_map_.empty())
@@ -385,7 +386,6 @@ void SignalsWindow::RebuildInvalidSignals()
         total_min_ = std::min(total_min_, signal.live.value_range_min_);
         total_max_ = std::max(total_max_, signal.live.value_range_max_);
     }
-    plot_unique_id_ += 1;
 }
 
 void SignalsWindow::UpdateSignalColor(const std::string& signal_id, ImVec4 color)
