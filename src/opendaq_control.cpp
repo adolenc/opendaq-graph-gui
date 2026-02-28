@@ -1272,10 +1272,16 @@ void OpenDAQNodeEditor::RenderNestedNodePopup()
         {
             ImSearch::SearchBar();
 
+            std::vector<std::pair<const std::string*, CachedComponent*>> sorted_signals;
+            sorted_signals.reserve(signals_.size());
             for (const auto& e : signals_)
+                sorted_signals.push_back({&e.first, e.second});
+            std::sort(sorted_signals.begin(), sorted_signals.end(),
+                [](const auto& a, const auto& b) { return *a.first < *b.first; });
+
+            for (const auto& [id_ptr, cached] : sorted_signals)
             {
-                const std::string& id = e.first;
-                CachedComponent* cached = e.second;
+                const std::string& id = *id_ptr;
 
                 std::string entry_name = cached->component_.getName().toStdString() + " (" + id + ")";
                 ImSearch::SearchableItem(entry_name.c_str(), [=](const char*)
