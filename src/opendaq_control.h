@@ -105,7 +105,14 @@ public:
     ImColor GetNodeColor(int color_index) const { return node_color_palette_[color_index % node_color_palette_size_]; }
 
     int next_color_index_ = 1;
+    int next_clone_id_ = 1;
 
     std::mutex event_mutex_;
     std::vector<std::pair<daq::ComponentPtr, daq::CoreEventArgsPtr>> event_id_queue_;
+
+    // Pending state loaded from INI, applied after first RebuildStructure
+    std::vector<std::string> pending_selected_ids_;
+    bool has_pending_state_ = false;
+    std::vector<std::unique_ptr<PropertiesWindow>> pending_cloned_properties_;
+    std::vector<std::unique_ptr<SignalsWindow>> pending_cloned_signals_;
 };

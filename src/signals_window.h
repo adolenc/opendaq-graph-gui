@@ -41,6 +41,12 @@ public:
         if (sscanf(line, "SecondsShown=%f", &f) == 1) seconds_shown_ = f;
     }
 
+    std::vector<std::string> selected_component_ids_;
+    bool freeze_selection_ = false;
+    bool is_cloned_ = false;
+    float seconds_shown_ = 5.0f;
+    int clone_id_ = 0;
+
 private:
     struct Subplot {
         std::vector<std::string> signal_ids;
@@ -52,15 +58,10 @@ private:
         }
     };
 
-    bool freeze_selection_ = false;
-    bool is_cloned_ = false;
     bool is_paused_ = false;
-
-    std::vector<std::string> selected_component_ids_;
     std::unordered_map<std::string, Signal> signals_map_;
     std::vector<Subplot> subplots_;
     float total_min_ = 0.0f;
     float total_max_ = 0.0f;
-    float seconds_shown_ = 5.0f;
     int plot_unique_id_ = 0; // id used to reset plot (especially min/max axis) whenever inputs change
 };

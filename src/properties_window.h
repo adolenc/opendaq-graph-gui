@@ -61,6 +61,17 @@ public:
         else if (sscanf(line, "GroupComponents=%d", &i) == 1) group_components_ = (bool)i;
     }
 
+    std::vector<std::string> selected_component_ids_;
+    const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>* all_components_ = nullptr;
+    bool freeze_selection_ = false;
+    bool show_parents_and_children_ = true;
+    bool tabbed_interface_ = true;
+    bool show_debug_properties_ = false;
+    bool is_cloned_ = false;
+    bool group_components_ = false;
+    bool force_auto_resize_next_frame_ = false;
+    int clone_id_ = 0;
+
 private:
     void RebuildComponents();
     
@@ -72,13 +83,4 @@ private:
     void RenderChildren(SharedCachedComponent& component);
     
     std::vector<SharedCachedComponent> grouped_selected_components_;
-    std::vector<std::string> selected_component_ids_;
-    const std::unordered_map<std::string, std::unique_ptr<CachedComponent>>* all_components_ = nullptr;
-    bool freeze_selection_ = false;
-    bool show_parents_and_children_ = true;
-    bool tabbed_interface_ = true;
-    bool show_debug_properties_ = false;
-    bool is_cloned_ = false;
-    bool group_components_ = false;
-    bool force_auto_resize_next_frame_ = false;
 };

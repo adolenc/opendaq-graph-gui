@@ -76,6 +76,115 @@ static void NodeEditorSettingsHandler_WriteAll(ImGuiContext*, ImGuiSettingsHandl
     buf->append("\n");
 }
 
+static void* SelectionSettingsHandler_ReadOpen(ImGuiContext*, ImGuiSettingsHandler*, const char* name)
+{
+    return (void*)name;
+}
+
+static void SelectionSettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* /*entry*/, const char* line)
+{
+    OpenDAQNodeEditor* editor = (OpenDAQNodeEditor*)handler->UserData;
+    char id_buf[1024];
+    if (sscanf(line, "Id=%1023[^\n]", id_buf) == 1)
+    {
+        editor->pending_selected_ids_.push_back(std::string(id_buf));
+        editor->has_pending_state_ = true;
+    }
+}
+
+static void SelectionSettingsHandler_WriteAll(ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buf)
+{
+    OpenDAQNodeEditor* editor = (OpenDAQNodeEditor*)handler->UserData;
+    if (editor->selected_ids_.empty())
+        return;
+    buf->appendf("[%s][State]\n", handler->TypeName);
+    for (const auto& id : editor->selected_ids_)
+        buf->appendf("Id=%s\n", id.c_str());
+    buf->append("\n");
+}
+
+static void* ClonedWindowsSettingsHandler_ReadOpen(ImGuiContext*, ImGuiSettingsHandler* handler, const char* name)
+{
+    OpenDAQNodeEditor* editor = (OpenDAQNodeEditor*)handler->UserData;
+    editor->has_pending_state_ = true;
+    if (strncmp(name, "Properties", 10) == 0)
+    {
+        auto w = std::make_unique<PropertiesWindow>();
+        w->is_cloned_ = true;
+        w->freeze_selection_ = true;
+        editor->pending_cloned_properties_.push_back(std::move(w));
+        return (void*)editor->pending_cloned_properties_.back().get();
+    }
+    else
+    {
+        auto w = std::make_unique<SignalsWindow>();
+        w->is_cloned_ = true;
+        w->freeze_selection_ = true;
+        editor->pending_cloned_signals_.push_back(std::move(w));
+        return (void*)editor->pending_cloned_signals_.back().get();
+    }
+}
+
+static void ClonedWindowsSettingsHandler_ReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* entry, const char* line)
+{
+    // entry is either a PropertiesWindow* or SignalsWindow*; try both LoadSettings + shared fields
+    OpenDAQNodeEditor* editor = (OpenDAQNodeEditor*)handler->UserData;
+
+    // Check if it's a properties window
+    for (auto& w : editor->pending_cloned_properties_)
+    {
+        if (w.get() == entry)
+        {
+            char id_buf[1024];
+            int i;
+            if (sscanf(line, "CloneId=%d", &i) == 1) w->clone_id_ = i;
+            else if (sscanf(line, "SelectedId=%1023[^\n]", id_buf) == 1) w->selected_component_ids_.emplace_back(id_buf);
+            else w->LoadSettings(line);
+            return;
+        }
+    }
+    // Otherwise it's a signals window
+    for (auto& w : editor->pending_cloned_signals_)
+    {
+        if (w.get() == entry)
+        {
+            char id_buf[1024];
+            int i;
+            if (sscanf(line, "CloneId=%d", &i) == 1) w->clone_id_ = i;
+            else if (sscanf(line, "SelectedId=%1023[^\n]", id_buf) == 1) w->selected_component_ids_.emplace_back(id_buf);
+            else w->LoadSettings(line);
+            return;
+        }
+    }
+}
+
+static void ClonedWindowsSettingsHandler_WriteAll(ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buf)
+{
+    OpenDAQNodeEditor* editor = (OpenDAQNodeEditor*)handler->UserData;
+
+    int idx = 0;
+    for (const auto& w : editor->cloned_properties_windows_)
+    {
+        buf->appendf("[%s][Properties_%d]\n", handler->TypeName, idx++);
+        buf->appendf("CloneId=%d\n", w->clone_id_);
+        for (const auto& id : w->selected_component_ids_)
+            buf->appendf("SelectedId=%s\n", id.c_str());
+        w->SaveSettings(buf);
+        buf->append("\n");
+    }
+
+    idx = 0;
+    for (const auto& w : editor->cloned_signals_windows_)
+    {
+        buf->appendf("[%s][Signals_%d]\n", handler->TypeName, idx++);
+        buf->appendf("CloneId=%d\n", w->clone_id_);
+        for (const auto& id : w->selected_component_ids_)
+            buf->appendf("SelectedId=%s\n", id.c_str());
+        w->SaveSettings(buf);
+        buf->append("\n");
+    }
+}
+
 void OpenDAQNodeEditor::InitImGui()
 {
     ImGuiSettingsHandler ini_handler;
@@ -112,6 +221,24 @@ void OpenDAQNodeEditor::InitImGui()
     ini_handler4.ReadLineFn = CachedComponent::SettingsHandler_ReadLine;
     ini_handler4.WriteAllFn = CachedComponent::SettingsHandler_WriteAll;
     ImGui::GetCurrentContext()->SettingsHandlers.push_back(ini_handler4);
+
+    ImGuiSettingsHandler ini_handler5;
+    ini_handler5.TypeName = "Selection";
+    ini_handler5.TypeHash = ImHashStr("Selection");
+    ini_handler5.ReadOpenFn = SelectionSettingsHandler_ReadOpen;
+    ini_handler5.ReadLineFn = SelectionSettingsHandler_ReadLine;
+    ini_handler5.WriteAllFn = SelectionSettingsHandler_WriteAll;
+    ini_handler5.UserData = this;
+    ImGui::GetCurrentContext()->SettingsHandlers.push_back(ini_handler5);
+
+    ImGuiSettingsHandler ini_handler6;
+    ini_handler6.TypeName = "ClonedWindows";
+    ini_handler6.TypeHash = ImHashStr("ClonedWindows");
+    ini_handler6.ReadOpenFn = ClonedWindowsSettingsHandler_ReadOpen;
+    ini_handler6.ReadLineFn = ClonedWindowsSettingsHandler_ReadLine;
+    ini_handler6.WriteAllFn = ClonedWindowsSettingsHandler_WriteAll;
+    ini_handler6.UserData = this;
+    ImGui::GetCurrentContext()->SettingsHandlers.push_back(ini_handler6);
 }
 
 void OpenDAQNodeEditor::Init()
@@ -153,6 +280,7 @@ void OpenDAQNodeEditor::Init()
         [this](SignalsWindow* w)
         {
             auto new_window = std::make_unique<SignalsWindow>(*w);
+            new_window->clone_id_ = next_clone_id_++;
             cloned_signals_windows_.push_back(std::move(new_window));
         };
 
@@ -160,6 +288,7 @@ void OpenDAQNodeEditor::Init()
         [this](PropertiesWindow* w)
         {
             auto new_window = std::make_unique<PropertiesWindow>(*w);
+            new_window->clone_id_ = next_clone_id_++;
             cloned_properties_windows_.push_back(std::move(new_window));
         };
 
@@ -400,13 +529,65 @@ void OpenDAQNodeEditor::RebuildStructure()
     nodes_.EndBatchAdd();
     RetrieveConnections();
 
-    properties_window_.RestoreSelection(all_components_);
-    for (auto& w : cloned_properties_windows_)
-        w->RestoreSelection(all_components_);
+    if (has_pending_state_)
+    {
+        has_pending_state_ = false;
 
-    signals_window_.RestoreSelection(all_components_);
-    for (auto& w : cloned_signals_windows_)
-        w->RestoreSelection(all_components_);
+        // Restore selection
+        if (!pending_selected_ids_.empty())
+        {
+            // Filter to only IDs that actually exist in the current topology
+            std::vector<std::string> valid_ids;
+            for (const auto& id : pending_selected_ids_)
+            {
+                if (all_components_.find(id) != all_components_.end())
+                    valid_ids.push_back(id);
+            }
+            pending_selected_ids_.clear();
+
+            if (!valid_ids.empty())
+            {
+                selected_ids_ = valid_ids;
+                nodes_.SetSelectedNodes(selected_ids_);
+                properties_window_.OnSelectionChanged(selected_ids_, all_components_);
+                signals_window_.OnSelectionChanged(selected_ids_, all_components_);
+                tree_view_window_.OnSelectionChanged(selected_ids_, all_components_);
+            }
+        }
+
+        // Restore cloned windows
+        for (auto& w : pending_cloned_properties_)
+        {
+            if (w->clone_id_ >= next_clone_id_)
+                next_clone_id_ = w->clone_id_ + 1;
+            w->force_auto_resize_next_frame_ = !w->tabbed_interface_;
+            w->on_reselect_click_ = properties_window_.on_reselect_click_;
+            w->on_property_changed_ = properties_window_.on_property_changed_;
+            w->RestoreSelection(all_components_);
+            cloned_properties_windows_.push_back(std::move(w));
+        }
+        pending_cloned_properties_.clear();
+
+        for (auto& w : pending_cloned_signals_)
+        {
+            if (w->clone_id_ >= next_clone_id_)
+                next_clone_id_ = w->clone_id_ + 1;
+            w->on_reselect_click_ = signals_window_.on_reselect_click_;
+            w->RestoreSelection(all_components_);
+            cloned_signals_windows_.push_back(std::move(w));
+        }
+        pending_cloned_signals_.clear();
+    }
+    else
+    {
+        properties_window_.RestoreSelection(all_components_);
+        for (auto& w : cloned_properties_windows_)
+            w->RestoreSelection(all_components_);
+
+        signals_window_.RestoreSelection(all_components_);
+        for (auto& w : cloned_signals_windows_)
+            w->RestoreSelection(all_components_);
+    }
 }
 
 void OpenDAQNodeEditor::RebuildNodeGeometry()

@@ -662,7 +662,7 @@ void PropertiesWindow::Render()
     if (is_cloned_ && (tabbed_interface_ || auto_fit_this_frame))
         window_flags |= ImGuiWindowFlags_AlwaysAutoResize;
 
-    std::string title = !is_cloned_ ? "Properties" : "Properties (cloned)##" + std::to_string((uintptr_t)this);
+    std::string title = !is_cloned_ ? "Properties" : "Properties (cloned)##PropClone_" + std::to_string(clone_id_);
     if (!ImGui::Begin(title.c_str(), is_cloned_ ? &is_open_ : nullptr, window_flags))
     {
         force_auto_resize_next_frame_ = false;
