@@ -2223,41 +2223,82 @@ void ImGuiNodes::EndBatchAdd()
     float vertical_spacing = 20.0f;
     float start_x = 100.0f;
 
-    auto layout_tree = [&](auto& self, ImGuiNodesNode* node, float x, float y) -> float {
-        std::vector<ImGuiNodesNode*>& children = children_map[node->uid_];
-        
+    // Pass 1: compute the vertical space each subtree needs (bottom-up)
+    std::unordered_map<ImGuiNodesUid, float> subtree_heights;
+
+    auto compute_height = [&](auto& self, ImGuiNodesNode* node) -> float {
+        auto& children = children_map[node->uid_];
+        float node_height = node->area_node_.GetHeight();
+
         if (children.empty())
         {
-            ImVec2 target_pos(x, y + node->area_node_.GetHeight() * 0.5f);
-            node->TranslateNode(target_pos - node->area_node_.GetCenter());
-            return y + node->area_node_.GetHeight() + vertical_spacing;
+            subtree_heights[node->uid_] = node_height;
+            return node_height;
         }
 
-        float child_y = y;
-        float first_child_center_y = 0.0f;
-        float last_child_center_y = 0.0f;
-        
+        float total_children_height = 0.0f;
         for (size_t i = 0; i < children.size(); ++i)
         {
-            ImGuiNodesNode* child = children[i];
-            child_y = self(self, child, x + horizontal_spacing, child_y);
-            
-            if (i == 0)
-                first_child_center_y = child->area_node_.GetCenter().y;
-            if (i == children.size() - 1)
-                last_child_center_y = child->area_node_.GetCenter().y;
+            total_children_height += self(self, children[i]);
+            if (i < children.size() - 1)
+                total_children_height += vertical_spacing;
         }
 
-        float center_y = (first_child_center_y + last_child_center_y) * 0.5f;
-        ImVec2 target_pos(x, center_y);
-        node->TranslateNode(target_pos - node->area_node_.GetCenter());
-        
-        return child_y;
+        float height = ImMax(node_height, total_children_height);
+        subtree_heights[node->uid_] = height;
+        return height;
+    };
+
+    for (ImGuiNodesNode* root : root_nodes)
+        compute_height(compute_height, root);
+
+    // Pass 2: position nodes top-down within allocated space
+    auto layout_tree = [&](auto& self, ImGuiNodesNode* node, float x, float y) -> void {
+        auto& children = children_map[node->uid_];
+        float sh = subtree_heights[node->uid_];
+
+        if (children.empty())
+        {
+            ImVec2 target_pos(x, y + sh * 0.5f);
+            node->TranslateNode(target_pos - node->area_node_.GetCenter());
+            return;
+        }
+
+        float total_children_height = 0.0f;
+        for (size_t i = 0; i < children.size(); ++i)
+        {
+            total_children_height += subtree_heights[children[i]->uid_];
+            if (i < children.size() - 1)
+                total_children_height += vertical_spacing;
+        }
+
+        // Center children within the subtree's vertical extent
+        float child_y = y + (sh - total_children_height) * 0.5f;
+        for (size_t i = 0; i < children.size(); ++i)
+        {
+            self(self, children[i], x + horizontal_spacing, child_y);
+            child_y += subtree_heights[children[i]->uid_] + vertical_spacing;
+        }
+
+        // Center parent between first and last child, clamped to stay within bounds
+        float first_center = children.front()->area_node_.GetCenter().y;
+        float last_center = children.back()->area_node_.GetCenter().y;
+        float desired_center = (first_center + last_center) * 0.5f;
+
+        float node_height = node->area_node_.GetHeight();
+        float min_center = y + node_height * 0.5f;
+        float max_center = y + sh - node_height * 0.5f;
+        float center_y = ImClamp(desired_center, min_center, max_center);
+
+        node->TranslateNode(ImVec2(x, center_y) - node->area_node_.GetCenter());
     };
 
     float current_y = 100.0f;
     for (ImGuiNodesNode* root : root_nodes)
-        current_y = layout_tree(layout_tree, root, start_x, current_y);
+    {
+        layout_tree(layout_tree, root, start_x, current_y);
+        current_y += subtree_heights[root->uid_] + vertical_spacing;
+    }
 }
 
 void ImGuiNodes::RenderMinimap(ImDrawList* draw_list)
