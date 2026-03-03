@@ -2200,39 +2200,79 @@ void ImGuiNodes::EndBatchAdd()
     batch_add_mode_ = false;
 
     if (nodes_.empty())
+    {
+        fprintf(stderr, "[Layout] EndBatchAdd: no nodes, skipping\n");
         return;
+    }
 
-    // If we have cached nodes, we assume the graph is being rebuilt/updated and we want to preserve positions.
-    // Running the auto-layout would overwrite all positions, including the cached ones.
-    if (!node_cache_.empty())
-        return;
+    fprintf(stderr, "[Layout] EndBatchAdd: running layout for %d nodes (cache has %d entries)\n",
+        (int)nodes_.size(), (int)node_cache_.size());
 
     std::unordered_map<ImGuiNodesUid, std::vector<ImGuiNodesNode*>> children_map;
     std::vector<ImGuiNodesNode*> root_nodes;
 
-    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+    // Explicitly insert empty vectors for every node uid
+    for (int node_idx = 0; node_idx < (int)nodes_.size(); ++node_idx)
+    {
+        auto result = children_map.emplace(nodes_[node_idx]->uid_, std::vector<ImGuiNodesNode*>{});
+        if (!result.second)
+            fprintf(stderr, "[Layout] WARNING: duplicate uid '%s' at node_idx %d\n", nodes_[node_idx]->uid_.c_str(), node_idx);
+    }
+
+    for (int node_idx = 0; node_idx < (int)nodes_.size(); ++node_idx)
     {
         ImGuiNodesNode* node = nodes_[node_idx];
         if (node->parent_node_)
-            children_map[node->parent_node_->uid_].push_back(node);
+        {
+            auto it = children_map.find(node->parent_node_->uid_);
+            if (it == children_map.end())
+            {
+                fprintf(stderr, "[Layout] ERROR: node '%s' has parent_node_ '%s' but parent uid not in children_map! Treating as root.\n",
+                    node->uid_.c_str(), node->parent_node_->uid_.c_str());
+                root_nodes.push_back(node);
+            }
+            else
+            {
+                it->second.push_back(node);
+            }
+        }
         else
+        {
             root_nodes.push_back(node);
+        }
+    }
+
+    fprintf(stderr, "[Layout] %d root nodes, %d entries in children_map\n", (int)root_nodes.size(), (int)children_map.size());
+    for (const auto& [uid, kids] : children_map)
+    {
+        if (!kids.empty())
+            fprintf(stderr, "[Layout]   '%s' has %d children\n", uid.c_str(), (int)kids.size());
     }
 
     float horizontal_spacing = 250.0f;
     float vertical_spacing = 20.0f;
     float start_x = 100.0f;
 
-    // Pass 1: compute the vertical space each subtree needs (bottom-up)
+    // Pass 1: compute the vertical space each subtree needs (bottom-up).
     std::unordered_map<ImGuiNodesUid, float> subtree_heights;
 
     auto compute_height = [&](auto& self, ImGuiNodesNode* node) -> float {
-        auto& children = children_map[node->uid_];
+        auto it = children_map.find(node->uid_);
+        if (it == children_map.end())
+        {
+            fprintf(stderr, "[Layout] ERROR in compute_height: uid '%s' not in children_map!\n", node->uid_.c_str());
+            float h = node->area_node_.GetHeight();
+            subtree_heights[node->uid_] = h;
+            return h;
+        }
+
+        const std::vector<ImGuiNodesNode*>& children = it->second;
         float node_height = node->area_node_.GetHeight();
 
         if (children.empty())
         {
             subtree_heights[node->uid_] = node_height;
+            fprintf(stderr, "[Layout]   compute_height('%s'): leaf, node_h=%.1f\n", node->uid_.c_str(), node_height);
             return node_height;
         }
 
@@ -2246,41 +2286,71 @@ void ImGuiNodes::EndBatchAdd()
 
         float height = ImMax(node_height, total_children_height);
         subtree_heights[node->uid_] = height;
+        fprintf(stderr, "[Layout]   compute_height('%s'): node_h=%.1f, children_h=%.1f, subtree_h=%.1f\n",
+            node->uid_.c_str(), node_height, total_children_height, height);
         return height;
     };
 
     for (ImGuiNodesNode* root : root_nodes)
         compute_height(compute_height, root);
 
-    // Pass 2: position nodes top-down within allocated space
+    // Pass 2: position nodes top-down within allocated space.
     auto layout_tree = [&](auto& self, ImGuiNodesNode* node, float x, float y) -> void {
-        auto& children = children_map[node->uid_];
-        float sh = subtree_heights[node->uid_];
+        auto it = children_map.find(node->uid_);
+        if (it == children_map.end())
+        {
+            fprintf(stderr, "[Layout] ERROR in layout_tree: uid '%s' not in children_map!\n", node->uid_.c_str());
+            return;
+        }
+
+        auto sh_it = subtree_heights.find(node->uid_);
+        if (sh_it == subtree_heights.end())
+        {
+            fprintf(stderr, "[Layout] ERROR in layout_tree: uid '%s' not in subtree_heights!\n", node->uid_.c_str());
+            return;
+        }
+
+        const std::vector<ImGuiNodesNode*>& children = it->second;
+        float sh = sh_it->second;
 
         if (children.empty())
         {
             ImVec2 target_pos(x, y + sh * 0.5f);
             node->TranslateNode(target_pos - node->area_node_.GetCenter());
+            fprintf(stderr, "[Layout]   place leaf '%s': x=%.0f, band=[%.1f, %.1f], center=%.1f, actual=[%.1f, %.1f]\n",
+                node->uid_.c_str(), x, y, y + sh, y + sh * 0.5f, node->area_node_.Min.y, node->area_node_.Max.y);
             return;
         }
 
         float total_children_height = 0.0f;
         for (size_t i = 0; i < children.size(); ++i)
         {
-            total_children_height += subtree_heights[children[i]->uid_];
+            auto child_sh_it = subtree_heights.find(children[i]->uid_);
+            if (child_sh_it == subtree_heights.end())
+            {
+                fprintf(stderr, "[Layout] ERROR: child '%s' of '%s' not in subtree_heights!\n",
+                    children[i]->uid_.c_str(), node->uid_.c_str());
+                continue;
+            }
+            total_children_height += child_sh_it->second;
             if (i < children.size() - 1)
                 total_children_height += vertical_spacing;
         }
 
-        // Center children within the subtree's vertical extent
         float child_y = y + (sh - total_children_height) * 0.5f;
+        fprintf(stderr, "[Layout]   layout '%s': x=%.0f, band=[%.1f, %.1f], sh=%.1f, children_h=%.1f, child_y_start=%.1f\n",
+            node->uid_.c_str(), x, y, y + sh, sh, total_children_height, child_y);
+
         for (size_t i = 0; i < children.size(); ++i)
         {
+            auto child_sh_it = subtree_heights.find(children[i]->uid_);
+            float child_sh = child_sh_it->second;
+            fprintf(stderr, "[Layout]     child[%d] '%s': child_y=%.1f, child_sh=%.1f, band=[%.1f, %.1f]\n",
+                (int)i, children[i]->uid_.c_str(), child_y, child_sh, child_y, child_y + child_sh);
             self(self, children[i], x + horizontal_spacing, child_y);
-            child_y += subtree_heights[children[i]->uid_] + vertical_spacing;
+            child_y += child_sh + vertical_spacing;
         }
 
-        // Center parent between first and last child, clamped to stay within bounds
         float first_center = children.front()->area_node_.GetCenter().y;
         float last_center = children.back()->area_node_.GetCenter().y;
         float desired_center = (first_center + last_center) * 0.5f;
@@ -2291,13 +2361,84 @@ void ImGuiNodes::EndBatchAdd()
         float center_y = ImClamp(desired_center, min_center, max_center);
 
         node->TranslateNode(ImVec2(x, center_y) - node->area_node_.GetCenter());
+        fprintf(stderr, "[Layout]   placed '%s': desired=%.1f, clamped=%.1f, actual=[%.1f, %.1f]\n",
+            node->uid_.c_str(), desired_center, center_y, node->area_node_.Min.y, node->area_node_.Max.y);
     };
 
     float current_y = 100.0f;
     for (ImGuiNodesNode* root : root_nodes)
     {
+        fprintf(stderr, "[Layout] Root '%s': start_y=%.1f, subtree_h=%.1f\n",
+            root->uid_.c_str(), current_y, subtree_heights[root->uid_]);
         layout_tree(layout_tree, root, start_x, current_y);
         current_y += subtree_heights[root->uid_] + vertical_spacing;
+    }
+
+    // Restore cached positions for nodes that have them
+    int restored = 0;
+    for (int i = 0; i < (int)nodes_.size(); ++i)
+    {
+        ImGuiNodesNode* node = nodes_[i];
+        auto cache_it = node_cache_.find(node->uid_);
+        if (cache_it != node_cache_.end())
+        {
+            ImVec2 cached_center = cache_it->second.pos;
+            ImVec2 delta = cached_center - node->area_node_.GetCenter();
+            node->TranslateNode(delta);
+            fprintf(stderr, "[Layout] Restored cached pos for '%s': center=(%.1f, %.1f), actual=[%.1f, %.1f]\n",
+                node->uid_.c_str(), cached_center.x, cached_center.y, node->area_node_.Min.y, node->area_node_.Max.y);
+            restored++;
+        }
+    }
+    fprintf(stderr, "[Layout] Restored %d/%d nodes from cache\n", restored, (int)nodes_.size());
+
+    // Resolve overlaps per column.
+    std::unordered_map<int, std::vector<ImGuiNodesNode*>> columns;
+    for (int i = 0; i < (int)nodes_.size(); ++i)
+    {
+        int col = (int)(nodes_[i]->area_node_.GetCenter().x + 0.5f);
+        columns[col].push_back(nodes_[i]);
+    }
+
+    bool any_overlap = false;
+    for (auto& [col, col_nodes] : columns)
+    {
+        if (col_nodes.size() < 2)
+            continue;
+        std::sort(col_nodes.begin(), col_nodes.end(),
+            [](const ImGuiNodesNode* a, const ImGuiNodesNode* b) { return a->area_node_.Min.y < b->area_node_.Min.y; });
+
+        for (size_t i = 1; i < col_nodes.size(); ++i)
+        {
+            float prev_bottom = col_nodes[i - 1]->area_node_.Max.y;
+            float cur_top = col_nodes[i]->area_node_.Min.y;
+            if (cur_top < prev_bottom + vertical_spacing)
+            {
+                float push = (prev_bottom + vertical_spacing) - cur_top;
+                fprintf(stderr, "[Layout] OVERLAP FIXED col=%d: '%s'[%.1f,%.1f] vs '%s'[%.1f,%.1f] push=%.1f\n",
+                    col,
+                    col_nodes[i - 1]->uid_.c_str(), col_nodes[i - 1]->area_node_.Min.y, prev_bottom,
+                    col_nodes[i]->uid_.c_str(), cur_top, col_nodes[i]->area_node_.Max.y,
+                    push);
+                col_nodes[i]->TranslateNode(ImVec2(0.0f, push));
+                any_overlap = true;
+            }
+        }
+    }
+
+    if (!any_overlap)
+        fprintf(stderr, "[Layout] Overlap check: no overlaps detected\n");
+
+    fprintf(stderr, "[Layout] EndBatchAdd complete. Final positions:\n");
+    for (int i = 0; i < (int)nodes_.size(); ++i)
+    {
+        ImGuiNodesNode* node = nodes_[i];
+        fprintf(stderr, "[Layout]   '%s': x=[%.1f,%.1f] y=[%.1f,%.1f] h=%.1f parent='%s'\n",
+            node->uid_.c_str(),
+            node->area_node_.Min.x, node->area_node_.Max.x,
+            node->area_node_.Min.y, node->area_node_.Max.y,
+            node->area_node_.GetHeight(),
+            node->parent_node_ ? node->parent_node_->uid_.c_str() : "(root)");
     }
 }
 
