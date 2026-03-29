@@ -30,6 +30,20 @@ static void BeginComponentDragSource(PropertiesWindow* window, SharedCachedCompo
     }
 }
 
+static void BeginComponentDragSource(PropertiesWindow* window, CachedComponent* comp)
+{
+    if (ImGui::BeginDragDropSource())
+    {
+        s_dnd_source_window = window;
+        s_dnd_component_ids = { comp->uid_ };
+
+        int dummy = 0;
+        ImGui::SetDragDropPayload(PROP_DND_TYPE, &dummy, sizeof(dummy));
+        ImGui::Text("%s", comp->name_.c_str());
+        ImGui::EndDragDropSource();
+    }
+}
+
 
 SharedCachedComponent::SharedCachedComponent(const std::vector<CachedComponent*>& components, const std::string& group_name)
 {
@@ -591,7 +605,9 @@ void PropertiesWindow::RenderChildren(SharedCachedComponent& shared_cached_compo
         {
             ImGui::PushID(child_id.c_str());
             ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyleColorVec4(ImGuiCol_Tab));
-            if (ImGui::CollapsingHeader((child->name_ + "###" + child->uid_).c_str()))
+            bool child_open = ImGui::CollapsingHeader((child->name_ + "###" + child->uid_).c_str());
+            BeginComponentDragSource(this, child);
+            if (child_open)
             {
                 SharedCachedComponent shared_child({child});
                 RenderComponent(shared_child, false);
@@ -639,7 +655,9 @@ void PropertiesWindow::RenderComponentWithParents(SharedCachedComponent& shared_
 
         ImGui::PushID((*it)->component_.getGlobalId().toStdString().c_str());
         ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyleColorVec4(ImGuiCol_Tab));
-        if (ImGui::CollapsingHeader((*it)->name_.c_str()))
+        bool parent_open = ImGui::CollapsingHeader((*it)->name_.c_str());
+        BeginComponentDragSource(this, *it);
+        if (parent_open)
         {
              SharedCachedComponent parent_component({*it});
              RenderComponent(parent_component, false);
