@@ -2,8 +2,14 @@
 #include "utils.h"
 #include "IconsFontAwesome6.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "implot.h"
+#include <algorithm>
 #include <unordered_set>
+
+
+static constexpr const char* SIG_DND_TYPE = "SIG_DND";
+static SignalsWindow* s_sig_dnd_source = nullptr;
 
 
 SignalsWindow::SignalsWindow(const SignalsWindow& other)
@@ -193,6 +199,47 @@ void SignalsWindow::Render()
     if (signals_map_.empty())
     {
         ImGui::Text("No signals found on selected components");
+
+        // Accept cross-window signal drops even when empty
+        {
+            const ImGuiPayload* active_payload = ImGui::GetDragDropPayload();
+            if (active_payload && active_payload->IsDataType(SIG_DND_TYPE) && s_sig_dnd_source && s_sig_dnd_source != this)
+            {
+                ImGuiWindow* window = ImGui::GetCurrentWindow();
+                if (ImGui::BeginDragDropTargetCustom(window->InnerRect, window->ID))
+                {
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(SIG_DND_TYPE))
+                    {
+                        std::string signal_id = (const char*)payload->Data;
+                        SignalsWindow* source = s_sig_dnd_source;
+                        auto src_it = source->signals_map_.find(signal_id);
+                        if (src_it != source->signals_map_.end())
+                        {
+                            auto& src_signal = src_it->second;
+                            signals_map_[signal_id] = { OpenDAQSignal(src_signal.live.signal_, seconds_shown_), OpenDAQSignal(), src_signal.color };
+                            subplots_.emplace_back();
+                            subplots_.back().signal_ids.push_back(signal_id);
+                        }
+                        if (source->is_cloned_)
+                        {
+                            source->signals_map_.erase(signal_id);
+                            for (auto& s : source->subplots_)
+                            {
+                                auto& ids = s.signal_ids;
+                                ids.erase(std::remove(ids.begin(), ids.end(), signal_id), ids.end());
+                            }
+                            source->subplots_.erase(std::remove_if(source->subplots_.begin(), source->subplots_.end(),
+                                                                   [](const Subplot& s) { return s.signal_ids.empty(); }),
+                                                    source->subplots_.end());
+                        }
+                        if (is_cloned_)
+                            freeze_selection_ = true;
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+            }
+        }
+
         ImGui::End();
         return;
     }
@@ -204,9 +251,8 @@ void SignalsWindow::Render()
     for (auto& [_, signal] : signals_map_)
         signal.live.UpdateConfiguration(seconds_shown_, max_points);
 
-    std::string dnd_payload_name = "DND_SIGNAL" + std::to_string((uintptr_t)this);
     float drop_height = 0.0f;
-    if (const ImGuiPayload* payload = ImGui::GetDragDropPayload(); payload && payload->IsDataType(dnd_payload_name.c_str()))
+    if (const ImGuiPayload* payload = ImGui::GetDragDropPayload(); payload && payload->IsDataType(SIG_DND_TYPE))
         drop_height = 40.0f;
     float spacing_between_subplots = ImGui::GetStyle().ItemSpacing.y;
     float total_spacing = (float)std::max((int)subplots_.size() - 1, 0) * spacing_between_subplots;
@@ -302,7 +348,8 @@ void SignalsWindow::Render()
 
                 if (ImPlot::BeginDragDropSourceItem(label.c_str()))
                 {
-                    ImGui::SetDragDropPayload(dnd_payload_name.c_str(), id.c_str(), id.size() + 1);
+                    s_sig_dnd_source = this;
+                    ImGui::SetDragDropPayload(SIG_DND_TYPE, id.c_str(), id.size() + 1);
                     ImGui::ColorButton("##SignalColor", signal.color, ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoOptions, ImVec2(ImGui::GetTextLineHeight(), ImGui::GetTextLineHeight()));
                     ImGui::SameLine();
                     ImGui::Text("%s%s", signal.live.signal_name_.c_str() , signal.live.signal_unit_.empty() ? "" : (" [" + signal.live.signal_unit_ + "]").c_str());
@@ -312,29 +359,68 @@ void SignalsWindow::Render()
 
             if (ImPlot::BeginDragDropTargetPlot())
             {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dnd_payload_name.c_str()))
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(SIG_DND_TYPE))
                 {
                     std::string signal_id = (const char*)payload->Data;
                     int target_uid = subplot.uid;
-                    deferred_action = [this, signal_id, target_uid]()
-                        {
-                            for (Subplot& subplot : subplots_)
+                    SignalsWindow* source = s_sig_dnd_source;
+
+                    if (source == this)
+                    {
+                        deferred_action = [this, signal_id, target_uid]()
                             {
-                                std::vector<std::string>& ids = subplot.signal_ids;
-                                ids.erase(std::remove(ids.begin(), ids.end(), signal_id), ids.end());
-                            }
-                            for (Subplot& subplot : subplots_)
-                            {
-                                if (subplot.uid == target_uid)
+                                for (Subplot& subplot : subplots_)
                                 {
-                                    subplot.signal_ids.push_back(signal_id);
-                                    break;
+                                    std::vector<std::string>& ids = subplot.signal_ids;
+                                    ids.erase(std::remove(ids.begin(), ids.end(), signal_id), ids.end());
                                 }
-                            }
-                            subplots_.erase(std::remove_if(subplots_.begin(), subplots_.end(),
-                                                           [](const Subplot& subplot) { return subplot.signal_ids.empty(); }),
-                                            subplots_.end());
-                        };
+                                for (Subplot& subplot : subplots_)
+                                {
+                                    if (subplot.uid == target_uid)
+                                    {
+                                        subplot.signal_ids.push_back(signal_id);
+                                        break;
+                                    }
+                                }
+                                subplots_.erase(std::remove_if(subplots_.begin(), subplots_.end(),
+                                                               [](const Subplot& subplot) { return subplot.signal_ids.empty(); }),
+                                                subplots_.end());
+                            };
+                    }
+                    else if (source)
+                    {
+                        deferred_action = [this, signal_id, target_uid, source]()
+                            {
+                                auto src_it = source->signals_map_.find(signal_id);
+                                if (src_it != source->signals_map_.end() && !signals_map_.count(signal_id))
+                                {
+                                    auto& src_signal = src_it->second;
+                                    signals_map_[signal_id] = { OpenDAQSignal(src_signal.live.signal_, seconds_shown_), OpenDAQSignal(), src_signal.color };
+                                    for (auto& s : subplots_)
+                                    {
+                                        if (s.uid == target_uid)
+                                        {
+                                            s.signal_ids.push_back(signal_id);
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (source->is_cloned_)
+                                {
+                                    source->signals_map_.erase(signal_id);
+                                    for (auto& s : source->subplots_)
+                                    {
+                                        auto& ids = s.signal_ids;
+                                        ids.erase(std::remove(ids.begin(), ids.end(), signal_id), ids.end());
+                                    }
+                                    source->subplots_.erase(std::remove_if(source->subplots_.begin(), source->subplots_.end(),
+                                                                           [](const Subplot& s) { return s.signal_ids.empty(); }),
+                                                            source->subplots_.end());
+                                }
+                                if (is_cloned_)
+                                    freeze_selection_ = true;
+                            };
+                    }
                 }
                 ImPlot::EndDragDropTarget();
             }
@@ -348,21 +434,53 @@ void SignalsWindow::Render()
         ImGui::Button("Drop signal here to create a subplot", ImVec2(-1, drop_height));
         if (ImGui::BeginDragDropTarget())
         {
-            if (const ImGuiPayload* accepted_payload = ImGui::AcceptDragDropPayload(dnd_payload_name.c_str()))
+            if (const ImGuiPayload* accepted_payload = ImGui::AcceptDragDropPayload(SIG_DND_TYPE))
             {
                 std::string signal_id = (const char*)accepted_payload->Data;
-                deferred_action = [this, signal_id]()
-                    {
-                        for (auto& s : subplots_)
+                SignalsWindow* source = s_sig_dnd_source;
+
+                if (source == this)
+                {
+                    deferred_action = [this, signal_id]()
                         {
-                            auto& ids = s.signal_ids;
-                            ids.erase(std::remove(ids.begin(), ids.end(), signal_id), ids.end());
-                        }
-                        subplots_.push_back(Subplot({signal_id}));
-                        subplots_.erase(std::remove_if(subplots_.begin(), subplots_.end(),
-                                                       [](const Subplot& s) { return s.signal_ids.empty(); }),
-                                        subplots_.end());
-                    };
+                            for (auto& s : subplots_)
+                            {
+                                auto& ids = s.signal_ids;
+                                ids.erase(std::remove(ids.begin(), ids.end(), signal_id), ids.end());
+                            }
+                            subplots_.push_back(Subplot({signal_id}));
+                            subplots_.erase(std::remove_if(subplots_.begin(), subplots_.end(),
+                                                           [](const Subplot& s) { return s.signal_ids.empty(); }),
+                                            subplots_.end());
+                        };
+                }
+                else if (source)
+                {
+                    deferred_action = [this, signal_id, source]()
+                        {
+                            auto src_it = source->signals_map_.find(signal_id);
+                            if (src_it != source->signals_map_.end() && !signals_map_.count(signal_id))
+                            {
+                                auto& src_signal = src_it->second;
+                                signals_map_[signal_id] = { OpenDAQSignal(src_signal.live.signal_, seconds_shown_), OpenDAQSignal(), src_signal.color };
+                                subplots_.push_back(Subplot({signal_id}));
+                            }
+                            if (source->is_cloned_)
+                            {
+                                source->signals_map_.erase(signal_id);
+                                for (auto& s : source->subplots_)
+                                {
+                                    auto& ids = s.signal_ids;
+                                    ids.erase(std::remove(ids.begin(), ids.end(), signal_id), ids.end());
+                                }
+                                source->subplots_.erase(std::remove_if(source->subplots_.begin(), source->subplots_.end(),
+                                                                       [](const Subplot& s) { return s.signal_ids.empty(); }),
+                                                        source->subplots_.end());
+                            }
+                            if (is_cloned_)
+                                freeze_selection_ = true;
+                        };
+                }
             }
             ImGui::EndDragDropTarget();
         }
@@ -370,6 +488,47 @@ void SignalsWindow::Render()
 
     if (deferred_action)
         deferred_action();
+
+    // Window-level drop target for cross-window signal drops (fallback for empty areas)
+    {
+        const ImGuiPayload* active_payload = ImGui::GetDragDropPayload();
+        if (active_payload && active_payload->IsDataType(SIG_DND_TYPE) && s_sig_dnd_source && s_sig_dnd_source != this)
+        {
+            ImGuiWindow* window = ImGui::GetCurrentWindow();
+            if (ImGui::BeginDragDropTargetCustom(window->InnerRect, window->ID))
+            {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(SIG_DND_TYPE))
+                {
+                    std::string signal_id = (const char*)payload->Data;
+                    SignalsWindow* source = s_sig_dnd_source;
+                    auto src_it = source->signals_map_.find(signal_id);
+                    if (src_it != source->signals_map_.end() && !signals_map_.count(signal_id))
+                    {
+                        auto& src_signal = src_it->second;
+                        signals_map_[signal_id] = { OpenDAQSignal(src_signal.live.signal_, seconds_shown_), OpenDAQSignal(), src_signal.color };
+                        if (subplots_.empty())
+                            subplots_.emplace_back();
+                        subplots_[0].signal_ids.push_back(signal_id);
+                    }
+                    if (source->is_cloned_)
+                    {
+                        source->signals_map_.erase(signal_id);
+                        for (auto& s : source->subplots_)
+                        {
+                            auto& ids = s.signal_ids;
+                            ids.erase(std::remove(ids.begin(), ids.end(), signal_id), ids.end());
+                        }
+                        source->subplots_.erase(std::remove_if(source->subplots_.begin(), source->subplots_.end(),
+                                                               [](const Subplot& s) { return s.signal_ids.empty(); }),
+                                                source->subplots_.end());
+                    }
+                    if (is_cloned_)
+                        freeze_selection_ = true;
+                }
+                ImGui::EndDragDropTarget();
+            }
+        }
+    }
 
     ImGui::End();
 }
