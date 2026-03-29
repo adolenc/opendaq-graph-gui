@@ -2,10 +2,33 @@
 #include "utils.h"
 #include "IconsFontAwesome6.h"
 #include <string>
+#include <algorithm>
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_stdlib.h"
 #include <map>
 #include <sstream>
+
+
+static constexpr const char* PROP_DND_TYPE = "PROP_COMP_DND";
+static PropertiesWindow* s_dnd_source_window = nullptr;
+static std::vector<std::string> s_dnd_component_ids;
+
+static void BeginComponentDragSource(PropertiesWindow* window, SharedCachedComponent& comp)
+{
+    if (ImGui::BeginDragDropSource())
+    {
+        s_dnd_source_window = window;
+        s_dnd_component_ids.clear();
+        for (CachedComponent* src : comp.source_components_)
+            s_dnd_component_ids.push_back(src->uid_);
+
+        int dummy = 0;
+        ImGui::SetDragDropPayload(PROP_DND_TYPE, &dummy, sizeof(dummy));
+        ImGui::Text("%s", comp.name_.c_str());
+        ImGui::EndDragDropSource();
+    }
+}
 
 
 SharedCachedComponent::SharedCachedComponent(const std::vector<CachedComponent*>& components, const std::string& group_name)
@@ -478,6 +501,7 @@ void PropertiesWindow::RenderComponent(SharedCachedComponent& shared_cached_comp
     {
         ImGui::SetNextItemOpen(true);
         ImGui::CollapsingHeader(shared_cached_component.name_.c_str(), ImGuiTreeNodeFlags_Leaf);
+        BeginComponentDragSource(this, shared_cached_component);
         AddGroupedComponentsTooltip(shared_cached_component);
     }
 
@@ -753,7 +777,16 @@ void PropertiesWindow::Render()
     {
         if (grouped_selected_components_.size() == 1)
         {
-            RenderComponentWithParents(grouped_selected_components_[0]);
+            auto& comp = grouped_selected_components_[0];
+            // In tabbed mode with no parents/grouping header, render a draggable title
+            if (tabbed_interface_ && (!show_parents_and_children_ || group_components_))
+            {
+                ImGui::SetNextItemOpen(true);
+                ImGui::CollapsingHeader(comp.name_.c_str(), ImGuiTreeNodeFlags_Leaf);
+                BeginComponentDragSource(this, comp);
+                AddGroupedComponentsTooltip(comp);
+            }
+            RenderComponentWithParents(comp);
         }
         else if (tabbed_interface_ && grouped_selected_components_.size() > 1)
         {
@@ -763,6 +796,7 @@ void PropertiesWindow::Render()
                 for (auto& comp : grouped_selected_components_)
                 {
                     bool open = ImGui::BeginTabItem((comp.name_ + "###" + std::to_string(uid++)).c_str());
+                    BeginComponentDragSource(this, comp);
                     AddGroupedComponentsTooltip(comp);
                     if (open)
                     {
@@ -804,6 +838,42 @@ void PropertiesWindow::Render()
             RebuildComponents();
     }
     ImGui::PopStyleColor(3);
+
+    // Drop target: accept components dragged from another properties window
+    {
+        const ImGuiPayload* active_payload = ImGui::GetDragDropPayload();
+        if (active_payload && active_payload->IsDataType(PROP_DND_TYPE) && s_dnd_source_window && s_dnd_source_window != this)
+        {
+            ImGuiWindow* window = ImGui::GetCurrentWindow();
+            if (ImGui::BeginDragDropTargetCustom(window->InnerRect, window->ID))
+            {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(PROP_DND_TYPE))
+                {
+                    for (const auto& id : s_dnd_component_ids)
+                    {
+                        if (std::find(selected_component_ids_.begin(), selected_component_ids_.end(), id) == selected_component_ids_.end())
+                            selected_component_ids_.push_back(id);
+                    }
+
+                    // Only remove from source if it's a cloned window (main window keeps its selection)
+                    if (s_dnd_source_window->is_cloned_)
+                    {
+                        auto& src_ids = s_dnd_source_window->selected_component_ids_;
+                        for (const auto& id : s_dnd_component_ids)
+                            src_ids.erase(std::remove(src_ids.begin(), src_ids.end(), id), src_ids.end());
+                        s_dnd_source_window->RebuildComponents();
+                    }
+
+                    if (is_cloned_)
+                        freeze_selection_ = true;
+
+                    RebuildComponents();
+                }
+                ImGui::EndDragDropTarget();
+            }
+        }
+    }
+
     force_auto_resize_next_frame_ = false;
     ImGui::End();
 }
