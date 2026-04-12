@@ -263,6 +263,7 @@ private:
         ImVec2 pos;
         ImColor color;
         bool is_selected;
+        ImGuiNodesUid embedded_parent_uid;  // non-empty if user-embedded into a parent
     };
     std::unordered_map<ImGuiNodesUid, NodeCacheEntry> node_cache_;
     bool batch_add_mode_ = false;

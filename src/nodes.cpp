@@ -1481,7 +1481,7 @@ void ImGuiNodes::DeleteNodes(const std::vector<ImGuiNodesNode*>& nodes_to_delete
 
         if (std::find(expanded_delete_list.begin(), expanded_delete_list.end(), node) != expanded_delete_list.end())
         {
-            node_cache_[node->uid_] = { node->area_node_.GetCenter(), node->color_, true };
+            node_cache_[node->uid_] = { node->area_node_.GetCenter(), node->color_, true, "" };
 
             active_node_ = NULL;
             active_input_ = NULL;
@@ -1590,22 +1590,40 @@ void ImGuiNodes::ProcessNodes()
                 ImVec2 p1 = offset;
                 ImVec2 p4 = offset;
 
-                if (IS_SET(node->state_, ImGuiNodesNodeStateFlag_Collapsed))
+                // Determine effective node and source for collapsed state
+                // If embedded inside a collapsed parent, redirect to the parent
+                const ImGuiNodesNode* effective_node = node;
+                if (node->is_embedded_)
                 {
-                    ImVec2 collapsed_input = { 0, (node->area_node_.Max.y - node->area_node_.Min.y) * 0.5f };					
+                    const ImGuiNodesNode* root = const_cast<ImGuiNodesNode*>(node)->GetEmbeddingRoot();
+                    if (IS_SET(root->state_, ImGuiNodesNodeStateFlag_Collapsed))
+                        effective_node = root;
+                }
 
-                    p1 += ((node->area_node_.Min + collapsed_input) * scale_);
+                const ImGuiNodesNode* effective_source = source_node;
+                if (source_node->is_embedded_)
+                {
+                    const ImGuiNodesNode* root = const_cast<ImGuiNodesNode*>(source_node)->GetEmbeddingRoot();
+                    if (IS_SET(root->state_, ImGuiNodesNodeStateFlag_Collapsed))
+                        effective_source = root;
+                }
+
+                if (IS_SET(effective_node->state_, ImGuiNodesNodeStateFlag_Collapsed))
+                {
+                    ImVec2 collapsed_input = { 0, (effective_node->area_node_.Max.y - effective_node->area_node_.Min.y) * 0.5f };
+
+                    p1 += ((effective_node->area_node_.Min + collapsed_input) * scale_);
                 }
                 else
                 {
                     p1 += (input.pos_ * scale_);
                 }
 
-                if (IS_SET(source_node->state_, ImGuiNodesNodeStateFlag_Collapsed))
+                if (IS_SET(effective_source->state_, ImGuiNodesNodeStateFlag_Collapsed))
                 {
-                    ImVec2 collapsed_output = { 0, (source_node->area_node_.Max.y - source_node->area_node_.Min.y) * 0.5f };					
+                    ImVec2 collapsed_output = { 0, (effective_source->area_node_.Max.y - effective_source->area_node_.Min.y) * 0.5f };
                     
-                    p4 += ((source_node->area_node_.Max - collapsed_output) * scale_);
+                    p4 += ((effective_source->area_node_.Max - collapsed_output) * scale_);
                 }
                 else
                 {
@@ -1613,7 +1631,7 @@ void ImGuiNodes::ProcessNodes()
                 }
 
                 ImColor connection_color = input.connection_color_.has_value() ? input.connection_color_.value() : ImColor(0.5f, 0.5f, 0.5f, 1.0f);
-                bool active_node_collapsed_and_not_selected = IS_SET(node->state_, ImGuiNodesNodeStateFlag_Collapsed) && !IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected);
+                bool active_node_collapsed_and_not_selected = IS_SET(effective_node->state_, ImGuiNodesNodeStateFlag_Collapsed) && !IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected);
                 bool another_node_selected = any_node_selected && !IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected) && !IS_SET(source_node->state_, ImGuiNodesNodeStateFlag_Selected);
                 if (active_node_collapsed_and_not_selected || another_node_selected)
                     connection_color.Value.w = 0.1f;
@@ -2439,13 +2457,16 @@ void ImGuiNodes::Clear()
     active_input_ = NULL;
     active_output_ = NULL;
 
+    // Collect cache entries before deleting any nodes (parent_node_ pointers become dangling after delete)
     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
     {
         ImGuiNodesNode* node = nodes_[node_idx];
         bool selected = IS_SET(node->state_, ImGuiNodesNodeStateFlag_Selected);
-        node_cache_[node->uid_] = { node->area_node_.GetCenter(), node->color_, selected };
-        delete node;
+        ImGuiNodesUid embed_parent = (node->is_embedded_ && node->parent_node_) ? node->parent_node_->uid_ : "";
+        node_cache_[node->uid_] = { node->area_node_.GetCenter(), node->color_, selected, embed_parent };
     }
+    for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
+        delete nodes_[node_idx];
     
     nodes_.clear();
     nodes_by_uid_.clear();
@@ -2557,12 +2578,16 @@ void ImGuiNodes::SaveSettings(ImGuiTextBuffer* buf)
     {
         ImVec2 pos = node->area_node_.GetCenter();
         buf->appendf("Node=%s,%.0f,%.0f\n", node->uid_.c_str(), pos.x, pos.y);
+        if (node->is_embedded_ && node->parent_node_)
+            buf->appendf("Embed=%s,%s\n", node->uid_.c_str(), node->parent_node_->uid_.c_str());
     }
     for (const auto& [uid, entry] : node_cache_)
     {
         if (nodes_by_uid_.find(uid) == nodes_by_uid_.end())
         {
              buf->appendf("Node=%s,%.0f,%.0f\n", uid.c_str(), entry.pos.x, entry.pos.y);
+             if (!entry.embedded_parent_uid.empty())
+                 buf->appendf("Embed=%s,%s\n", uid.c_str(), entry.embedded_parent_uid.c_str());
         }
     }
 }
@@ -2582,7 +2607,17 @@ void ImGuiNodes::LoadSettings(const char* line)
     float x, y;
     if (sscanf(line, "Node=%[^,],%f,%f", uid, &x, &y) == 3)
     {
-        node_cache_[uid] = { ImVec2(x, y), ImColor(0, 0, 0, 0), false };
+        node_cache_[uid] = { ImVec2(x, y), ImColor(0, 0, 0, 0), false, "" };
+    }
+
+    char child_uid[256], parent_uid[256];
+    if (sscanf(line, "Embed=%[^,],%s", child_uid, parent_uid) == 2)
+    {
+        auto it = node_cache_.find(child_uid);
+        if (it != node_cache_.end())
+            it->second.embedded_parent_uid = parent_uid;
+        else
+            node_cache_[child_uid] = { ImVec2(0, 0), ImColor(0, 0, 0, 0), false, parent_uid };
     }
 }
 
@@ -2603,6 +2638,35 @@ void ImGuiNodes::EndBatchAdd()
 
     fprintf(stderr, "[Layout] EndBatchAdd: running layout for %d nodes (cache has %d entries)\n",
         (int)nodes_.size(), (int)node_cache_.size());
+
+    // Restore cached embedding state: apply user embed/unembed overrides
+    if (!node_cache_.empty())
+    {
+        // First pass: unembed nodes that the user had unembedded (cache says no parent, but topology embedded them)
+        for (const auto& [uid, entry] : node_cache_)
+        {
+            if (entry.embedded_parent_uid.empty())
+            {
+                auto it = nodes_by_uid_.find(uid);
+                if (it != nodes_by_uid_.end() && it->second->is_embedded_)
+                    UnembedNode(uid);
+            }
+        }
+
+        // Second pass: embed nodes that the user had embedded (cache says parent, but topology didn't embed them)
+        for (const auto& [uid, entry] : node_cache_)
+        {
+            if (!entry.embedded_parent_uid.empty())
+            {
+                auto it = nodes_by_uid_.find(uid);
+                if (it != nodes_by_uid_.end() && !it->second->is_embedded_)
+                {
+                    if (nodes_by_uid_.find(entry.embedded_parent_uid) != nodes_by_uid_.end())
+                        EmbedNode(uid, entry.embedded_parent_uid);
+                }
+            }
+        }
+    }
 
     std::unordered_map<ImGuiNodesUid, std::vector<ImGuiNodesNode*>> children_map;
     std::vector<ImGuiNodesNode*> root_nodes;
