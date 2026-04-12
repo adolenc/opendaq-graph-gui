@@ -439,6 +439,23 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
                         cached->output_signals_,
                         parent_id);
 
+        // If this is a function block nested inside another function block, embed it
+        // (also covers FBs nested inside channels, since IChannel extends IFunctionBlock)
+        if (!parent_id.empty() && canCastTo<daq::IFunctionBlock>(component))
+        {
+            auto parent_it = folders_.find(parent_id);
+            if (parent_it != folders_.end() && canCastTo<daq::IFunctionBlock>(parent_it->second->component_))
+                nodes_.EmbedNode(component_id, parent_id);
+        }
+
+        // Embed channels inside their parent device
+        if (!parent_id.empty() && canCastTo<daq::IChannel>(component))
+        {
+            auto parent_it = folders_.find(parent_id);
+            if (parent_it != folders_.end() && canCastTo<daq::IDevice>(parent_it->second->component_))
+                nodes_.EmbedNode(component_id, parent_id);
+        }
+
         if (!component.getActive())
             nodes_.SetActive(component_id, false);
 
@@ -864,6 +881,10 @@ void OpenDAQNodeEditor::RenderFunctionBlockOptions(daq::ComponentPtr parent_comp
                                                 fb_cached->output_signals_,
                                                 parent_id);
                             }
+
+                            // If parent is a function block, embed the new FB inside it
+                            if (canCastTo<daq::IFunctionBlock>(parent_component))
+                                nodes_.EmbedNode(fb_id_str, parent_id);
 
                             if (!fb.getActive())
                                 nodes_.SetActive(fb_id_str, false);
