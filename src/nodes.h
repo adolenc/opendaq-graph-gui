@@ -144,6 +144,12 @@ struct ImGuiNodesNode
     ImGuiNodesUid uid_;
     ImGuiNodesNode* parent_node_;
 
+    // Embedded node support: when is_embedded_ is true, this node is rendered
+    // inside its parent_node_'s body, below the parent's inputs/outputs.
+    bool is_embedded_ = false;
+    std::vector<ImGuiNodesNode*> embedded_children_;
+    float embedded_area_height_ = 0.0f;
+
     ImRect area_node_;
     ImRect area_name_;
     ImRect area_add_button_;
@@ -160,9 +166,14 @@ struct ImGuiNodesNode
     std::vector<ImGuiNodesOutput> outputs_;
 
     ImGuiNodesNode(const ImGuiNodesIdentifier& name, ImColor color);
-    void TranslateNode(ImVec2 delta, bool selected_only = false);
-    void BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size);
+    void TranslateNode(ImVec2 delta, bool selected_only = false, bool cascade_embedded = true);
+    void BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size, float min_width = 0.0f);
     void Render(ImDrawList* draw_list, ImVec2 offset, float scale, ImGuiNodesState state) const;
+
+    // Returns the top-level ancestor that is not itself embedded
+    ImGuiNodesNode* GetEmbeddingRoot();
+    // Recursively collect all embedded descendants
+    void CollectEmbeddedDescendants(std::vector<ImGuiNodesNode*>& out);
 };
 
 struct ImGuiNodes
@@ -194,6 +205,8 @@ public:
     void SetSelectedNodes(const std::vector<ImGuiNodesUid>& selected_ids);
     void MoveSelectedNodesIntoView();
     void ClearNodeConnections(const ImGuiNodesUid& node_uid);
+    void EmbedNode(const ImGuiNodesUid& child_uid, const ImGuiNodesUid& parent_uid);
+    void UnembedNode(const ImGuiNodesUid& child_uid);
     void Clear();
     void RebuildGeometry();
 
@@ -263,6 +276,8 @@ private:
     inline bool SortSelectedNodesOrder();
     void ClearAllConnectorSelections();
     ImVec2 UpdateEdgeScrolling();
+    void RebuildSingleNodeGeometry(ImGuiNodesNode* node, float min_width = 0.0f);
+    void RebuildEmbeddedGeometry(ImGuiNodesNode* parent);
 };
 
 }

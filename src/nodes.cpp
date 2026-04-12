@@ -331,6 +331,17 @@ ImGuiNodesNode* ImGuiNodes::UpdateNodesFromCanvas()
         ImGuiNodesNode* node = nodes_[node_idx];
         IM_ASSERT(node);
 
+        // If this node is embedded and its embedding root is collapsed, hide it
+        if (node->is_embedded_)
+        {
+            ImGuiNodesNode* root = node->GetEmbeddingRoot();
+            if (IS_SET(root->state_, ImGuiNodesNodeStateFlag_Collapsed))
+            {
+                CLEAR_FLAGS(node->state_, ImGuiNodesNodeStateFlag_Visible | ImGuiNodesNodeStateFlag_Hovered | ImGuiNodesNodeStateFlag_MarkedForSelection);
+                continue;
+            }
+        }
+
         ImRect node_rect = node->area_node_;
         node_rect.Min *= scale_;
         node_rect.Max *= scale_;
@@ -549,7 +560,7 @@ void ImGuiNodes::AddNode(const ImGuiNodesIdentifier& name, ImColor color,
 
         for (int i = 0; i < nodes_.size(); ++i)
         {
-            if (nodes_[i]->parent_node_ == parent)
+            if (nodes_[i]->parent_node_ == parent && !nodes_[i]->is_embedded_)
             {
                 if (nodes_[i]->area_node_.Max.y > max_y)
                 {
@@ -664,13 +675,34 @@ bool ImGuiNodes::SortSelectedNodesOrder()
     if (callbacks.on_selection_changed)
         callbacks.on_selection_changed(selected_ids);
 
+    // Promote unselected embedded descendants of selected parents so they
+    // render on top of the parent and remain clickable.
+    std::unordered_map<ImGuiNodesNode*, bool> promoted;
+    for (int i = 0; i < nodes_selected.size(); ++i)
+    {
+        std::vector<ImGuiNodesNode*> descendants;
+        nodes_selected[i]->CollectEmbeddedDescendants(descendants);
+        for (auto* d : descendants)
+            if (!HAS_ANY_FLAG(d->state_, ImGuiNodesNodeStateFlag_Selected))
+                promoted[d] = true;
+    }
+
     int node_idx = 0;
 
-    for (int unselected_idx = 0; unselected_idx < nodes_unselected.size(); ++unselected_idx)
-        nodes_[node_idx++] = nodes_unselected[unselected_idx];
+    for (int i = 0; i < nodes_unselected.size(); ++i)
+        if (!promoted.count(nodes_unselected[i]))
+            nodes_[node_idx++] = nodes_unselected[i];
 
-    for (int selected_idx = 0; selected_idx < nodes_selected.size(); ++selected_idx)
-        nodes_[node_idx++] = nodes_selected[selected_idx];
+    for (int i = 0; i < nodes_selected.size(); ++i)
+    {
+        nodes_[node_idx++] = nodes_selected[i];
+        // Place unselected embedded descendants right after their parent
+        std::vector<ImGuiNodesNode*> descendants;
+        nodes_selected[i]->CollectEmbeddedDescendants(descendants);
+        for (auto* d : descendants)
+            if (promoted.count(d))
+                nodes_[node_idx++] = d;
+    }
 
     return any_node_selected;
 }
@@ -921,21 +953,39 @@ void ImGuiNodes::ProcessInteractions()
             case ImGuiNodesState_HoveringNode:
             {
                 IM_ASSERT(active_node_);
+
+                // Embedded children cannot be individually collapsed
+                if (active_node_->is_embedded_)
+                {
+                    state_ = ImGuiNodesState_Dragging;
+                    return;
+                }
+
+                float collapse_height = active_node_->body_height_ + active_node_->embedded_area_height_;
+
                 if (IS_SET(active_node_->state_, ImGuiNodesNodeStateFlag_Collapsed))
                 {
                     CLEAR_FLAG(active_node_->state_, ImGuiNodesNodeStateFlag_Collapsed);
-                    active_node_->area_node_.Max.y += active_node_->body_height_;
-                    active_node_->TranslateNode(ImVec2(0.0f, active_node_->body_height_ * -0.5f));
+                    active_node_->area_node_.Max.y += collapse_height;
+                    active_node_->TranslateNode(ImVec2(0.0f, collapse_height * -0.5f));
+
+                    // Show embedded children
+                    std::vector<ImGuiNodesNode*> descendants;
+                    active_node_->CollectEmbeddedDescendants(descendants);
+                    for (ImGuiNodesNode* d : descendants)
+                        SET_FLAG(d->state_, ImGuiNodesNodeStateFlag_Visible);
                 }
                 else
                 {
                     SET_FLAG(active_node_->state_, ImGuiNodesNodeStateFlag_Collapsed);
-                    active_node_->area_node_.Max.y -= active_node_->body_height_;
+                    active_node_->area_node_.Max.y -= collapse_height;
+                    active_node_->TranslateNode(ImVec2(0.0f, collapse_height * 0.5f));
 
-                    //const ImVec2 click = (mouse_ - scroll_ - pos_) / scale_;
-                    //const ImVec2 position = click - active_node_->area_node_.GetCenter();
-
-                    active_node_->TranslateNode(ImVec2(0.0f, active_node_->body_height_ * 0.5f));
+                    // Hide embedded children
+                    std::vector<ImGuiNodesNode*> descendants;
+                    active_node_->CollectEmbeddedDescendants(descendants);
+                    for (ImGuiNodesNode* d : descendants)
+                        CLEAR_FLAG(d->state_, ImGuiNodesNodeStateFlag_Visible);
                 }
 
                 state_ = ImGuiNodesState_Dragging;
@@ -1057,11 +1107,23 @@ void ImGuiNodes::ProcessInteractions()
 
                 ImVec2 edge_scroll_delta = UpdateEdgeScrolling();
                 ImVec2 total_delta = (io.MouseDelta - edge_scroll_delta) / scale_;
-                if (!IS_SET(active_node_->state_, ImGuiNodesNodeStateFlag_Selected))
-                    active_node_->TranslateNode(total_delta, false);
+
+                // When dragging an embedded child, redirect to its embedding root
+                ImGuiNodesNode* drag_node = active_node_;
+                if (drag_node->is_embedded_)
+                    drag_node = drag_node->GetEmbeddingRoot();
+
+                if (!IS_SET(drag_node->state_, ImGuiNodesNodeStateFlag_Selected))
+                    drag_node->TranslateNode(total_delta, false);
                 else
                     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
-                        nodes_[node_idx]->TranslateNode(total_delta, true);
+                    {
+                        ImGuiNodesNode* n = nodes_[node_idx];
+                        // Skip embedded children of selected parents (they'll cascade)
+                        if (n->is_embedded_ && IS_SET(n->GetEmbeddingRoot()->state_, ImGuiNodesNodeStateFlag_Selected))
+                            continue;
+                        n->TranslateNode(total_delta, true);
+                    }
 
                 return;
             }
@@ -1321,6 +1383,28 @@ void ImGuiNodes::ProcessInteractions()
 
 void ImGuiNodes::DeleteNodes(const std::vector<ImGuiNodesNode*>& nodes_to_delete)
 {
+    // Expand deletion list to include all embedded descendants
+    std::vector<ImGuiNodesNode*> expanded_delete_list = nodes_to_delete;
+    for (ImGuiNodesNode* node : nodes_to_delete)
+        node->CollectEmbeddedDescendants(expanded_delete_list);
+
+    // Remove deleted embedded children from surviving parents' embedded_children_ lists
+    // and collect parents that need geometry rebuild
+    std::vector<ImGuiNodesNode*> parents_to_rebuild;
+    for (ImGuiNodesNode* node : expanded_delete_list)
+    {
+        if (node->is_embedded_ && node->parent_node_)
+        {
+            // Only clean up if the parent is NOT also being deleted
+            if (std::find(expanded_delete_list.begin(), expanded_delete_list.end(), node->parent_node_) == expanded_delete_list.end())
+            {
+                auto& siblings = node->parent_node_->embedded_children_;
+                siblings.erase(std::remove(siblings.begin(), siblings.end(), node), siblings.end());
+                parents_to_rebuild.push_back(node->parent_node_->GetEmbeddingRoot());
+            }
+        }
+    }
+
     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
     {
         ImGuiNodesNode* node = nodes_[node_idx];
@@ -1338,7 +1422,7 @@ void ImGuiNodes::DeleteNodes(const std::vector<ImGuiNodesNode*>& nodes_to_delete
     std::vector<ImGuiNodesUid> deleted_nodes_uids;
     if (callbacks.on_node_delete)
     {
-        for (ImGuiNodesNode* node : nodes_to_delete)
+        for (ImGuiNodesNode* node : expanded_delete_list)
             deleted_nodes_uids.push_back(node->uid_);
     }
 
@@ -1350,7 +1434,7 @@ void ImGuiNodes::DeleteNodes(const std::vector<ImGuiNodesNode*>& nodes_to_delete
         ImGuiNodesNode* node = nodes_[node_idx];
         IM_ASSERT(node);
 
-        if (std::find(nodes_to_delete.begin(), nodes_to_delete.end(), node) != nodes_to_delete.end())
+        if (std::find(expanded_delete_list.begin(), expanded_delete_list.end(), node) != expanded_delete_list.end())
         {
             node_cache_[node->uid_] = { node->area_node_.GetCenter(), node->color_, true };
 
@@ -1400,6 +1484,13 @@ void ImGuiNodes::DeleteNodes(const std::vector<ImGuiNodesNode*>& nodes_to_delete
 
     nodes_ = non_removed_nodes;
 
+    // Rebuild geometry for surviving parents whose embedded children were deleted
+    for (ImGuiNodesNode* parent : parents_to_rebuild)
+    {
+        if (std::find(non_removed_nodes.begin(), non_removed_nodes.end(), parent) != non_removed_nodes.end())
+            RebuildEmbeddedGeometry(parent);
+    }
+
     if (callbacks.on_node_delete)
         callbacks.on_node_delete(deleted_nodes_uids);
 }
@@ -1416,7 +1507,7 @@ void ImGuiNodes::ProcessNodes()
         {
             const ImGuiNodesNode* node = nodes_[node_idx];
             IM_ASSERT(node);
-            if (node->parent_node_)
+            if (node->parent_node_ && !node->is_embedded_)
             {
                 ImVec2 head_offset(0.0f, node->area_name_.GetHeight() * 0.8f);
                 ImColor color = node->parent_node_->color_;
@@ -1730,7 +1821,7 @@ void ImGuiNodesOutput::Render(ImDrawList* draw_list, ImVec2 offset, float scale,
     DrawTextScaled(draw_list, (area_name_.Min * scale) + offset, scale, ImGui::GetColorU32(text_color.Value), name_.c_str());
 }
 
-void ImGuiNodesNode::TranslateNode(ImVec2 delta, bool selected_only)
+void ImGuiNodesNode::TranslateNode(ImVec2 delta, bool selected_only, bool cascade_embedded)
 {
     if (selected_only && !IS_SET(state_, ImGuiNodesNodeStateFlag_Selected))
         return;
@@ -1746,6 +1837,29 @@ void ImGuiNodesNode::TranslateNode(ImVec2 delta, bool selected_only)
 
     for (size_t output_idx = 0; output_idx < outputs_.size(); ++output_idx)
         outputs_[output_idx].TranslateOutput(delta);
+
+    if (cascade_embedded)
+    {
+        for (ImGuiNodesNode* child : embedded_children_)
+            child->TranslateNode(delta, false, true);
+    }
+}
+
+ImGuiNodesNode* ImGuiNodesNode::GetEmbeddingRoot()
+{
+    ImGuiNodesNode* node = this;
+    while (node->is_embedded_ && node->parent_node_)
+        node = node->parent_node_;
+    return node;
+}
+
+void ImGuiNodesNode::CollectEmbeddedDescendants(std::vector<ImGuiNodesNode*>& out)
+{
+    for (ImGuiNodesNode* child : embedded_children_)
+    {
+        out.push_back(child);
+        child->CollectEmbeddedDescendants(out);
+    }
 }
 
 ImGuiNodesNode::ImGuiNodesNode(const ImGuiNodesIdentifier& name, ImColor color)
@@ -1754,10 +1868,13 @@ ImGuiNodesNode::ImGuiNodesNode(const ImGuiNodesIdentifier& name, ImColor color)
     uid_ = name.id_;
     state_ = ImGuiNodesNodeStateFlag_Default;
     color_ = color;
+    parent_node_ = NULL;
+    is_embedded_ = false;
+    embedded_area_height_ = 0.0f;
     BuildNodeTitleGeometry(*this);
 }
 
-void ImGuiNodesNode::BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size)
+void ImGuiNodesNode::BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size, float min_width)
 {
     body_height_ = ImMax(inputs_size.y, outputs_size.y) + (ImGuiNodesVSeparation * area_name_.GetHeight());
 
@@ -1766,6 +1883,7 @@ void ImGuiNodesNode::BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size)
     area_node_.Max.x += inputs_size.x + outputs_size.x;
     area_node_.Max.x += ImGuiNodesHSeparation * area_name_.GetHeight();
     area_node_.Max.x = ImMax(area_node_.Max.x, area_name_.GetWidth() + (ImGuiNodesHSeparation * area_name_.GetHeight()));
+    area_node_.Max.x = ImMax(area_node_.Max.x, min_width);
     area_node_.Max.y += title_height_ + body_height_;
 
     area_name_.Translate(ImVec2((area_node_.GetWidth() - area_name_.GetWidth()) * 0.5f, ((title_height_ - area_name_.GetHeight()) * 0.5f)));
@@ -1872,6 +1990,16 @@ void ImGuiNodesNode::Render(ImDrawList* draw_list, ImVec2 offset, float scale, I
 
         for (size_t output_idx = 0; output_idx < outputs_.size(); ++output_idx)
             outputs_[output_idx].Render(draw_list, offset, scale, state);
+
+        // Draw separator line between I/O area and embedded children area
+        if (!embedded_children_.empty() && embedded_area_height_ > 0.0f)
+        {
+            float sep_y = (area_node_.Min.y + title_height_ + body_height_) * scale;
+            ImVec2 sep_left(node_rect.Min.x + 4.0f * scale, offset.y + sep_y);
+            ImVec2 sep_right(node_rect.Max.x - 4.0f * scale, offset.y + sep_y);
+            ImColor sep_color = ImColor(1.0f, 1.0f, 1.0f, 0.15f);
+            draw_list->AddLine(sep_left, sep_right, sep_color, 1.0f * scale);
+        }
     }
 
     DrawTextScaled(draw_list, (area_name_.Min * scale) + offset, scale, ImGui::GetColorU32(ImGuiNodes::text_color_.Value), name_.c_str());
@@ -2027,6 +2155,148 @@ void ImGuiNodes::ClearNodeConnections(const ImGuiNodesUid& node_uid)
     }
 }
 
+void ImGuiNodes::EmbedNode(const ImGuiNodesUid& child_uid, const ImGuiNodesUid& parent_uid)
+{
+    auto child_it = nodes_by_uid_.find(child_uid);
+    auto parent_it = nodes_by_uid_.find(parent_uid);
+    if (child_it == nodes_by_uid_.end() || parent_it == nodes_by_uid_.end())
+        return;
+
+    ImGuiNodesNode* child = child_it->second;
+    ImGuiNodesNode* parent = parent_it->second;
+
+    if (child == parent)
+        return;
+
+    // Circular embedding detection: walk up parent's chain
+    for (ImGuiNodesNode* ancestor = parent; ancestor; ancestor = (ancestor->is_embedded_ && ancestor->parent_node_) ? ancestor->parent_node_ : nullptr)
+    {
+        if (ancestor == child)
+            return;
+    }
+
+    // If already embedded elsewhere, unembed first
+    if (child->is_embedded_ && child->parent_node_)
+    {
+        auto& old_children = child->parent_node_->embedded_children_;
+        old_children.erase(std::remove(old_children.begin(), old_children.end(), child), old_children.end());
+        ImGuiNodesNode* old_parent = child->parent_node_;
+        child->is_embedded_ = false;
+        child->parent_node_ = nullptr;
+        RebuildEmbeddedGeometry(old_parent->GetEmbeddingRoot());
+    }
+
+    child->parent_node_ = parent;
+    child->is_embedded_ = true;
+    parent->embedded_children_.push_back(child);
+
+    RebuildEmbeddedGeometry(parent->GetEmbeddingRoot());
+}
+
+void ImGuiNodes::UnembedNode(const ImGuiNodesUid& child_uid)
+{
+    auto child_it = nodes_by_uid_.find(child_uid);
+    if (child_it == nodes_by_uid_.end())
+        return;
+
+    ImGuiNodesNode* child = child_it->second;
+    if (!child->is_embedded_ || !child->parent_node_)
+        return;
+
+    ImGuiNodesNode* parent = child->parent_node_;
+    auto& siblings = parent->embedded_children_;
+    siblings.erase(std::remove(siblings.begin(), siblings.end(), child), siblings.end());
+
+    child->is_embedded_ = false;
+    child->parent_node_ = nullptr;
+
+    RebuildEmbeddedGeometry(parent->GetEmbeddingRoot());
+}
+
+void ImGuiNodes::RebuildSingleNodeGeometry(ImGuiNodesNode* node, float min_width)
+{
+    BuildNodeTitleGeometry(*node);
+
+    for (auto& input : node->inputs_)
+        BuildInputGeometry(input);
+
+    for (auto& output : node->outputs_)
+        BuildOutputGeometry(output);
+
+    ImVec2 inputs_size;
+    ImVec2 outputs_size;
+    for (size_t i = 0; i < node->inputs_.size(); ++i)
+    {
+        inputs_size.x = ImMax(inputs_size.x, node->inputs_[i].area_input_.GetWidth());
+        inputs_size.y += node->inputs_[i].area_input_.GetHeight();
+    }
+    for (size_t i = 0; i < node->outputs_.size(); ++i)
+    {
+        outputs_size.x = ImMax(outputs_size.x, node->outputs_[i].area_output_.GetWidth());
+        outputs_size.y += node->outputs_[i].area_output_.GetHeight();
+    }
+
+    node->BuildNodeGeometry(inputs_size, outputs_size, min_width);
+}
+
+void ImGuiNodes::RebuildEmbeddedGeometry(ImGuiNodesNode* root)
+{
+    // Bottom-up rebuild: rebuild all embedded children first, then the parent
+    // Use a post-order traversal
+    constexpr float embed_padding = 8.0f;
+    constexpr float embed_spacing = 6.0f;
+
+    std::function<void(ImGuiNodesNode*)> rebuild_subtree = [&](ImGuiNodesNode* node) {
+        for (ImGuiNodesNode* child : node->embedded_children_)
+            rebuild_subtree(child);
+
+        ImVec2 old_center = node->area_node_.GetCenter();
+
+        // Compute embedded children metrics before rebuilding this node
+        float embedded_height = 0.0f;
+        float max_child_width = 0.0f;
+
+        for (ImGuiNodesNode* child : node->embedded_children_)
+        {
+            if (embedded_height > 0.0f)
+                embedded_height += embed_spacing;
+            embedded_height += child->area_node_.GetHeight();
+            max_child_width = ImMax(max_child_width, child->area_node_.GetWidth());
+        }
+
+        if (!node->embedded_children_.empty())
+            embedded_height += embed_padding * 2.0f; // top and bottom padding
+
+        node->embedded_area_height_ = embedded_height;
+
+        // Rebuild with min_width so title, outputs, and buttons use the full width
+        float min_width = node->embedded_children_.empty() ? 0.0f : max_child_width + embed_padding * 2.0f;
+        RebuildSingleNodeGeometry(node, min_width);
+
+        // Extend height for embedded area
+        node->area_node_.Max.y += embedded_height;
+
+        // Position embedded children within the parent body
+        float child_y = node->area_node_.Min.y + node->title_height_ + node->body_height_ + embed_padding;
+        float parent_center_x = (node->area_node_.Min.x + node->area_node_.Max.x) * 0.5f;
+
+        for (ImGuiNodesNode* child : node->embedded_children_)
+        {
+            ImVec2 child_target;
+            child_target.x = parent_center_x;
+            child_target.y = child_y + child->area_node_.GetHeight() * 0.5f;
+            child->TranslateNode(child_target - child->area_node_.GetCenter(), false, true);
+            child_y += child->area_node_.GetHeight() + embed_spacing;
+        }
+
+        // Restore original center position for the root (so node doesn't jump)
+        if (node == root)
+            node->TranslateNode(old_center - node->area_node_.GetCenter(), false, true);
+    };
+
+    rebuild_subtree(root);
+}
+
 void ImGuiNodes::Clear()
 {
     if (active_node_) rebuild_cache_.active_node_uid_ = active_node_->uid_;
@@ -2060,39 +2330,40 @@ void ImGuiNodes::Clear()
 
 void ImGuiNodes::RebuildGeometry()
 {
+    // First pass: rebuild all non-embedded nodes and leaf embedded nodes
+    // (nodes that have no embedded children themselves)
+    // We need bottom-up order for embedding hierarchy
+    
+    // Find embedding roots and rebuild them with RebuildEmbeddedGeometry
+    // (which handles the entire subtree in correct order)
+    // For non-embedded nodes without embedded children, rebuild normally
+    
+    std::vector<ImGuiNodesNode*> embedding_roots;
+    
     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
     {
         ImGuiNodesNode* node = nodes_[node_idx];
         if (!node)
             continue;
 
+        if (node->is_embedded_)
+            continue; // will be handled by its embedding root
+
+        if (!node->embedded_children_.empty())
+        {
+            embedding_roots.push_back(node);
+            continue;
+        }
+
+        // Regular node with no embedding involvement
         ImVec2 center = node->area_node_.GetCenter();
-        BuildNodeTitleGeometry(*node);
-
-        for (auto& input : node->inputs_)
-            BuildInputGeometry(input);
-
-        for (auto& output : node->outputs_)
-            BuildOutputGeometry(output);
-
-        ImVec2 inputs_size;
-        ImVec2 outputs_size;
-        for (size_t input_idx = 0; input_idx < node->inputs_.size(); ++input_idx)
-        {
-            const ImGuiNodesInput& input = node->inputs_[input_idx];
-            inputs_size.x = ImMax(inputs_size.x, input.area_input_.GetWidth());
-            inputs_size.y += input.area_input_.GetHeight();
-        }
-        for (size_t output_idx = 0; output_idx < node->outputs_.size(); ++output_idx)
-        {
-            const ImGuiNodesOutput& output = node->outputs_[output_idx];
-            outputs_size.x = ImMax(outputs_size.x, output.area_output_.GetWidth());
-            outputs_size.y += output.area_output_.GetHeight();
-        }
-
-        node->BuildNodeGeometry(inputs_size, outputs_size);
-        node->TranslateNode(center - node->area_node_.GetCenter());
+        RebuildSingleNodeGeometry(node);
+        node->TranslateNode(center - node->area_node_.GetCenter(), false, false);
     }
+
+    // Rebuild embedding hierarchies (bottom-up)
+    for (ImGuiNodesNode* root : embedding_roots)
+        RebuildEmbeddedGeometry(root);
 }
 
 void ImGuiNodes::AddConnection(const ImGuiNodesUid& output_uid, const ImGuiNodesUid& input_uid, std::optional<ImColor> color)
@@ -2211,9 +2482,11 @@ void ImGuiNodes::EndBatchAdd()
     std::unordered_map<ImGuiNodesUid, std::vector<ImGuiNodesNode*>> children_map;
     std::vector<ImGuiNodesNode*> root_nodes;
 
-    // Explicitly insert empty vectors for every node uid
+    // Explicitly insert empty vectors for every non-embedded node uid
     for (int node_idx = 0; node_idx < (int)nodes_.size(); ++node_idx)
     {
+        if (nodes_[node_idx]->is_embedded_)
+            continue;
         auto result = children_map.emplace(nodes_[node_idx]->uid_, std::vector<ImGuiNodesNode*>{});
         if (!result.second)
             fprintf(stderr, "[Layout] WARNING: duplicate uid '%s' at node_idx %d\n", nodes_[node_idx]->uid_.c_str(), node_idx);
@@ -2222,7 +2495,10 @@ void ImGuiNodes::EndBatchAdd()
     for (int node_idx = 0; node_idx < (int)nodes_.size(); ++node_idx)
     {
         ImGuiNodesNode* node = nodes_[node_idx];
-        if (node->parent_node_)
+        // Skip embedded nodes — they are positioned by their parent's geometry
+        if (node->is_embedded_)
+            continue;
+        if (node->parent_node_ && !node->is_embedded_)
         {
             auto it = children_map.find(node->parent_node_->uid_);
             if (it == children_map.end())
@@ -2374,11 +2650,13 @@ void ImGuiNodes::EndBatchAdd()
         current_y += subtree_heights[root->uid_] + vertical_spacing;
     }
 
-    // Restore cached positions for nodes that have them
+    // Restore cached positions for nodes that have them (skip embedded — they follow parent)
     int restored = 0;
     for (int i = 0; i < (int)nodes_.size(); ++i)
     {
         ImGuiNodesNode* node = nodes_[i];
+        if (node->is_embedded_)
+            continue;
         auto cache_it = node_cache_.find(node->uid_);
         if (cache_it != node_cache_.end())
         {
@@ -2392,10 +2670,12 @@ void ImGuiNodes::EndBatchAdd()
     }
     fprintf(stderr, "[Layout] Restored %d/%d nodes from cache\n", restored, (int)nodes_.size());
 
-    // Resolve overlaps per column.
+    // Resolve overlaps per column (skip embedded nodes — they are inside their parents).
     std::unordered_map<int, std::vector<ImGuiNodesNode*>> columns;
     for (int i = 0; i < (int)nodes_.size(); ++i)
     {
+        if (nodes_[i]->is_embedded_)
+            continue;
         int col = (int)(nodes_[i]->area_node_.GetCenter().x + 0.5f);
         columns[col].push_back(nodes_[i]);
     }
@@ -2428,6 +2708,14 @@ void ImGuiNodes::EndBatchAdd()
 
     if (!any_overlap)
         fprintf(stderr, "[Layout] Overlap check: no overlaps detected\n");
+
+    // Rebuild embedded node geometry (embedded children are positioned within their parents)
+    for (int i = 0; i < (int)nodes_.size(); ++i)
+    {
+        ImGuiNodesNode* node = nodes_[i];
+        if (!node->is_embedded_ && !node->embedded_children_.empty())
+            RebuildEmbeddedGeometry(node);
+    }
 
     fprintf(stderr, "[Layout] EndBatchAdd complete. Final positions:\n");
     for (int i = 0; i < (int)nodes_.size(); ++i)
