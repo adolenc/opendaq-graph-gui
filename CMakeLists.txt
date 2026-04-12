@@ -25,7 +25,7 @@ endif()
 FetchContent_Declare(
   openDAQ
   GIT_REPOSITORY https://github.com/openDAQ/openDAQ.git
-  GIT_TAG v3.30.0
+  GIT_TAG c6fc80f4864f97ba41b0297d05a28b036e5e8474
   ${OPENDAQ_PATCH_COMMAND}
 )
 set(OPENDAQ_ENABLE_TESTS OFF CACHE BOOL "")
