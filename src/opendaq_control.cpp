@@ -1345,6 +1345,8 @@ void OpenDAQNodeEditor::ShowStartupPopup()
             "Double-clicking any node in the Tree window will focus the Nodes window on that specific node.",
             "Holding ctrl while clicking will add components to the current selection.",
             "Left-click and drag the mouse cursor in Nodes window to create a box selection of multiple components.",
+            "Drag a node in and out of its parent node to 'embed' or 'unembed' it respectively.",
+            "Use Ctrl+ and Ctrl- to adjust the scale of the entire application.",
         };
         srand((unsigned int)time(nullptr));
         current_hint_index = rand() % hints.size();
