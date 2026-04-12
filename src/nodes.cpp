@@ -1120,21 +1120,43 @@ void ImGuiNodes::ProcessInteractions()
                 if (active_node_ && !active_input_ && !active_output_ && active_node_->parent_node_)
                 {
                     ImGuiNodesNode* parent = active_node_->parent_node_;
+                    bool is_multi_select = IS_SET(active_node_->state_, ImGuiNodesNodeStateFlag_Selected);
 
                     if (active_node_->is_embedded_)
                     {
                         // Currently embedded — don't move anything until mouse leaves parent
                         if (!parent->area_node_.Contains(canvas_mouse))
                         {
-                            // Pop out: unembed and position at mouse with original drag offset
+                            // Pop out active node
                             UnembedNode(active_node_->uid_);
-                            // Rebuild with embedded children intact
                             if (!active_node_->embedded_children_.empty())
                                 RebuildEmbeddedGeometry(active_node_);
                             else
                                 RebuildSingleNodeGeometry(active_node_);
                             ImVec2 target_center = canvas_mouse - embed_drag_offset_;
                             active_node_->TranslateNode(target_center - active_node_->area_node_.GetCenter());
+
+                            // Pop out other selected embedded nodes too
+                            if (is_multi_select)
+                            {
+                                for (int i = 0; i < nodes_.size(); ++i)
+                                {
+                                    ImGuiNodesNode* n = nodes_[i];
+                                    if (n == active_node_ || !IS_SET(n->state_, ImGuiNodesNodeStateFlag_Selected))
+                                        continue;
+                                    if (n->is_embedded_ && n->parent_node_)
+                                    {
+                                        ImVec2 old_center = n->area_node_.GetCenter();
+                                        UnembedNode(n->uid_);
+                                        if (!n->embedded_children_.empty())
+                                            RebuildEmbeddedGeometry(n);
+                                        else
+                                            RebuildSingleNodeGeometry(n);
+                                        n->TranslateNode(old_center - n->area_node_.GetCenter());
+                                    }
+                                }
+                            }
+
                             SortSelectedNodesOrder();
                         }
                         else
@@ -1148,8 +1170,22 @@ void ImGuiNodes::ProcessInteractions()
                         // Not embedded — check if mouse has entered the parent
                         if (parent->area_node_.Contains(canvas_mouse))
                         {
-                            // Snap in: embed into parent
+                            // Snap in active node
                             EmbedNode(active_node_->uid_, parent->uid_);
+
+                            // Snap in other selected unembedded nodes into their respective parents
+                            if (is_multi_select)
+                            {
+                                for (int i = 0; i < nodes_.size(); ++i)
+                                {
+                                    ImGuiNodesNode* n = nodes_[i];
+                                    if (n == active_node_ || !IS_SET(n->state_, ImGuiNodesNodeStateFlag_Selected))
+                                        continue;
+                                    if (!n->is_embedded_ && n->parent_node_)
+                                        EmbedNode(n->uid_, n->parent_node_->uid_);
+                                }
+                            }
+
                             SortSelectedNodesOrder();
                             return;
                         }
