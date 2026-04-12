@@ -233,6 +233,7 @@ private:
     ImRect minimap_rect_;
     float minimap_preview_scale_ = 1.0f;
     ImGuiNodesNode* active_node_ = NULL;
+    ImVec2 embed_drag_offset_;  // mouse offset from node center when drag started on embedded node
     ImGuiNodesInput* active_input_ = NULL;
     ImGuiNodesOutput* active_output_ = NULL;
 

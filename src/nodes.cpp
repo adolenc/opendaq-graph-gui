@@ -1024,6 +1024,13 @@ void ImGuiNodes::ProcessInteractions()
 
                 SortSelectedNodesOrder();
 
+                // Store drag offset for embedded pop-out
+                if (active_node_ && active_node_->is_embedded_)
+                {
+                    ImVec2 canvas_mouse = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
+                    embed_drag_offset_ = canvas_mouse - active_node_->area_node_.GetCenter();
+                }
+
                 state_ = ImGuiNodesState_Dragging;
                 return;
             }
@@ -1107,19 +1114,57 @@ void ImGuiNodes::ProcessInteractions()
 
                 ImVec2 edge_scroll_delta = UpdateEdgeScrolling();
                 ImVec2 total_delta = (io.MouseDelta - edge_scroll_delta) / scale_;
+                ImVec2 canvas_mouse = (mouse_ - scroll_ - nodes_imgui_window_pos_) / scale_;
 
-                // When dragging an embedded child, redirect to its embedding root
+                // Live embed/unembed during drag for nodes that have a tree parent
+                if (active_node_ && !active_input_ && !active_output_ && active_node_->parent_node_)
+                {
+                    ImGuiNodesNode* parent = active_node_->parent_node_;
+
+                    if (active_node_->is_embedded_)
+                    {
+                        // Currently embedded — don't move anything until mouse leaves parent
+                        if (!parent->area_node_.Contains(canvas_mouse))
+                        {
+                            // Pop out: unembed and position at mouse with original drag offset
+                            UnembedNode(active_node_->uid_);
+                            // Rebuild with embedded children intact
+                            if (!active_node_->embedded_children_.empty())
+                                RebuildEmbeddedGeometry(active_node_);
+                            else
+                                RebuildSingleNodeGeometry(active_node_);
+                            ImVec2 target_center = canvas_mouse - embed_drag_offset_;
+                            active_node_->TranslateNode(target_center - active_node_->area_node_.GetCenter());
+                            SortSelectedNodesOrder();
+                        }
+                        else
+                        {
+                            // Still inside parent — don't drag anything
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        // Not embedded — check if mouse has entered the parent
+                        if (parent->area_node_.Contains(canvas_mouse))
+                        {
+                            // Snap in: embed into parent
+                            EmbedNode(active_node_->uid_, parent->uid_);
+                            SortSelectedNodesOrder();
+                            return;
+                        }
+                    }
+                }
+
+                // Default drag behavior (non-embedded, or just popped out)
                 ImGuiNodesNode* drag_node = active_node_;
-                if (drag_node->is_embedded_)
-                    drag_node = drag_node->GetEmbeddingRoot();
 
                 if (!IS_SET(drag_node->state_, ImGuiNodesNodeStateFlag_Selected))
-                    drag_node->TranslateNode(total_delta, false);
+                    drag_node->TranslateNode(total_delta, false, true);
                 else
                     for (int node_idx = 0; node_idx < nodes_.size(); ++node_idx)
                     {
                         ImGuiNodesNode* n = nodes_[node_idx];
-                        // Skip embedded children of selected parents (they'll cascade)
                         if (n->is_embedded_ && IS_SET(n->GetEmbeddingRoot()->state_, ImGuiNodesNodeStateFlag_Selected))
                             continue;
                         n->TranslateNode(total_delta, true);
@@ -2208,7 +2253,7 @@ void ImGuiNodes::UnembedNode(const ImGuiNodesUid& child_uid)
     siblings.erase(std::remove(siblings.begin(), siblings.end(), child), siblings.end());
 
     child->is_embedded_ = false;
-    child->parent_node_ = nullptr;
+    // Keep parent_node_ intact so the tree relationship (bezier curve) is preserved
 
     RebuildEmbeddedGeometry(parent->GetEmbeddingRoot());
 }
@@ -2246,6 +2291,62 @@ void ImGuiNodes::RebuildEmbeddedGeometry(ImGuiNodesNode* root)
     constexpr float embed_padding = 8.0f;
     constexpr float embed_spacing = 6.0f;
 
+    // Helper: rebuild a node (and its embedded subtree) with a minimum width
+    std::function<void(ImGuiNodesNode*, float)> rebuild_subtree_with_width = [&](ImGuiNodesNode* node, float min_w) {
+        // First rebuild children bottom-up at their natural size
+        for (ImGuiNodesNode* child : node->embedded_children_)
+            rebuild_subtree_with_width(child, 0.0f);
+
+        // Compute embedded children metrics
+        float eh = 0.0f;
+        float mcw = 0.0f;
+        for (ImGuiNodesNode* child : node->embedded_children_)
+        {
+            if (eh > 0.0f) eh += embed_spacing;
+            eh += child->area_node_.GetHeight();
+            mcw = ImMax(mcw, child->area_node_.GetWidth());
+        }
+        if (!node->embedded_children_.empty())
+            eh += embed_padding * 2.0f;
+        node->embedded_area_height_ = eh;
+
+        float needed = node->embedded_children_.empty() ? 0.0f : mcw + embed_padding * 2.0f;
+        RebuildSingleNodeGeometry(node, ImMax(min_w, needed));
+        node->area_node_.Max.y += eh;
+
+        // Stretch children to fill this node's inner width
+        float iw = node->area_node_.GetWidth() - embed_padding * 2.0f;
+        for (ImGuiNodesNode* child : node->embedded_children_)
+        {
+            if (child->area_node_.GetWidth() < iw)
+                rebuild_subtree_with_width(child, iw);
+        }
+
+        // Recompute height after stretching
+        eh = 0.0f;
+        for (ImGuiNodesNode* child : node->embedded_children_)
+        {
+            if (eh > 0.0f) eh += embed_spacing;
+            eh += child->area_node_.GetHeight();
+        }
+        if (!node->embedded_children_.empty())
+            eh += embed_padding * 2.0f;
+        node->embedded_area_height_ = eh;
+        node->area_node_.Max.y = node->area_node_.Min.y + node->title_height_ + node->body_height_ + eh;
+
+        // Position children
+        float cy = node->area_node_.Min.y + node->title_height_ + node->body_height_ + embed_padding;
+        float pcx = (node->area_node_.Min.x + node->area_node_.Max.x) * 0.5f;
+        for (ImGuiNodesNode* child : node->embedded_children_)
+        {
+            ImVec2 ct;
+            ct.x = pcx;
+            ct.y = cy + child->area_node_.GetHeight() * 0.5f;
+            child->TranslateNode(ct - child->area_node_.GetCenter(), false, true);
+            cy += child->area_node_.GetHeight() + embed_spacing;
+        }
+    };
+
     std::function<void(ImGuiNodesNode*)> rebuild_subtree = [&](ImGuiNodesNode* node) {
         for (ImGuiNodesNode* child : node->embedded_children_)
             rebuild_subtree(child);
@@ -2275,6 +2376,30 @@ void ImGuiNodes::RebuildEmbeddedGeometry(ImGuiNodesNode* root)
 
         // Extend height for embedded area
         node->area_node_.Max.y += embedded_height;
+
+        // Stretch children to fill the parent's inner width, then position them
+        float inner_width = node->area_node_.GetWidth() - embed_padding * 2.0f;
+        for (ImGuiNodesNode* child : node->embedded_children_)
+        {
+            if (child->area_node_.GetWidth() < inner_width)
+            {
+                // Rebuild child (and its subtree) with the parent's inner width
+                rebuild_subtree_with_width(child, inner_width);
+            }
+        }
+
+        // Recompute embedded height after stretching (children may have changed height)
+        embedded_height = 0.0f;
+        for (ImGuiNodesNode* child : node->embedded_children_)
+        {
+            if (embedded_height > 0.0f)
+                embedded_height += embed_spacing;
+            embedded_height += child->area_node_.GetHeight();
+        }
+        if (!node->embedded_children_.empty())
+            embedded_height += embed_padding * 2.0f;
+        node->embedded_area_height_ = embedded_height;
+        node->area_node_.Max.y = node->area_node_.Min.y + node->title_height_ + node->body_height_ + embedded_height;
 
         // Position embedded children within the parent body
         float child_y = node->area_node_.Min.y + node->title_height_ + node->body_height_ + embed_padding;
