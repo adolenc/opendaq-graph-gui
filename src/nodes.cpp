@@ -1975,7 +1975,11 @@ ImGuiNodesNode::ImGuiNodesNode(const ImGuiNodesIdentifier& name, ImColor color)
 
 void ImGuiNodesNode::BuildNodeGeometry(ImVec2 inputs_size, ImVec2 outputs_size, float min_width)
 {
-    body_height_ = ImMax(inputs_size.y, outputs_size.y) + (ImGuiNodesVSeparation * area_name_.GetHeight());
+    bool has_io = (inputs_size.y > 0.0f || outputs_size.y > 0.0f);
+    if (is_embedded_ && !has_io)
+        body_height_ = 0.0f;
+    else
+        body_height_ = ImMax(inputs_size.y, outputs_size.y) + (ImGuiNodesVSeparation * area_name_.GetHeight());
 
     area_node_.Min = ImVec2(0.0f, 0.0f);
     area_node_.Max = ImVec2(0.0f, 0.0f);
