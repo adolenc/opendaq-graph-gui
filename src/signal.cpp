@@ -17,6 +17,25 @@ void OpenDAQSignal::UpdateConfiguration(float seconds_shown, int max_points)
     RebuildIfInvalid(signal_, seconds_shown, max_points);
 }
 
+static std::int64_t getApproximateSampleRate(const daq::DataDescriptorPtr& dataDescriptor)
+{
+    const auto resolution = dataDescriptor.getTickResolution().simplify();
+
+    daq::NumberPtr delta = 1;
+    auto rule = dataDescriptor.getRule();
+    if (rule.assigned() && rule.getType() != daq::DataRuleType::Linear)
+    {
+        DAQ_THROW_EXCEPTION(daq::NotSupportedException, "Only signals with implicit linear-rule as a domain are supported.");
+    }
+    else
+    {
+        delta = rule.getParameters()["delta"];
+    }
+
+    double sampleRate = static_cast<double>(resolution.getDenominator()) / (static_cast<double>(resolution.getNumerator()) * delta.getFloatValue());
+    return static_cast<int64_t>(sampleRate);
+}
+
 void OpenDAQSignal::RebuildIfInvalid(daq::SignalPtr signal, float seconds_shown, int max_points)
 {
     seconds_shown_ = seconds_shown;
@@ -98,7 +117,7 @@ void OpenDAQSignal::RebuildIfInvalid(daq::SignalPtr signal, float seconds_shown,
     float samples_per_second = 1;
     try
     {
-        daq::Int rate = (daq::Int)daq::reader::getSampleRate(signal.getDomainSignal().assigned() ? signal.getDomainSignal().getDescriptor() : signal.getDescriptor());
+        daq::Int rate = getApproximateSampleRate(signal.getDomainSignal().assigned() ? signal.getDomainSignal().getDescriptor() : signal.getDescriptor());
         samples_per_second = (float)std::max<daq::Int>(1, rate);
     } catch (...)
     {
