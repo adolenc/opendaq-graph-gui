@@ -1,3 +1,4 @@
+#include "SDL_render.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -49,6 +50,12 @@ int main(int argc, char** argv)
             return 0;
         }
     }
+
+    // Use native Wayland backend so SDL_GL_GetDrawableSize reports the real
+    // physical framebuffer size (and thus the correct DPI scale factor).
+    // Falls back to x11 automatically if Wayland is unavailable.
+    if (!SDL_getenv("SDL_VIDEODRIVER") && SDL_getenv("WAYLAND_DISPLAY"))
+        SDL_setenv("SDL_VIDEODRIVER", "wayland", 0);
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0)
     {
@@ -105,6 +112,12 @@ int main(int argc, char** argv)
 
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
+
+    int window_w, window_h, drawable_w, drawable_h;
+    SDL_GetWindowSize(window, &window_w, &window_h);
+    SDL_GL_GetDrawableSize(window, &drawable_w, &drawable_h);
+    float dpi_scale = (float)drawable_w / (float)window_w;
+
     SDL_GL_SetSwapInterval(1); // Enable vsync
 
     // Setup Dear ImGui context
@@ -124,12 +137,12 @@ int main(int argc, char** argv)
     }
 
     io.Fonts->Clear();
-    io.Fonts->AddFontFromFileTTF((base_path + "Roboto-Medium.ttf").c_str(), 14.0f);
+    io.Fonts->AddFontFromFileTTF((base_path + "Roboto-Medium.ttf").c_str(), 14.0f * dpi_scale);
     static const ImWchar icons_ranges[] = { 0xf000, 0xf8ff, 0 };
     ImFontConfig icons_config;
     icons_config.MergeMode = true;
     icons_config.PixelSnapH = true;
-    io.Fonts->AddFontFromFileTTF((base_path + "fa-solid-900.ttf").c_str(), 14.0f, &icons_config, icons_ranges);
+    io.Fonts->AddFontFromFileTTF((base_path + "fa-solid-900.ttf").c_str(), 14.0f * dpi_scale, &icons_config, icons_ranges);
 
     if (light_mode)
     {
@@ -258,7 +271,8 @@ int main(int argc, char** argv)
         ImGui::PopStyleVar(2);
 
         ImGui::Render();
-        glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
+        glViewport(0, 0, (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x),
+                         (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y));
         glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
