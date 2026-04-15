@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.11)
-project(opendaq-gui)
+if(APPLE)
+  project(opendaq-gui LANGUAGES C CXX OBJC)
+else()
+  project(opendaq-gui LANGUAGES C CXX)
+endif()
 set(CMAKE_CXX_STANDARD 17)
 include(FetchContent)
 
