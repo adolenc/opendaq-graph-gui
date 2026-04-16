@@ -2258,6 +2258,11 @@ void ImGuiNodes::ClearNodeConnections(const ImGuiNodesUid& node_uid)
     }
 }
 
+bool ImGuiNodes::HasNode(const ImGuiNodesUid& uid) const
+{
+    return nodes_by_uid_.find(uid) != nodes_by_uid_.end();
+}
+
 void ImGuiNodes::EmbedNode(const ImGuiNodesUid& child_uid, const ImGuiNodesUid& parent_uid)
 {
     auto child_it = nodes_by_uid_.find(child_uid);

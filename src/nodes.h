@@ -205,6 +205,7 @@ public:
     void SetSelectedNodes(const std::vector<ImGuiNodesUid>& selected_ids);
     void MoveSelectedNodesIntoView();
     void ClearNodeConnections(const ImGuiNodesUid& node_uid);
+    bool HasNode(const ImGuiNodesUid& uid) const;
     void EmbedNode(const ImGuiNodesUid& child_uid, const ImGuiNodesUid& parent_uid);
     void UnembedNode(const ImGuiNodesUid& child_uid);
     void Clear();

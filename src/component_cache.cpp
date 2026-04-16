@@ -353,11 +353,22 @@ void CachedComponent::RefreshStructure()
     if (canCastTo<daq::IFunctionBlock>(component_))
     {
         daq::FunctionBlockPtr function_block = castTo<daq::IFunctionBlock>(component_);
-        for (const daq::InputPortPtr& input_port : function_block.getInputPorts())
-            input_ports_.push_back({input_port.getName().toStdString(), input_port.getGlobalId().toStdString()});
 
-        for (const daq::SignalPtr& signal : function_block.getSignals())
-            output_signals_.push_back({signal.getName().toStdString(), signal.getGlobalId().toStdString()});
+        if (canCastTo<daq::IChannel>(component_))
+        {
+            // Channels collect all signals/input ports recursively (nested FBs don't get their own nodes)
+            for (const daq::SignalPtr& signal : function_block.getSignalsRecursive())
+                output_signals_.push_back({signal.getName().toStdString(), signal.getGlobalId().toStdString()});
+            for (const daq::InputPortPtr& input_port : function_block.getInputPorts(daq::search::Recursive(daq::search::Visible())))
+                input_ports_.push_back({input_port.getName().toStdString(), input_port.getGlobalId().toStdString()});
+        }
+        else
+        {
+            for (const daq::InputPortPtr& input_port : function_block.getInputPorts())
+                input_ports_.push_back({input_port.getName().toStdString(), input_port.getGlobalId().toStdString()});
+            for (const daq::SignalPtr& signal : function_block.getSignals())
+                output_signals_.push_back({signal.getName().toStdString(), signal.getGlobalId().toStdString()});
+        }
     }
     else if (canCastTo<daq::IDevice>(component_))
     {

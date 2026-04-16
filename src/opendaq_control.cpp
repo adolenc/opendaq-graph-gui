@@ -433,42 +433,60 @@ void OpenDAQNodeEditor::RetrieveTopology(daq::ComponentPtr component, std::strin
         else if (!parent_id.empty())
             cached->color_index_ = folders_[parent_id]->color_index_;
 
-        nodes_.AddNode({component.getName().toStdString(), component_id}, 
-                        GetNodeColor(cached->color_index_),
-                        cached->input_ports_,
-                        cached->output_signals_,
-                        parent_id);
-
-        // If this is a function block nested inside another function block, embed it
-        // (also covers FBs nested inside channels, since IChannel extends IFunctionBlock)
-        if (!parent_id.empty() && canCastTo<daq::IFunctionBlock>(component))
+        // FBs nested inside channels don't get their own nodes — their ports are already on the channel
+        bool is_fb_inside_channel = false;
+        if (!parent_id.empty() && canCastTo<daq::IFunctionBlock>(component) && !canCastTo<daq::IChannel>(component))
         {
             auto parent_it = folders_.find(parent_id);
-            if (parent_it != folders_.end() && canCastTo<daq::IFunctionBlock>(parent_it->second->component_))
-                nodes_.EmbedNode(component_id, parent_id);
+            if (parent_it != folders_.end() && canCastTo<daq::IChannel>(parent_it->second->component_))
+                is_fb_inside_channel = true;
         }
 
-        // Embed channels inside their parent device
-        if (!parent_id.empty() && canCastTo<daq::IChannel>(component))
+        if (is_fb_inside_channel)
         {
-            auto parent_it = folders_.find(parent_id);
-            if (parent_it != folders_.end() && canCastTo<daq::IDevice>(parent_it->second->component_))
-                nodes_.EmbedNode(component_id, parent_id);
+            // No node for this FB — ports were collected by the channel's RefreshStructure
+            new_parent_id = parent_id;
+            folders_[component_id] = cached;
         }
+        else
+        {
+            nodes_.AddNode({component.getName().toStdString(), component_id}, 
+                            GetNodeColor(cached->color_index_),
+                            cached->input_ports_,
+                            cached->output_signals_,
+                            parent_id);
 
-        if (!component.getActive())
-            nodes_.SetActive(component_id, false);
+            // If this is a function block nested inside another function block, embed it
+            // (also covers FBs nested inside channels, since IChannel extends IFunctionBlock)
+            if (!parent_id.empty() && canCastTo<daq::IFunctionBlock>(component))
+            {
+                auto parent_it = folders_.find(parent_id);
+                if (parent_it != folders_.end() && canCastTo<daq::IFunctionBlock>(parent_it->second->component_))
+                    nodes_.EmbedNode(component_id, parent_id);
+            }
 
-        UpdateSignalsActiveState(cached);
+            // Embed channels inside their parent device
+            if (!parent_id.empty() && canCastTo<daq::IChannel>(component))
+            {
+                auto parent_it = folders_.find(parent_id);
+                if (parent_it != folders_.end() && canCastTo<daq::IDevice>(parent_it->second->component_))
+                    nodes_.EmbedNode(component_id, parent_id);
+            }
 
-        cached->RefreshStatus();
-        if (!cached->error_message_.empty())
-            nodes_.SetError(component_id, cached->error_message_);
-        else if (!cached->warning_message_.empty())
-            nodes_.SetWarning(component_id, cached->warning_message_);
+            if (!component.getActive())
+                nodes_.SetActive(component_id, false);
 
-        new_parent_id = component_id;
-        folders_[component_id] = cached;
+            UpdateSignalsActiveState(cached);
+
+            cached->RefreshStatus();
+            if (!cached->error_message_.empty())
+                nodes_.SetError(component_id, cached->error_message_);
+            else if (!cached->warning_message_.empty())
+                nodes_.SetWarning(component_id, cached->warning_message_);
+
+            new_parent_id = component_id;
+            folders_[component_id] = cached;
+        }
     }
 
     if (canCastTo<daq::IFolder>(component))
@@ -509,9 +527,7 @@ void OpenDAQNodeEditor::RebuildNodeConnections(const std::string& node_id)
 {
     nodes_.ClearNodeConnections(node_id);
 
-    if (auto it = folders_.find(node_id); it != folders_.end())
-    {
-        CachedComponent* cached = it->second;
+    auto reconnect_ports = [&](CachedComponent* cached) {
         for (const auto& input_id_struct : cached->input_ports_)
         {
             std::string input_id = input_id_struct.id_;
@@ -526,6 +542,27 @@ void OpenDAQNodeEditor::RebuildNodeConnections(const std::string& node_id)
                     if (auto sig_it = signals_.find(signal_id); sig_it != signals_.end())
                         color = sig_it->second->GetSignalColor();
                     nodes_.AddConnection(signal_id, input_id, color);
+                }
+            }
+        }
+    };
+
+    if (auto it = folders_.find(node_id); it != folders_.end())
+    {
+        CachedComponent* cached = it->second;
+        reconnect_ports(cached);
+
+        // Also reconnect ports from hidden nested FBs (FBs inside channels whose ports are on this node)
+        if (canCastTo<daq::IChannel>(cached->component_))
+        {
+            for (const auto& [comp_id, comp] : all_components_)
+            {
+                if (comp->parent_.assigned() && comp->parent_ == cached->component_
+                    && canCastTo<daq::IFunctionBlock>(comp->component_)
+                    && !canCastTo<daq::IChannel>(comp->component_)
+                    && !nodes_.HasNode(comp_id))
+                {
+                    reconnect_ports(comp.get());
                 }
             }
         }
@@ -1602,6 +1639,15 @@ void OpenDAQNodeEditor::Render()
                         if (input_cached->parent_.assigned())
                         {
                             std::string node_id = input_cached->parent_.getGlobalId().toStdString();
+                            // If the parent FB has no node (hidden inside a channel), use the channel's node
+                            if (folders_.find(node_id) == folders_.end() || !nodes_.HasNode(node_id))
+                            {
+                                if (auto fb_it = all_components_.find(node_id); fb_it != all_components_.end())
+                                {
+                                    if (fb_it->second->parent_.assigned())
+                                        node_id = fb_it->second->parent_.getGlobalId().toStdString();
+                                }
+                            }
                             RebuildNodeConnections(node_id);
                         }
                     }
